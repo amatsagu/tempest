@@ -19,8 +19,6 @@ export async function prepareRequest(rest: Rest, method: HTTPMethod, route: stri
   if (bucketResetAt) {
     const currentTime = new Date().valueOf() / 1000;
     if (bucketResetAt > currentTime) {
-      console.log(`Detected cooldown! Waiting for next ${res.headers.get("x-ratelimit-reset-after")}s...`);
-      console.log([...res.headers.entries()].filter((a) => a[0].startsWith("x")));
       await new Promise(function (resolve) {
         setTimeout(resolve, ~~res.headers.get("x-ratelimit-reset-after")! * 1000 + rest.cooldownOffset);
       });
@@ -30,7 +28,7 @@ export async function prepareRequest(rest: Rest, method: HTTPMethod, route: stri
 
   const remaining = res.headers.get("x-ratelimit-remaining");
   if (remaining && ~~remaining == 0 && bucketHash) {
-    console.log(`Hit request limit for bucket: ${bucketHash}`);
+    console.log(`Hit request limit for bucket: ${bucketHash} (${~~res.headers.get("x-ratelimit-reset-after")!}s) at ${route}`);
     rest.buckets.set(bucketHash, ~~res.headers.get("x-ratelimit-reset")!);
   }
 
