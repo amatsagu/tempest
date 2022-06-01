@@ -1,19 +1,23 @@
 import { Rest } from "../typings/rest.d.ts";
-import { prepareRequest } from "./prepareRequest.ts";
+import { createRequest } from "./createRequest.ts";
 
 export function createRest(token: string): Rest {
   const rest: Rest = {
     token: token.startsWith("Bot") ? token : `Bot ${token}`,
-    /**
-     * Extra time offset (in ms) to wait for API cooldown.
-     * Set it above 1s (1000) if you experience rate limit problems.
-     * @default 1000
-     */
     cooldownOffset: 1000,
+    globalRequestLimit: 50,
     buckets: new Map<string, number>(),
     request: undefined!
   };
 
-  rest.request = prepareRequest.bind(undefined, rest);
+  // Sweep old buckets from rest cache (30s).
+  setInterval(function () {
+    const currentTime = new Date().valueOf() / 1000;
+    for (const bucket of rest.buckets.entries()) {
+      if (currentTime > bucket[1]) rest.buckets.delete(bucket[0]);
+    }
+  }, 30000);
+
+  rest.request = createRequest.bind(undefined, rest);
   return rest;
 }
