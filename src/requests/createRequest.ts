@@ -10,7 +10,6 @@ export async function createRequest(rest: Rest, method: HTTPMethod, route: strin
 
   reqs++;
   if (reqs + 1 >= rest.globalRequestLimit) {
-    console.log(`[REST] Hit max requests per second limit!`);
     if (currentTime < resetAt) {
       timeOffset += 4500 + rest.cooldownOffset;
       reqs = 0;
@@ -32,17 +31,14 @@ export async function createRequest(rest: Rest, method: HTTPMethod, route: strin
       });
 
       if (res.status == 429 || res.headers.get("x-ratelimit-global")) {
-        console.log(`[REST WARN] Reached global rate limit!`);
         setTimeout(function () {
           resolve(createRequest(rest, method, route, content, skipResponse));
         }, ~~res.headers.get("x-ratelimit-reset-after")! * 4500 + rest.cooldownOffset);
       }
 
       const remaining = res.headers.get("x-ratelimit-remaining");
-      if (remaining && ~~remaining == 0) {
-        console.log(`[REST] Hit request limit for route: ${route} (${~~res.headers.get("x-ratelimit-reset-after")!}s) at ${route}`);
-        rest.buckets.set(route, ~~res.headers.get("x-ratelimit-reset")! - currentTime / 1000 + 1000 + rest.cooldownOffset);
-      } else rest.buckets.delete(route);
+      if (remaining && ~~remaining == 0) rest.buckets.set(route, ~~res.headers.get("x-ratelimit-reset")! - currentTime / 1000 + 1000 + rest.cooldownOffset);
+      else rest.buckets.delete(route);
 
       // @ts-ignore Return nothing as requested.
       if (skipResponse || res.status == 204) resolve();
