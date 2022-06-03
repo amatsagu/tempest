@@ -4,6 +4,7 @@ import { createCommandHandler } from "./commandHandler.ts";
 import { hexToUint8Array } from "./util.ts";
 import { sign } from "../deps.ts";
 import { processCommandInteraction } from "./blueprints/incoming/commandInteraction.ts";
+import { processAutoCompleteInteraction } from "./blueprints/incoming/autoCompleteInteraction.ts";
 import { processCommandsToDiscordStandard } from "./blueprints/outgoing/command.ts";
 
 export function createClient<T extends Command>(options: ClientOptions): Client {
@@ -71,6 +72,21 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
           command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
           const allowed = onCommand(ctx, command);
           if (allowed) command.execute && command.execute(ctx, client).catch((res: Error) => console.error(res));
+
+          break;
+        }
+        // AUTO_COMPLETE
+        case 4: {
+          const command = commandHandler.get(payload.data.name);
+          if (!command) break;
+
+          const ctx = processAutoCompleteInteraction(payload, restRequest);
+          if (!ctx.value || ctx.value == "") break; // Avoid empty loops.
+
+          if (ctx.subCommand) {
+            const subcommand = command.subcommands[ctx.subCommand];
+            if (subcommand) subcommand.autoComplete?.(ctx, client);
+          } else command.autoComplete?.(ctx, client);
 
           break;
         }
