@@ -58,3 +58,17 @@ export function processCommand(cmd: Command, isSubcommand?: boolean): Record<str
 
   return payload;
 }
+
+export function processCommandsToDiscordStandard<T extends Command>(commands: ReadonlyArray<T & { subcommands: Record<string, T> }>) {
+  const payloads: any[] = [];
+
+  for (const command of commands) {
+    if (Object.keys(command).length == 0 && !command.execute) throw new TypeError(`SlashCommand@${command.name} needs to have "execute" field when there are no sub commands attached within main command.`);
+
+    const payload = processCommand(command);
+    for (const sub in command.subcommands) payload.options.push(processCommand(command.subcommands[sub], true));
+    payloads.push(payload);
+  }
+
+  return payloads;
+}

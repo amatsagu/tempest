@@ -1,5 +1,5 @@
 export type HTTPMethod = "GET" | "PUT" | "POST" | "HEAD" | "PATCH" | "TRACE" | "DELETE" | "OPTIONS" | "CONNECT";
-export type RestRequestMethod = (method: HTTPMethod, route: string, content?: Record<string, unknown>, skipResponse?: boolean) => Promise<Record<string, unknown>>;
+export type RestRequestMethod = (method: HTTPMethod, route: string, content?: Record<string, unknown> | Record<string, unknown>[], skipResponse?: boolean) => Promise<Record<string, unknown>>;
 
 export interface Rest {
   token: string;
