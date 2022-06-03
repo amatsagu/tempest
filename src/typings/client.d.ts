@@ -1,4 +1,6 @@
-import { Rest, RestRequestMethod } from "./rest.d.ts";
+import { CommandInteraction } from "./interaction.d.ts";
+import { Command } from "./command.d.ts";
+import { Rest } from "./rest.d.ts";
 import { User } from "./target.d.ts";
 import { SocketTls } from "./util.d.ts";
 
@@ -9,6 +11,8 @@ export interface ClientOptions {
   applicationId: bigint;
   /** Hash like key used to verify incoming payloads from Discord. */
   publicKey: string;
+  /** Your custom defined handler for slash commands. Return `true` to proceed or `false` to stop command execution. */
+  onCommand?: <T extends Command>(ctx: CommandInteraction, command: T) => Promise<boolean> | boolean;
 }
 
 export interface SyncOptions {
@@ -29,8 +33,6 @@ export interface SyncOptions {
 export interface Client {
   /** Your app/bot's user id. */
   applicationId: bigint;
-  /** Sends request to Discord API (v10^). */
-  request: RestRequestMethod;
   /** User bot object. Use this to get bot name, icon url, etc. It will be available after launching bot (after Client#listen). */
   user?: User;
   /** Measures latency (ping) by sending test payload to Discord API and waiting for return message. */

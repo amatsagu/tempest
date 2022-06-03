@@ -6,7 +6,7 @@ import { processMember } from "./member.ts";
 import { processUser } from "./user.ts";
 
 // Don't convert id into bigint because it has too short lifespan! (Not worth)
-export function processCommandInteraction(payload: Record<string, any>, request: RestRequestMethod): CommandInteraction {
+export function processCommandInteraction(payload: Record<string, any>, applicationId: bigint, request: RestRequestMethod): CommandInteraction {
   const options: Record<string, string | number> = {};
   let subCommand!: string;
   let acknowledged = false;
@@ -39,7 +39,7 @@ export function processCommandInteraction(payload: Record<string, any>, request:
 
       if (acknowledged) {
         data.wait = true;
-        await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
+        await request("POST", `/webhooks/${applicationId}/${payload.token}`, data, true);
       } else {
         acknowledged = true;
         await request("POST", `/interactions/${payload.id}/${payload.token}/callback`, { type: 4, data }, true);
@@ -50,18 +50,18 @@ export function processCommandInteraction(payload: Record<string, any>, request:
 
       const data = processContent(content);
       if (!data.flags && ephemeral) data.flags = 64;
-      await request("PATCH", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, data, true);
+      await request("PATCH", `/webhooks/${applicationId}/${payload.token}/messages/@original`, data, true);
     },
     async deleteReply() {
       if (!acknowledged) throw new Error("This interaction needs to be acknowledged first to later delete it.");
-      await request("DELETE", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, undefined, true);
+      await request("DELETE", `/webhooks/${applicationId}/${payload.token}/messages/@original`, undefined, true);
     },
     async sendFollowUp(content: Content, ephemeral?: boolean) {
       if (!acknowledged) throw new Error("This interaction needs to be acknowledged first to send follow up message.");
       const data = processContent(content);
       data.wait = true;
       if (!data.flags && ephemeral) data.flags = 64;
-      await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
+      await request("POST", `/webhooks/${applicationId}/${payload.token}`, data, true);
     }
   };
 }

@@ -3,13 +3,44 @@ import { Command } from "./typings/command.d.ts";
 import { createCommandHandler } from "./commandHandler.ts";
 import { hexToUint8Array } from "./util.ts";
 import { sign } from "../deps.ts";
+import { processCommandInteraction } from "./blueprints/incoming/commandInteraction.ts";
 import { processCommandsToDiscordStandard } from "./blueprints/outgoing/command.ts";
 
 export function createClient<T extends Command>(options: ClientOptions): Client {
   const commandHandler = createCommandHandler<T>();
-  const request = options.rest.request;
+  const restRequest = options.rest.request;
+  const applicationId = options.applicationId;
   const encoder = new TextEncoder();
   const key = hexToUint8Array(options.publicKey)!;
+
+  const onCommand =
+    options.onCommand ||
+    async function (ctx, cmd) {
+      return !cmd.execute;
+    };
+
+  const client: Client = {
+    applicationId,
+    async getLatency() {
+      const startedAt = new Date().valueOf();
+      await restRequest("GET", "/gateway", undefined, true); // This endpoint has no rate limits.
+      return new Date().valueOf() - startedAt;
+    },
+    async syncCommands(extra) {
+      const commands = extra && Array.isArray(extra.whitelist) ? commandHandler.filter((cmd) => extra.whitelist!.includes(cmd.name)) : commandHandler.getCached();
+
+      try {
+        if (extra?.guildId) await restRequest("PUT", `/applications/${options.applicationId}/guilds/${extra.guildId}/commands`, processCommandsToDiscordStandard(commands), true);
+        else await restRequest("PUT", `/applications/${options.applicationId}/commands`, processCommandsToDiscordStandard(commands), true);
+      } catch {
+        throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
+      }
+    },
+    async listen(port, encryption) {
+      const socket = encryption ? Deno.listenTls({ hostname: "0.0.0.0", transport: "tcp", port, ...encryption }) : Deno.listen({ hostname: "0.0.0.0", transport: "tcp", port });
+      for await (const connection of socket) handleConnection(connection);
+    }
+  };
 
   async function handleConnection(connection: Deno.Conn) {
     const http = Deno.serveHttp(connection);
@@ -27,36 +58,27 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
 
       const payload = JSON.parse(body);
       switch (payload.type) {
+        // PING
         case 1:
           respondWith(new Response('{"type": 1}', { headers: { "Content-Type": "application/json;" } }));
           break;
+        // APPLICATION_COMMAND
+        case 2: {
+          let command: any = commandHandler.get(payload.data.name);
+          if (!command) break;
+
+          const ctx = processCommandInteraction(payload, applicationId, restRequest);
+          command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
+          const allowed = onCommand(ctx, command);
+          if (allowed) command.execute && command.execute(ctx, client).catch((res: Error) => console.error(res));
+
+          break;
+        }
         default:
           console.log(payload);
       }
     }
   }
 
-  return {
-    applicationId: options.applicationId,
-    request,
-    async getLatency() {
-      const startedAt = new Date().valueOf();
-      await options.rest.request("GET", "/gateway", undefined, true); // This endpoint has no rate limits.
-      return new Date().valueOf() - startedAt;
-    },
-    async syncCommands(extra) {
-      const commands = extra && Array.isArray(extra.whitelist) ? commandHandler.filter((cmd) => extra.whitelist!.includes(cmd.name)) : commandHandler.getCached();
-
-      try {
-        if (extra?.guildId) await options.rest.request("PUT", `/applications/${options.applicationId}/guilds/${extra.guildId}/commands`, processCommandsToDiscordStandard(commands), true);
-        else await options.rest.request("PUT", `/applications/${options.applicationId}/commands`, processCommandsToDiscordStandard(commands), true);
-      } catch {
-        throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
-      }
-    },
-    async listen(port, encryption) {
-      const socket = encryption ? Deno.listenTls({ hostname: "0.0.0.0", transport: "tcp", port, ...encryption }) : Deno.listen({ hostname: "0.0.0.0", transport: "tcp", port });
-      for await (const connection of socket) handleConnection(connection);
-    }
-  };
+  return client;
 }
