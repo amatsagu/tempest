@@ -31,8 +31,6 @@ export function processCommandInteraction(payload: Record<string, any>, request:
     async defer(ephemeral?: boolean) {
       if (acknowledged) return;
       acknowledged = true;
-
-      // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
       await request("POST", `/interactions/${payload.id}/${payload.token}/callback`, { type: 5, data: { flags: ephemeral ? 64 : 0 } });
     },
     async sendReply(content: Content, ephemeral?: boolean) {
@@ -41,14 +39,9 @@ export function processCommandInteraction(payload: Record<string, any>, request:
 
       if (acknowledged) {
         data.wait = true;
-        try {
-          await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
-        } catch {
-          throw new Error("This interaction has expired. Interaction token remain valid only for first 15 minutes after being created.");
-        }
+        await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
       } else {
         acknowledged = true;
-        // CHANNEL_MESSAGE_WITH_SOURCE
         await request("POST", `/interactions/${payload.id}/${payload.token}/callback`, { type: 4, data }, true);
       }
     },
@@ -57,36 +50,18 @@ export function processCommandInteraction(payload: Record<string, any>, request:
 
       const data = processContent(content);
       if (!data.flags && ephemeral) data.flags = 64;
-
-      try {
-        await request("PATCH", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, data, true);
-      } catch {
-        throw new Error("This interaction has expired. Interaction token remain valid only for first 15 minutes after being created.");
-      }
+      await request("PATCH", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, data, true);
     },
     async deleteReply() {
       if (!acknowledged) throw new Error("This interaction needs to be acknowledged first to later delete it.");
-
-      try {
-        await request("DELETE", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, undefined, true);
-      } catch {
-        throw new Error("This interaction has expired. Interaction token remain valid only for first 15 minutes after being created.");
-      }
+      await request("DELETE", `/webhooks/${payload.clientId}/${payload.token}/messages/@original`, undefined, true);
     },
     async sendFollowUp(content: Content, ephemeral?: boolean) {
       if (!acknowledged) throw new Error("This interaction needs to be acknowledged first to send follow up message.");
-
       const data = processContent(content);
       data.wait = true;
-
       if (!data.flags && ephemeral) data.flags = 64;
-
-      try {
-        await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
-      } catch (err) {
-        throw new Error(err);
-        // throw new Error("This interaction has expired. Interaction token remain valid only for first 15 minutes after being created.");
-      }
+      await request("POST", `/webhooks/${payload.clientId}/${payload.token}`, data, true);
     }
   };
 }
