@@ -17,11 +17,12 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
   const onCommand =
     options.onCommand ||
     async function (ctx, cmd) {
-      return !cmd.execute;
+      return !!cmd.execute;
     };
 
   const client: Client = {
     applicationId,
+    commands: commandHandler,
     async getLatency() {
       const startedAt = new Date().valueOf();
       await restRequest("GET", "/gateway", undefined, true); // This endpoint has no rate limits.

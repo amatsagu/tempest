@@ -1,4 +1,4 @@
-import { Rest } from "../typings/rest.d.ts";
+import { Rest, RestRequestMethod } from "../typings/rest.d.ts";
 import { createRequest } from "./createRequest.ts";
 
 export function createRest(token: string): Rest {
@@ -18,6 +18,6 @@ export function createRest(token: string): Rest {
     }
   }, 30000);
 
-  rest.request = createRequest.bind(undefined, rest);
+  rest.request = createRequest.bind(undefined, rest) as RestRequestMethod;
   return rest;
 }

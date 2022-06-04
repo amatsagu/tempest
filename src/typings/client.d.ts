@@ -1,4 +1,5 @@
 import { CommandInteraction } from "./interaction.d.ts";
+import { CommandHandler } from "./commandHandler.d.ts";
 import { Command } from "./command.d.ts";
 import { Rest } from "./rest.d.ts";
 import { User } from "./target.d.ts";
@@ -33,6 +34,7 @@ export interface SyncOptions {
 export interface Client {
   /** Your app/bot's user id. */
   applicationId: bigint;
+  commands: CommandHandler<Command>;
   /** User bot object. Use this to get bot name, icon url, etc. It will be available after launching bot (after Client#listen). */
   user?: User;
   /** Measures latency (ping) by sending test payload to Discord API and waiting for return message. */

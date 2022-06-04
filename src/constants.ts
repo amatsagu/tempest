@@ -8,7 +8,7 @@ export const COMMAND_SCHEMA: Schema = {
     type: "string",
     min: 3,
     max: 32,
-    match: /^[-_\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/,
+    match: /^[\w-]{1,32}$/,
     filter: (arg) => arg.toLowerCase() === arg && !arg.includes(" "),
     required: true
   },
@@ -31,7 +31,7 @@ export const COMMAND_SCHEMA: Schema = {
           type: "string",
           min: 3,
           max: 32,
-          match: /^[-_\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/,
+          match: /^[\w-]{1,32}$/,
           filter: (arg) => arg.toLowerCase() === arg && !arg.includes(" "),
           required: true
         },
