@@ -34,7 +34,7 @@ How much?
 
 Deno uses Rust's Hyper crate for dealing with networking *([benchmark](https://deno.land/benchmarks#http-server-throughput))*.
 Average deno http server can handle around `40K req/sec on Windows` and about `70K req/sec on Linux`.
-Your app would need *(approximately)* `~300K discord guilds` to hit throughput issues.
+Assuming you use linux server - your app would need *(approximately)* `~300K discord guilds` to hit throughput issues.
 That's efficiency of `~120 gateway shards`!
 On top of that - single webhook will likely take far less resources than process with 60 ws sockets.
 Additionally - scalling discord apps is super easy. Just spawn new mirror process and link it with for example nginx's balanceloader.
