@@ -13,15 +13,15 @@ Library is already usable *(even used in production!)* but still misses a lot of
 
 ## Supported parts
 
-- [X]Webhook *(reversed rest api)* web server for receiving incoming payloads
-- [X](Slash) Command handler *(both normal & sub commands)*
-- [X]Button menus handler
-- [X]Button handler
-- [X]Creating/Editing/Deleting/Crossposting regular messages
-- [X]REST handler wish built-in rate limit protection
-- [X]Followes camelCase *(all Discord's snake_case payloads follows JS/TS standards)*
-- [X]Data compression to lower memory footprint *(ids are turn into bigints & some codes into hashes)*
-- [X]Helpful error messages when creating interactions
+- [X] Webhook *(reversed rest api)* web server for receiving incoming payloads
+- [X] (Slash) Command handler *(both normal & sub commands)*
+- [X] Button menus handler
+- [X] Button handler
+- [X] Creating/Editing/Deleting/Crossposting regular messages
+- [X] REST handler wish built-in rate limit protection
+- [X] Followes camelCase *(all Discord's snake_case payloads follows JS/TS standards)*
+- [X] Data compression to lower memory footprint *(ids are turn into bigints & some codes into hashes)*
+- [X] Helpful error messages when creating interactions
 - [ ] Select menus *(no way to handle created menus)*
 - [ ] User/Text messages commands
 - [ ] Modals
