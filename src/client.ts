@@ -8,6 +8,7 @@ import { processAutoCompleteInteraction } from "./blueprints/incoming/autoComple
 import { processCommandsToDiscordStandard } from "./blueprints/outgoing/command.ts";
 import { processUser } from "./blueprints/incoming/user.ts";
 import { processButtonInteraction } from "./blueprints/incoming/buttonInteraction.ts";
+import { processContent } from "./blueprints/outgoing/message.ts";
 
 export function createClient<T extends Command>(options: ClientOptions): Client {
   const commandHandler = createCommandHandler<T>();
@@ -30,6 +31,19 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
         buttonCollectors.set(code, { code, buttonIds, filter, resolve, resolvesAt: Date.now() + timeout });
         setTimeout(resolve, timeout);
       });
+    },
+    async sendMessage(channelId, content) {
+      const res = await restRequest("POST", `/channels/${channelId}/messages`, processContent(content));
+      return BigInt(res.id as string);
+    },
+    async editMessage(channelId, messageId, content) {
+      await restRequest("PATCH", `/channels/${channelId}/messages/${messageId}`, processContent(content), true);
+    },
+    async deleteMessage(channelId, messageId) {
+      await restRequest("DELETE", `/channels/${channelId}/messages/${messageId}`, undefined, true);
+    },
+    async crosspostMessage(channelId, messageId) {
+      await restRequest("POST", `/channels/${channelId}/messages/${messageId}/crosspost`, undefined, true);
     },
     async syncCommands(extra) {
       const commands = extra && Array.isArray(extra.whitelist) ? commandHandler.filter((cmd) => extra.whitelist!.includes(cmd.name)) : commandHandler.getCached();

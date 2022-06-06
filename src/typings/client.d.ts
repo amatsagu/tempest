@@ -1,8 +1,9 @@
 import { ButtonInteraction, CommandInteraction } from "./interaction.d.ts";
 import { CommandHandler } from "./commandHandler.d.ts";
+import { Target, User } from "./target.d.ts";
 import { Command } from "./command.d.ts";
 import { Rest } from "./rest.d.ts";
-import { Target, User } from "./target.d.ts";
+import { Content } from "./message.d.ts";
 
 export interface ClientOptions {
   /** The Rest Controller instance to use. */
@@ -53,6 +54,12 @@ export interface Client {
   syncCommands(options?: SyncOptions): Promise<void>;
   /** Creates promise that you can await to aknowledge moment when any of listened buttons gets clicked by matching target. It will resolve with no value after timeout. */
   listenButtons(buttonIds: string[], filter: (reactor: Target) => boolean, timeout?: number): Promise<ButtonInteraction | undefined>;
+  /** @returns {bigint} Id of created message. */
+  sendMessage(channelId: bigint, content: Content): Promise<bigint>;
+  editMessage(channelId: bigint, messageId: bigint, content: Content): Promise<void>;
+  deleteMessage(channelId: bigint, messageId: bigint): Promise<void>;
+  /** Publishes message if it was sent on Announcement Channel. */
+  crosspostMessage(channelId: bigint, messageId: bigint): Promise<void>;
   /** Triggers specified function on each slash command. */
   onCommand?: <T extends Command>(ctx: CommandInteraction, command: T & { execute: (ctx: CommandInteraction, client: Client) => Promise<any> | any }) => Promise<any> | any;
   /** Triggers specified function on button interaction that is not used by button collector. */
