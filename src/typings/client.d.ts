@@ -3,7 +3,6 @@ import { CommandHandler } from "./commandHandler.d.ts";
 import { Command } from "./command.d.ts";
 import { Rest } from "./rest.d.ts";
 import { User } from "./target.d.ts";
-import { SocketTls } from "./util.d.ts";
 
 export interface ClientOptions {
   /** The Rest Controller instance to use. */
@@ -12,8 +11,6 @@ export interface ClientOptions {
   applicationId: bigint;
   /** Hash like key used to verify incoming payloads from Discord. */
   publicKey: string;
-  /** Your custom defined handler for slash commands. Return `true` to proceed or `false` to stop command execution. */
-  onCommand?: <T extends Command>(ctx: CommandInteraction, command: T) => Promise<boolean> | boolean;
 }
 
 export interface SyncOptions {
@@ -46,6 +43,8 @@ export interface Client {
    * Local (per server) changes should be instant.
    * */
   syncCommands(options?: SyncOptions): Promise<void>;
+  /** Triggers specified function on each slash command. */
+  onCommand?: <T extends Command>(ctx: CommandInteraction, command: T & { execute: (ctx: CommandInteraction, client: Client) => Promise<any> | any }) => Promise<any> | any;
   /** Starts application to listen incoming requests on selected port. */
-  listen(port: number, encryption?: SocketTls): Promise<void>;
+  listen(port: number): Promise<void>;
 }

@@ -42,7 +42,7 @@ export async function createRequest(rest: Rest, method: HTTPMethod, route: strin
 
       // @ts-ignore Return nothing as requested.
       if (skipResponse || res.status == 204) resolve();
-      resolve(res.json());
+      else resolve(res.json());
     }, timeOffset);
   });
 }

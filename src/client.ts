@@ -6,19 +6,13 @@ import { sign } from "../deps.ts";
 import { processCommandInteraction } from "./blueprints/incoming/commandInteraction.ts";
 import { processAutoCompleteInteraction } from "./blueprints/incoming/autoCompleteInteraction.ts";
 import { processCommandsToDiscordStandard } from "./blueprints/outgoing/command.ts";
+import { processUser } from "./blueprints/incoming/user.ts";
 
 export function createClient<T extends Command>(options: ClientOptions): Client {
   const commandHandler = createCommandHandler<T>();
   const restRequest = options.rest.request;
   const applicationId = options.applicationId;
-  const encoder = new TextEncoder();
-  const key = hexToUint8Array(options.publicKey)!;
-
-  const onCommand =
-    options.onCommand ||
-    async function (ctx, cmd) {
-      return !!cmd.execute;
-    };
+  let running = false;
 
   const client: Client = {
     applicationId,
@@ -38,61 +32,74 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
         throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
       }
     },
-    async listen(port, encryption) {
-      const socket = encryption ? Deno.listenTls({ hostname: "0.0.0.0", transport: "tcp", port, ...encryption }) : Deno.listen({ hostname: "0.0.0.0", transport: "tcp", port });
-      for await (const connection of socket) handleConnection(connection);
+    async listen(port) {
+      if (running) throw new Error("Client's web server is already running!");
+      running = true;
+      this.user = processUser(await restRequest("GET", `/users/${applicationId}`));
+      initSocket(port);
     }
   };
 
-  async function handleConnection(connection: Deno.Conn) {
-    const http = Deno.serveHttp(connection);
+  async function initSocket(port: number) {
+    const socket = Deno.listen({ hostname: "0.0.0.0", port, transport: "tcp" });
+    const key = hexToUint8Array(options.publicKey)!;
+    const encoder = new TextEncoder();
 
-    for await (const { request, respondWith } of http) {
-      if (request.method != "POST") continue;
+    while (true) {
+      try {
+        const http = Deno.serveHttp(await socket.accept());
+        const event = await http.nextRequest();
+        if (!event || event.request.method != "POST") continue;
 
-      const signature = hexToUint8Array(request.headers.get("X-Signature-Ed25519")!);
-      const timestamp = request.headers.get("X-Signature-Timestamp")!;
-      if (!signature || !timestamp) continue;
+        const req = event.request;
+        const signature = hexToUint8Array(req.headers.get("X-Signature-Ed25519")!);
+        const timestamp = req.headers.get("X-Signature-Timestamp")!;
+        if (!signature || !timestamp) continue;
 
-      const body = await request.text();
-      const valid = sign.detached.verify(encoder.encode(timestamp + body), signature, key);
-      if (!valid) continue;
+        const body = await req.text();
+        const valid = sign.detached.verify(encoder.encode(timestamp + body), signature, key);
+        if (!valid) continue;
 
-      const payload = JSON.parse(body);
-      switch (payload.type) {
-        // PING
-        case 1:
-          respondWith(new Response('{"type": 1}', { headers: { "Content-Type": "application/json;" } }));
-          break;
-        // APPLICATION_COMMAND
-        case 2: {
-          let command: any = commandHandler.get(payload.data.name);
-          if (!command) break;
+        const payload = JSON.parse(body);
+        switch (payload.type) {
+          // PING
+          case 1:
+            event.respondWith(new Response('{"type": 1}', { headers: { "Content-Type": "application/json;" } }));
+            break;
+          // APPLICATION_COMMAND
+          case 2: {
+            let command: any = commandHandler.get(payload.data.name);
+            if (!command) break;
 
-          const ctx = processCommandInteraction(payload, applicationId, restRequest);
-          command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
-          const allowed = onCommand(ctx, command);
-          if (allowed) command.execute && command.execute(ctx, client).catch((res: Error) => console.error(res));
+            const ctx = processCommandInteraction(payload, applicationId, restRequest);
+            command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
+            command.execute && client.onCommand && client.onCommand(ctx, command);
 
-          break;
+            break;
+          }
+          // AUTO_COMPLETE
+          case 4: {
+            let command = commandHandler.get(payload.data.name);
+            if (!command) break;
+
+            const ctx = processAutoCompleteInteraction(payload, restRequest);
+            if (!ctx.value || ctx.value == "") break; // Avoid empty loops.
+
+            if (ctx.subCommand) {
+              const subcommand = command.subcommands[ctx.subCommand];
+              if (subcommand) subcommand.autoComplete?.(ctx, client);
+            } else command.autoComplete?.(ctx, client);
+
+            break;
+          }
+          default: {
+            console.log(payload);
+          }
         }
-        // AUTO_COMPLETE
-        case 4: {
-          const command = commandHandler.get(payload.data.name);
-          if (!command) break;
-
-          const ctx = processAutoCompleteInteraction(payload, restRequest);
-          if (!ctx.value || ctx.value == "") break; // Avoid empty loops.
-
-          if (ctx.subCommand) {
-            const subcommand = command.subcommands[ctx.subCommand];
-            if (subcommand) subcommand.autoComplete?.(ctx, client);
-          } else command.autoComplete?.(ctx, client);
-
-          break;
-        }
-        default:
-          console.log(payload);
+      } catch (err) {
+        const type = err.constructor;
+        // @ts-ignore Unstable Deno core...
+        if (type !== Deno.core.Interrupted && type !== Deno.core.BadResource) throw err;
       }
     }
   }
