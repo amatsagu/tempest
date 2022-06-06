@@ -55,6 +55,10 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
         throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
       }
     },
+    async onCommand(ctx, _command) {
+      await ctx.sendReply("Rejected action because your Client#onCommand handler is still not configured!", true);
+      throw new Error(`Received ${ctx.command}${ctx.subCommand ? `@${ctx.subCommand} subcommand` : " command"} but it got rejected because your Client#onCommand handler is not yet configured!`);
+    },
     async launch(port) {
       if (running) throw new Error("Client's web server is already running!");
       running = true;
