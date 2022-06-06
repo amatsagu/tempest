@@ -13,19 +13,19 @@ Library is already usable *(even used in production!)* but still misses a lot of
 
 ## Supported parts
 
-[X] - Webhook *(reversed rest api)* web server for receiving incoming payloads
-[X] - (Slash) Command handler *(both normal & sub commands)*
-[X] - Button menus handler
-[X] - Button handler
-[X] - Creating/Editing/Deleting/Crossposting regular messages
-[X] - REST handler wish built-in rate limit protection
-[X] - Followes camelCase *(all Discord's snake_case payloads follows JS/TS standards)*
-[X] - Data compression to lower memory footprint *(ids are turn into bigints & some codes into hashes)*
-[X] - Helpful error messages when creating interactions
-[ ] - Select menus *(no way to handle created menus)*
-[ ] - User/Text messages commands
-[ ] - Modals
-[ ] - Multi-language support
+- [X]Webhook *(reversed rest api)* web server for receiving incoming payloads
+- [X](Slash) Command handler *(both normal & sub commands)*
+- [X]Button menus handler
+- [X]Button handler
+- [X]Creating/Editing/Deleting/Crossposting regular messages
+- [X]REST handler wish built-in rate limit protection
+- [X]Followes camelCase *(all Discord's snake_case payloads follows JS/TS standards)*
+- [X]Data compression to lower memory footprint *(ids are turn into bigints & some codes into hashes)*
+- [X]Helpful error messages when creating interactions
+- [ ] Select menus *(no way to handle created menus)*
+- [ ] User/Text messages commands
+- [ ] Modals
+- [ ] Multi-language support
 
 ## Performance
 Tempest is interaction focused library for Discord apps.
@@ -34,7 +34,8 @@ How much?
 
 Deno uses Rust's Hyper crate for dealing with networking *([benchmark](https://deno.land/benchmarks#http-server-throughput))*.
 Average deno http server can handle around `40K req/sec on Windows` and about `70K req/sec on Linux`.
-Your app would need to be on approximately `~300K discord guilds` to hit throughput issues which means it has similar efficiency compared to `~120 gateway shards`.
+Your app would need *(approximately)* `~300K discord guilds` to hit throughput issues.
+That's efficiency of `~120 gateway shards`!
 On top of that - single webhook will likely take far less resources than process with 60 ws sockets.
 Additionally - scalling discord apps is super easy. Just spawn new mirror process and link it with for example nginx's balanceloader.
 Scalling gateway based bot can be a nightmare.
