@@ -1,8 +1,8 @@
-import { CommandInteraction } from "./interaction.d.ts";
+import { ButtonInteraction, CommandInteraction } from "./interaction.d.ts";
 import { CommandHandler } from "./commandHandler.d.ts";
 import { Command } from "./command.d.ts";
 import { Rest } from "./rest.d.ts";
-import { User } from "./target.d.ts";
+import { Target, User } from "./target.d.ts";
 
 export interface ClientOptions {
   /** The Rest Controller instance to use. */
@@ -20,12 +20,20 @@ export interface SyncOptions {
    * **Warning!** While it's good for developing new commands, remember that you may create duplicates by mistake.
    * Discord global & local (per server) commands are counted differently and you may see 2x the same commands in specific guild(s).
    * */
-  readonly guildId?: bigint;
+  guildId?: bigint;
   /**
    * Include only listed commands. Syncing process gonna first erase all commands and add **only** those whose names you added into this array.
    * In order to "reset", provide empty array, that will delete all commands cached by discord.
    */
-  readonly whitelist?: string[];
+  whitelist?: string[];
+}
+
+export interface AwaitButtonBucket {
+  code: string;
+  buttonIds: string[];
+  filter(reactor: Target): boolean;
+  resolve: Function;
+  resolvesAt: number;
 }
 
 export interface Client {
@@ -43,8 +51,12 @@ export interface Client {
    * Local (per server) changes should be instant.
    * */
   syncCommands(options?: SyncOptions): Promise<void>;
+  /** Creates promise that you can await to aknowledge moment when any of listened buttons gets clicked by matching target. It will resolve with no value after timeout. */
+  listenButtons(buttonIds: string[], filter: (reactor: Target) => boolean, timeout?: number): Promise<ButtonInteraction | undefined>;
   /** Triggers specified function on each slash command. */
   onCommand?: <T extends Command>(ctx: CommandInteraction, command: T & { execute: (ctx: CommandInteraction, client: Client) => Promise<any> | any }) => Promise<any> | any;
+  /** Triggers specified function on button interaction that is not used by button collector. */
+  onButton?: (ctx: ButtonInteraction) => Promise<any> | any;
   /** Starts application to listen incoming requests on selected port. */
-  listen(port: number): Promise<void>;
+  launch(port: number): Promise<void>;
 }

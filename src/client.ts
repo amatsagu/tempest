@@ -1,4 +1,4 @@
-import { ClientOptions, Client } from "./typings/client.d.ts";
+import { ClientOptions, Client, AwaitButtonBucket } from "./typings/client.d.ts";
 import { Command } from "./typings/command.d.ts";
 import { createCommandHandler } from "./commandHandler.ts";
 import { hexToUint8Array } from "./util.ts";
@@ -7,11 +7,13 @@ import { processCommandInteraction } from "./blueprints/incoming/commandInteract
 import { processAutoCompleteInteraction } from "./blueprints/incoming/autoCompleteInteraction.ts";
 import { processCommandsToDiscordStandard } from "./blueprints/outgoing/command.ts";
 import { processUser } from "./blueprints/incoming/user.ts";
+import { processButtonInteraction } from "./blueprints/incoming/buttonInteraction.ts";
 
 export function createClient<T extends Command>(options: ClientOptions): Client {
   const commandHandler = createCommandHandler<T>();
   const restRequest = options.rest.request;
   const applicationId = options.applicationId;
+  const buttonCollectors = new Map<string, AwaitButtonBucket>();
   let running = false;
 
   const client: Client = {
@@ -21,6 +23,13 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
       const startedAt = new Date().valueOf();
       await restRequest("GET", "/gateway", undefined, true); // This endpoint has no rate limits.
       return new Date().valueOf() - startedAt;
+    },
+    async listenButtons(buttonIds, filter, timeout = 60000) {
+      return new Promise((resolve) => {
+        const code = buttonIds.join("-");
+        buttonCollectors.set(code, { code, buttonIds, filter, resolve, resolvesAt: Date.now() + timeout });
+        setTimeout(resolve, timeout);
+      });
     },
     async syncCommands(extra) {
       const commands = extra && Array.isArray(extra.whitelist) ? commandHandler.filter((cmd) => extra.whitelist!.includes(cmd.name)) : commandHandler.getCached();
@@ -32,7 +41,7 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
         throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
       }
     },
-    async listen(port) {
+    async launch(port) {
       if (running) throw new Error("Client's web server is already running!");
       running = true;
       this.user = processUser(await restRequest("GET", `/users/${applicationId}`));
@@ -74,6 +83,32 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
             const ctx = processCommandInteraction(payload, applicationId, restRequest);
             command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
             command.execute && client.onCommand && client.onCommand(ctx, command);
+
+            break;
+          }
+          // MESSAGE_COMPONENT (BUTTON, SELECT MENU, ETC.)
+          case 3: {
+            // BUTTON
+            if (payload.data.component_type == 2 && payload.data.custom_id) {
+              const iter = buttonCollectors.values();
+              let collector!: AwaitButtonBucket;
+
+              for (const v of iter) {
+                if (v.buttonIds.includes(payload.data.custom_id)) collector = v;
+              }
+
+              const button = processButtonInteraction(payload, restRequest);
+              if (!collector) {
+                client.onButton && client.onButton(button);
+                break;
+              }
+
+              if (collector.filter(button.target)) {
+                buttonCollectors.delete(collector.code);
+                button.acknowledge();
+                collector.resolve(button);
+              }
+            }
 
             break;
           }
