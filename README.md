@@ -26,6 +26,7 @@ Library is already usable _(even used in production!)_ but still misses a lot of
 - [ ] User/Text messages commands
 - [ ] Modals
 - [ ] Multi-language support
+- [ ] Sending/receiving files
 
 ## Performance
 
