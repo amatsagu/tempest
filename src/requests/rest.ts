@@ -1,5 +1,5 @@
 import { Rest, RestRequestMethod } from "../typings/rest.d.ts";
-import { createRequest } from "./createRequest.ts";
+import { createRequest } from "./request.ts";
 
 export function createRest(token: string): Rest {
   const rest: Rest = {
