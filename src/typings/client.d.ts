@@ -12,6 +12,21 @@ export interface ClientOptions {
   applicationId: bigint;
   /** Hash like key used to verify incoming payloads from Discord. */
   publicKey: string;
+  /** Settings related to cooldown on commands. Leave this object undefined to disable cooldowns. */
+  cooldown?: {
+    /** The cooldown between command usage in milliseconds. */
+    duration: number;
+    /** An array of user IDs representing users that are not affected by cooldowns. */
+    exclusedUserIds?: Set<bigint>;
+    /** A function that returns a string or Content to return to user. */
+    cooldownMessage: (target: Target, timeLeft: number) => Content;
+    /** Whether message should appear only for rate limited user. */
+    hidden?: boolean;
+    /** Whether or not to restart a command's cooldown every time it's used. */
+    restartCooldown?: boolean;
+    /** The maximum amount of commands to execute before sweeping cooldown cache. Setting it too low may cause extra lag and too high lead to unnecessary memory usage. It's recommended to set somewhere between 100 and 1000 based on how frequently your application is used. */
+    maxCommandsBeforeSweep: number;
+  };
 }
 
 export interface SyncOptions {
@@ -62,8 +77,8 @@ export interface Client {
   crosspostMessage(channelId: bigint, messageId: bigint): Promise<void>;
   /** Triggers specified function on each slash command. */
   onCommand?: <T extends Command>(ctx: CommandInteraction, command: T & { execute: (ctx: CommandInteraction, client: Client) => Promise<any> | any }) => Promise<any> | any;
-  /** Triggers specified function on button interaction that is not used by button collector. */
-  onButton?: (ctx: ButtonInteraction) => Promise<any> | any;
+  /** Emits all unused component payloads. */
+  onInteractionComponent?: (ctx: ButtonInteraction) => Promise<any> | any;
   /** Starts application to listen incoming requests on selected port. */
   launch(port: number): Promise<void>;
 }

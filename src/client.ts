@@ -15,7 +15,10 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
   const restRequest = options.rest.request;
   const applicationId = options.applicationId;
   const buttonCollectors = new Map<string, AwaitButtonBucket>();
+  const cdr = options.cooldown;
+  const cooldowns = (cdr && new Map<bigint, number>()) as Map<bigint, number>;
   let running = false;
+  let cdrTrg = 0; // Trigger cooldowns cache to be bleaned every XXX commands.
 
   const client: Client = {
     applicationId,
@@ -49,8 +52,8 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
       const commands = extra && Array.isArray(extra.whitelist) ? commandHandler.filter((cmd) => extra.whitelist!.includes(cmd.name)) : commandHandler.getCached();
 
       try {
-        if (extra?.guildId) await restRequest("PUT", `/applications/${options.applicationId}/guilds/${extra.guildId}/commands`, processCommandsToDiscordStandard(commands), true);
-        else await restRequest("PUT", `/applications/${options.applicationId}/commands`, processCommandsToDiscordStandard(commands), true);
+        if (extra?.guildId) await restRequest("PUT", `/applications/${applicationId}/guilds/${extra.guildId}/commands`, processCommandsToDiscordStandard(commands), true);
+        else await restRequest("PUT", `/applications/${applicationId}/commands`, processCommandsToDiscordStandard(commands), true);
       } catch {
         throw new Error("Failed to bulk update discord cache. Your app probably reached limit of 100 global command updates per day, try again later.");
       }
@@ -100,8 +103,24 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
 
             const ctx = processCommandInteraction(payload, applicationId, restRequest);
             command = ctx.subCommand ? command.subcommands[ctx.subCommand] : command;
-            command.execute && client.onCommand && client.onCommand(ctx, command);
 
+            if (cdr && !cdr.exclusedUserIds?.has(ctx.target.id)) {
+              const now = Date.now();
+              let resv = cooldowns.get(ctx.target.id) ?? 0;
+              const timeLeft = resv - now;
+
+              if (timeLeft > 0) {
+                if (cdr.restartCooldown) cooldowns.set(ctx.target.id, now + cdr.duration);
+                ctx.sendReply(cdr.cooldownMessage(ctx.target, cdr.restartCooldown ? cdr.duration : timeLeft), cdr.hidden);
+                break;
+              } else {
+                cdrTrg++;
+                if (cdrTrg % cdr.maxCommandsBeforeSweep == 0) cooldowns.clear(); // To simplify - just clear all no matter whether it was expired or not.
+                cooldowns.set(ctx.target.id, now + cdr.duration);
+              }
+            }
+
+            command.execute && client.onCommand && client.onCommand(ctx, command);
             break;
           }
           // MESSAGE_COMPONENT (BUTTON, SELECT MENU, ETC.)
@@ -116,10 +135,7 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
               }
 
               const button = processButtonInteraction(payload, restRequest);
-              if (!collector) {
-                client.onButton && client.onButton(button);
-                break;
-              }
+              if (!collector) break;
 
               if (collector.filter(button.target)) {
                 buttonCollectors.delete(collector.code);
@@ -128,6 +144,7 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
               }
             }
 
+            if (client.onInteractionComponent) client.onInteractionComponent(payload);
             break;
           }
           // AUTO_COMPLETE

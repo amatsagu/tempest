@@ -8,3 +8,5 @@ export * from "./src/typings/interaction.d.ts";
 export * from "./src/typings/message.d.ts";
 export * from "./src/typings/rest.d.ts";
 export * from "./src/typings/target.d.ts";
+export * from "./src/blueprints/incoming/user.ts";
+export * from "./src/blueprints/incoming/member.ts";
