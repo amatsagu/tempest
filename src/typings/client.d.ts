@@ -24,8 +24,11 @@ export interface ClientOptions {
     hidden?: boolean;
     /** Whether or not to restart a command's cooldown every time it's used. */
     restartCooldown?: boolean;
-    /** The maximum amount of commands to execute before sweeping cooldown cache. Setting it too low may cause extra lag and too high lead to unnecessary memory usage. It's recommended to set somewhere between 100 and 1000 based on how frequently your application is used. */
-    maxCommandsBeforeSweep: number;
+    /**
+     * The maximum amount of commands to execute before sweeping cooldown cache. Setting it too low may cause extra lag and too high lead to unnecessary memory usage. It's recommended to set somewhere between 100 and 5000 based on how frequently your application is used.
+     * @default 100
+     * */
+    maxCommandsBeforeSweep?: number;
   };
 }
 

@@ -15,7 +15,7 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
   const restRequest = options.rest.request;
   const applicationId = options.applicationId;
   const buttonCollectors = new Map<string, AwaitButtonBucket>();
-  const cdr = options.cooldown;
+  const cdr = options.cooldown ? { maxCommandsBeforeSweep: 100, ...options.cooldown } : undefined;
   const cooldowns = (cdr && new Map<bigint, number>()) as Map<bigint, number>;
   let running = false;
   let cdrTrg = 0; // Trigger cooldowns cache to be bleaned every XXX commands.
@@ -37,6 +37,7 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
     },
     async sendMessage(channelId, content) {
       const res = await restRequest("POST", `/channels/${channelId}/messages`, processContent(content));
+      if (!res || !res.id) console.log(res);
       return BigInt(res.id as string);
     },
     async editMessage(channelId, messageId, content) {
@@ -161,9 +162,6 @@ export function createClient<T extends Command>(options: ClientOptions): Client 
             } else command.autoComplete?.(ctx, client);
 
             break;
-          }
-          default: {
-            console.log(payload);
           }
         }
       } catch (err) {

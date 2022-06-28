@@ -5,8 +5,8 @@ export interface Rest {
   token: string;
   /**
    * Extra time offset (in ms) to wait for API cooldown.
-   * Set it above 1s (1000) if you experience rate limit problems.
-   * @default 1000
+   * Set it above 2.5s (2500) if you experience rate limit problems.
+   * @default 2500
    */
   cooldownOffset: number;
   /**
@@ -15,6 +15,11 @@ export interface Rest {
    * @default 50
    */
   globalRequestLimit: number;
+  /**
+   * The maximum amount of commands to execute before sweeping cooldown cache. Setting it too low may cause extra lag and too high lead to unnecessary memory usage. It's recommended to set somewhere between 100 and 5000 based on how frequently your application is used.
+   * @default 100
+   */
+  maxRequestsBeforeSweep: number;
   /** Contains all bucket hashes (received from Discord API) that are waiting on cooldown. Mapped with timestamp after which bucket will return from cooldown. */
   buckets: Map<string, number>;
   request: RestRequestMethod;
