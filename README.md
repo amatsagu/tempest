@@ -9,8 +9,6 @@
 - No cache by default,
 - Fully typed,
 
-Library is already usable (even used in production!) but still misses a lot of elements:
-
 ## Supported parts
 
 - [x] Webhook web server for receiving incoming payloads
