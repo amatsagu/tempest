@@ -22,7 +22,8 @@
 - [x] Select menus
 - [ ] User/Text messages commands
 - [ ] Modals
-❌ Multi-language support
+
+❌ Multi-language support<br />
 ❌ Sending/receiving files
 
 Elements with red cross won't be supported in this library because they would make code far more complex and barely
