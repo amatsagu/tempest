@@ -1,3 +1,5 @@
 .*
 !.gitignore
 test/
+test/main.go
+./test/main.go
