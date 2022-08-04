@@ -1,0 +1,95 @@
+package tempest
+
+type InteractionType uint8
+
+const (
+	PING_TYPE InteractionType = iota + 1
+	APPLICATION_COMMAND_TYPE
+	MESSAGE_COMPONENT_TYPE
+	APPLICATION_COMMAND_AUTO_COMPLETE_TYPE
+	MODAL_SUBMIT_TYPE
+)
+
+type ResponseType uint8
+
+const (
+	PONG_RESPONSE ResponseType = iota + 1
+	ACKNOWLEDGE_RESPONSE
+	CHANNEL_MESSAGE_RESPONSE
+	CHANNEL_MESSAGE_WITH_SOURCE
+	ACKNOWLEDGE_WITH_SOURCE_RESPONSE
+)
+
+type Interaction struct {
+	Id              Snowflake        `json:"id"`
+	ApplicationId   Snowflake        `json:"application_id"`
+	Type            InteractionType  `json:"type"`
+	Data            *InteractionData `json:"data,omitempty"`
+	GuildID         Snowflake        `json:"guild_id,omitempty"`
+	ChannelID       Snowflake        `json:"channel_id,omitempty"`
+	Member          *Member          `json:"member,omitempty"`
+	User            *User            `json:"user,omitempty"`
+	Token           string           `json:"token"`                  // Continuation token for responding to the interaction. It's not the same as bot/app token!
+	Version         uint8            `json:"version"`                // Read-only property, always = 1.
+	Message         *Message         `json:"message,omitempty"`      // For components, the message they were attached to.
+	PermissionFlags uint64           `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
+	Locale          string           `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale     string           `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+
+	client *client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
+}
+
+type InteractionData struct {
+	Id       Snowflake            `json:"id"`
+	Name     string               `json:"name"`
+	Type     CommandType          `json:"type"`
+	Options  []*InteractionOption `json:"options,omitempty"`
+	GuildId  Snowflake            `json:"guild_id,omitempty"`
+	TargetId Snowflake            `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
+
+	// There's also "resolved" object which contains all converted users + roles + channels + attachments but it's hardly ever used so it got skipped.
+	// If you really need this then feel free to make a pull request with it:
+	// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
+}
+
+type InteractionOption struct {
+	Name    string               `json:"name"`
+	Value   any                  `json:"value,omitempty"`
+	Type    OptionType           `json:"type"`
+	Options []*InteractionOption `json:"options,omitempty"`
+	Focused bool                 `json:"focused,omitempty"` // Will be set to "true" if this option is the currently focused option for autocomplete.
+}
+
+// Similar to Message struct but used only for replying on interactions (mostly commands).
+type Response struct {
+	Type ResponseType `json:"type"`
+	Data ResponseData `json:"data,omitempty"`
+}
+
+// Similar to Message struct - check: https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
+type ResponseData struct {
+	TTS        bool         `json:"tts,omitempty"`
+	Content    string       `json:"content,omitempty"`
+	Embeds     []*Embed     `json:"embeds,omitempty"`
+	Components []*Component `json:"components,omitempty"`
+	Flags      uint64       `json:"flags,omitempty"`
+
+	// Skipped never used fields from serialization.
+}
+
+// Returns value of any type. Check second value to check whether option was provided or not (true if yes).
+// Use this method when working with Command-like interactions.
+func (interaction Interaction) GetOptionValue(name string) (any, bool) {
+	options := interaction.Data.Options
+	if len(options) == 0 {
+		return nil, false
+	}
+
+	for _, option := range options {
+		if option.Name == name {
+			return option.Value, true
+		}
+	}
+
+	return nil, false
+}
