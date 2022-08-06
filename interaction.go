@@ -18,6 +18,9 @@ const (
 	CHANNEL_MESSAGE_RESPONSE
 	CHANNEL_MESSAGE_WITH_SOURCE
 	ACKNOWLEDGE_WITH_SOURCE_RESPONSE
+	_
+	_
+	ACKNOWLEDGE_WITH_CHOICES
 )
 
 type Interaction struct {
@@ -75,4 +78,15 @@ type ResponseData struct {
 	Flags      uint64       `json:"flags,omitempty"`
 
 	// Skipped never used fields from serialization.
+}
+
+// Unique to auto complete interaction.
+type ResponseChoice struct {
+	Type ResponseType       `json:"type"`
+	Data ResponseChoiceData `json:"data,omitempty"`
+}
+
+// Unique to auto complete interaction.
+type ResponseChoiceData struct {
+	Choices []Choice `json:"choices,omitempty"`
 }

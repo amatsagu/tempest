@@ -6,11 +6,7 @@ import (
 )
 
 type CommandInteraction Interaction
-
-type ResponseWithFollow struct {
-	*ResponseData
-	Wait bool `json:"wait"`
-}
+type AutoCompleteInteraction Interaction
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
 // Use this method when working with Command-like interactions.
@@ -148,4 +144,17 @@ func (ctx CommandInteraction) DeleteFollowUp(messageId Snowflake, content Respon
 		return err
 	}
 	return nil
+}
+
+// Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
+func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
+	options := ctx.Data.Options
+
+	for _, option := range options {
+		if option.Focused {
+			return option.Name, option.Value
+		}
+	}
+
+	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
 }

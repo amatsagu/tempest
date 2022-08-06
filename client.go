@@ -217,31 +217,21 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	interaction.Client = &client // Bind access to client instance which is needed for methods.
 	switch interaction.Type {
 	case PING_TYPE:
-		// io.WriteString(w, `{"type":1}`)
 		w.Write([]byte(`{"type":1}`))
 		return
 	case APPLICATION_COMMAND_TYPE:
-		ctx := CommandInteraction(interaction)
-		command := func() Command {
-			if len(interaction.Data.Options) != 0 && interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
-				rootName := interaction.Data.Name
-				ctx.Data.Name, ctx.Data.Options = interaction.Data.Options[0].Name, interaction.Data.Options[0].Options
-				return client.commands[rootName][ctx.Data.Name]
-			} else {
-				return client.commands[interaction.Data.Name]["-"]
-			}
-		}()
-
-		if command.Name == "" {
+		command, interaction, exists := client.getCommand(interaction)
+		if !exists {
 			terminateCommandInteraction(w)
 			return
 		}
 
-		if ctx.GuildID == 0 && !command.AvailableInDM {
+		if interaction.GuildID == 0 && !command.AvailableInDM {
 			w.WriteHeader(http.StatusNoContent)
 			return // Stop execution since this command doesn't want to be used inside DM.
 		}
 
+		ctx := CommandInteraction(interaction)
 		if client.preCommandExecutionHandler != nil {
 			content := client.preCommandExecutionHandler(ctx)
 			if content != nil {
@@ -263,9 +253,57 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusNoContent)
 		command.SlashCommandHandler(ctx)
 		return
+	case MESSAGE_COMPONENT_TYPE:
+		if client.interactionHandler != nil {
+			client.interactionHandler(interaction)
+		}
+
+		return
+	case APPLICATION_COMMAND_AUTO_COMPLETE_TYPE:
+		command, interaction, exists := client.getCommand(interaction)
+		if !exists || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		choices := command.AutoCompleteHandler(AutoCompleteInteraction(interaction))
+		body, err := json.Marshal(ResponseChoice{
+			Type: ACKNOWLEDGE_WITH_CHOICES,
+			Data: ResponseChoiceData{
+				Choices: choices,
+			},
+		})
+
+		if err != nil {
+			panic("failed to parse payload received from client's \"auto complete\" handler (make sure it's in JSON format)")
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(body)
+		return
 	default:
 		if client.interactionHandler != nil {
 			client.interactionHandler(interaction)
 		}
 	}
+}
+
+// Returns command, subcommand, a command context (updated interaction) and bool to check whether it suceeded and is safe to use.
+func (client client) getCommand(interaction Interaction) (Command, Interaction, bool) {
+	if len(interaction.Data.Options) != 0 && interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
+		rootName := interaction.Data.Name
+		interaction.Data.Name, interaction.Data.Options = interaction.Data.Options[0].Name, interaction.Data.Options[0].Options
+		command, exists := client.commands[rootName][interaction.Data.Name]
+		if !exists {
+			return Command{}, interaction, false
+		}
+		return command, interaction, true
+	}
+
+	command, exists := client.commands[interaction.Data.Name]["-"]
+	if !exists {
+		return Command{}, interaction, false
+	}
+
+	return command, interaction, true
 }
