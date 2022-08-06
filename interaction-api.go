@@ -12,6 +12,23 @@ type ResponseWithFollow struct {
 	Wait bool `json:"wait"`
 }
 
+// Returns value of any type. Check second value to check whether option was provided or not (true if yes).
+// Use this method when working with Command-like interactions.
+func (ctx CommandInteraction) GetOptionValue(name string) (any, bool) {
+	options := ctx.Data.Options
+	if len(options) == 0 {
+		return nil, false
+	}
+
+	for _, option := range options {
+		if option.Name == name {
+			return option.Value, true
+		}
+	}
+
+	return nil, false
+}
+
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
 func (ctx CommandInteraction) Defer(ephemeral bool) error {
@@ -21,7 +38,7 @@ func (ctx CommandInteraction) Defer(ephemeral bool) error {
 		flags = 64
 	}
 
-	_, err := ctx.client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := ctx.Client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
 		Type: ACKNOWLEDGE_WITH_SOURCE_RESPONSE,
 		Data: ResponseData{
 			Flags: flags,
@@ -40,7 +57,7 @@ func (ctx CommandInteraction) SendReply(content ResponseData, ephemeral bool) er
 		content.Flags = 64
 	}
 
-	_, err := ctx.client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE,
 		Data: content,
 	})
@@ -59,7 +76,7 @@ func (ctx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 		flags = 64
 	}
 
-	_, err := ctx.client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE,
 		Data: ResponseData{
 			Content: content,
@@ -78,7 +95,7 @@ func (ctx CommandInteraction) EditReply(content ResponseData, ephemeral bool) er
 		content.Flags = 64
 	}
 
-	_, err := ctx.client.Rest.Request("PATCH", "/webhooks/"+ctx.client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", content)
+	_, err := ctx.Client.Rest.Request("PATCH", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", content)
 
 	if err != nil {
 		return err
@@ -87,7 +104,7 @@ func (ctx CommandInteraction) EditReply(content ResponseData, ephemeral bool) er
 }
 
 func (ctx CommandInteraction) DeleteReply() error {
-	_, err := ctx.client.Rest.Request("DELETE", "/webhooks/"+ctx.client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", nil)
+	_, err := ctx.Client.Rest.Request("DELETE", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", nil)
 
 	if err != nil {
 		return err
@@ -101,7 +118,7 @@ func (ctx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 		content.Flags = 64
 	}
 
-	raw, err := ctx.client.Rest.Request("POST", "/webhooks/"+ctx.client.ApplicationId.String()+"/"+ctx.Token, content)
+	raw, err := ctx.Client.Rest.Request("POST", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -117,7 +134,7 @@ func (ctx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 
 // Edits a followup message for an Interaction.
 func (ctx CommandInteraction) EditFollowUp(messageId Snowflake, content ResponseData) error {
-	_, err := ctx.client.Rest.Request("PATCH", "/webhooks/"+ctx.client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
+	_, err := ctx.Client.Rest.Request("PATCH", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
 	if err != nil {
 		return err
 	}
@@ -126,7 +143,7 @@ func (ctx CommandInteraction) EditFollowUp(messageId Snowflake, content Response
 
 // Deletes a followup message for an Interaction. It does not support ephemeral followups.
 func (ctx CommandInteraction) DeleteFollowUp(messageId Snowflake, content ResponseData) error {
-	_, err := ctx.client.Rest.Request("DELETE", "/webhooks/"+ctx.client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
+	_, err := ctx.Client.Rest.Request("DELETE", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
 	if err != nil {
 		return err
 	}

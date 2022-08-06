@@ -36,7 +36,7 @@ type Interaction struct {
 	Locale          string           `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string           `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 
-	client *client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
+	Client *client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
 }
 
 type InteractionData struct {
@@ -48,7 +48,7 @@ type InteractionData struct {
 	TargetId Snowflake            `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
 
 	// There's also "resolved" object which contains all converted users + roles + channels + attachments but it's hardly ever used so it got skipped.
-	// If you really need this then feel free to make a pull request with it:
+	// If you really need this then feel free to make a pull request.
 	// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 }
 
@@ -75,21 +75,4 @@ type ResponseData struct {
 	Flags      uint64       `json:"flags,omitempty"`
 
 	// Skipped never used fields from serialization.
-}
-
-// Returns value of any type. Check second value to check whether option was provided or not (true if yes).
-// Use this method when working with Command-like interactions.
-func (interaction Interaction) GetOptionValue(name string) (any, bool) {
-	options := interaction.Data.Options
-	if len(options) == 0 {
-		return nil, false
-	}
-
-	for _, option := range options {
-		if option.Name == name {
-			return option.Value, true
-		}
-	}
-
-	return nil, false
 }

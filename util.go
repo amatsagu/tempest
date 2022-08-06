@@ -14,6 +14,34 @@ func PrettyStructPrint(v any) {
 	println(string(str))
 }
 
+func CheckInSlice[T comparable](slice *[]T, item T) bool {
+	for _, value := range *slice {
+		if value == item {
+			return true
+		}
+	}
+	return false
+}
+
+// Makes Go's compiler thing be whatever type you want. You should avoid relying on it!
+func JsonReshape[T interface{}](object interface{}) T {
+	var shape T
+
+	raw, err := json.Marshal(object)
+	if err != nil {
+		panic(err)
+	}
+
+	json.Unmarshal(raw, shape)
+	return shape
+}
+
+// Simply reflects any data to type you need. Returns second param "true" when data is safe to use. You should avoid relying on it!
+func Reshape[T any](value any) (T, bool) {
+	v, safe := value.(T)
+	return v, safe
+}
+
 // Verifies incoming request if it's from Discord.
 func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	var msg bytes.Buffer
@@ -56,8 +84,9 @@ func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	return ed25519.Verify(key, msg.Bytes(), sig)
 }
 
-func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) []Command {
-	var list []Command
+func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) []interface{} {
+	list := make([]interface{}, len(client.commands))
+	ip := 0
 
 	for _, tree := range client.commands {
 		root := tree["-"]
@@ -67,20 +96,28 @@ func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) [
 				continue
 			}
 
-			sub := Reshape[Command](subCommand)
-			sub.Type = CommandType(OPTION_SUB_COMMAND)
-			root.Options = append(root.Options, Reshape[Option](subCommand))
+			root.Options = append(root.Options, Option{
+				Name:        subCommand.Name,
+				Description: subCommand.Description,
+				Type:        OPTION_SUB_COMMAND,
+				Options:     subCommand.Options,
+			})
 		}
 
-		list = append(list, root)
+		list[ip] = root
+		ip += 1
 	}
 
 	if len(commandsToInclude) != 0 {
-		var fList []Command
+		fList := make([]interface{}, len(client.commands))
+		ip := 0
 
 		for _, command := range list {
-			if CheckInSlice(&commandsToInclude, command.Name) {
-				fList = append(fList, command)
+			cmd := command.(Command)
+
+			if CheckInSlice(&commandsToInclude, cmd.Name) {
+				fList[ip] = cmd
+				ip += 1
 			}
 		}
 
@@ -90,16 +127,18 @@ func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) [
 	return list
 }
 
-func CheckInSlice[T comparable](slice *[]T, item T) bool {
-	for _, value := range *slice {
-		if value == item {
-			return true
-		}
-	}
-	return false
-}
+func terminateCommandInteraction(w http.ResponseWriter) {
+	body, err := json.Marshal(Response{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE,
+		Data: ResponseData{
+			Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
+		},
+	})
 
-// Makes Go's compiler thing it's whatever type you want. It's a trick for lazy people but should be avoid...
-func Reshape[T any](s any) T {
-	return s.(T)
+	if err != nil {
+		panic("failed to parse json payload")
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(body)
 }

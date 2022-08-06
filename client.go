@@ -137,9 +137,8 @@ func (client client) RegisterCommand(command Command) {
 }
 
 func (client client) RegisterSubCommand(subCommand Command, rootCommandName string) {
-	if tree, ok := client.commands[rootCommandName]; ok {
-		tree[subCommand.Name] = subCommand
-		client.commands[rootCommandName] = tree
+	if _, ok := client.commands[rootCommandName]; ok {
+		client.commands[rootCommandName][subCommand.Name] = subCommand
 		return
 	}
 
@@ -214,40 +213,27 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 	}
 	defer r.Body.Close()
-	interaction.client = &client // Bind access to client instance which is needed for methods.
 
+	interaction.Client = &client // Bind access to client instance which is needed for methods.
 	switch interaction.Type {
 	case PING_TYPE:
 		// io.WriteString(w, `{"type":1}`)
 		w.Write([]byte(`{"type":1}`))
 		return
 	case APPLICATION_COMMAND_TYPE:
-		var ctx CommandInteraction // Context
+		ctx := CommandInteraction(interaction)
 		command := func() Command {
-			if interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
-				ctx = Reshape[CommandInteraction](interaction.Data.Options[0])
-				ctx.client = &client
-				return client.commands[interaction.Data.Name][ctx.Data.Name]
+			if len(interaction.Data.Options) != 0 && interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
+				rootName := interaction.Data.Name
+				ctx.Data.Name, ctx.Data.Options = interaction.Data.Options[0].Name, interaction.Data.Options[0].Options
+				return client.commands[rootName][ctx.Data.Name]
 			} else {
-				ctx = CommandInteraction(interaction)
 				return client.commands[interaction.Data.Name]["-"]
 			}
 		}()
 
 		if command.Name == "" {
-			body, err := json.Marshal(Response{
-				Type: CHANNEL_MESSAGE_WITH_SOURCE,
-				Data: ResponseData{
-					Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
-				},
-			})
-
-			if err != nil {
-				panic("failed to parse json payload")
-			}
-
-			w.Header().Add("Content-Type", "application/json")
-			w.Write(body)
+			terminateCommandInteraction(w)
 			return
 		}
 

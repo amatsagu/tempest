@@ -22,6 +22,10 @@ type Command struct {
 
 	AutoCompleteHandler func()                                      `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
 	SlashCommandHandler func(commandInteraction CommandInteraction) `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field.
+
+	// There's missing localization support and "default_member_permissions" field which contains flag required for users/members to use this command.
+	// If you really need this then feel free to make a pull request.
+	// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 }
 
 // Option is an option for an application Command
