@@ -5,9 +5,6 @@ import (
 	"errors"
 )
 
-type CommandInteraction Interaction
-type AutoCompleteInteraction Interaction
-
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
 // Use this method when working with Command-like interactions.
 func (ctx CommandInteraction) GetOptionValue(name string) (any, bool) {
@@ -35,8 +32,8 @@ func (ctx CommandInteraction) Defer(ephemeral bool) error {
 	}
 
 	_, err := ctx.Client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
-		Type: ACKNOWLEDGE_WITH_SOURCE_RESPONSE,
-		Data: ResponseData{
+		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+		Data: &ResponseData{
 			Flags: flags,
 		},
 	})
@@ -54,8 +51,8 @@ func (ctx CommandInteraction) SendReply(content ResponseData, ephemeral bool) er
 	}
 
 	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE,
-		Data: content,
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+		Data: &content,
 	})
 
 	if err != nil {
@@ -73,8 +70,8 @@ func (ctx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 	}
 
 	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE,
-		Data: ResponseData{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+		Data: &ResponseData{
 			Content: content,
 			Flags:   flags,
 		},
@@ -157,4 +154,15 @@ func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 	}
 
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
+}
+
+func (ctx ButtonInteraction) Acknowledge() error {
+	_, err := ctx.Client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -24,6 +24,7 @@ type client struct {
 	PublicKey     ed25519.PublicKey
 
 	commands                   map[string]map[string]Command                             // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
+	queuedButtons              map[string]*queuedButton                                  // Map with all currently running button queues.
 	interactionHandler         func(interaction Interaction)                             // From options, called on all unhandled interactions.
 	preCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // From options, called before each slash command.
 	running                    bool                                                      // Whether client's web server is already launched.
@@ -34,6 +35,29 @@ func (client client) GetLatency() int64 {
 	start := time.Now()
 	client.Rest.Request("GET", "/gateway", nil)
 	return time.Since(start).Milliseconds()
+}
+
+// Adds button & filter to client's button queue. Await for data from channel to aknowledge moment when any of listened buttons gets clicked by matching target. It will emit struct with field Timeout = true on timeout.
+func (client client) CreateButtonMenu(CustomIds []string, timeout time.Duration, handler func(button *ButtonInteraction)) {
+	if time.Second*3 < timeout {
+		timeout = time.Second * 3 // Min 3 seconds
+	}
+
+	anchor := queuedButton{
+		CustomIds: CustomIds,
+		Handler:   handler,
+	}
+
+	for _, key := range CustomIds {
+		client.queuedButtons[key] = &anchor
+	}
+
+	time.AfterFunc(timeout, func() {
+		for _, key := range CustomIds {
+			delete(client.queuedButtons, key)
+		}
+		handler(nil)
+	})
 }
 
 func (client client) SendMessage(channelId Snowflake, content Message) (Message, error) {
@@ -236,8 +260,8 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			content := client.preCommandExecutionHandler(ctx)
 			if content != nil {
 				body, err := json.Marshal(Response{
-					Type: ACKNOWLEDGE_WITH_SOURCE_RESPONSE,
-					Data: *content,
+					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+					Data: content,
 				})
 
 				if err != nil {
@@ -254,8 +278,28 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		command.SlashCommandHandler(ctx)
 		return
 	case MESSAGE_COMPONENT_TYPE:
-		if client.interactionHandler != nil {
-			client.interactionHandler(interaction)
+		switch interaction.Data.ComponentType {
+		case COMPONENT_BUTTON:
+			queue, exists := client.queuedButtons[interaction.Data.CustomId]
+
+			if exists {
+				ctx := ButtonInteraction(interaction)
+				queue.Handler(&ctx)
+
+				for _, key := range queue.CustomIds {
+					delete(client.queuedButtons, key)
+				}
+			}
+
+			if client.interactionHandler != nil {
+				client.interactionHandler(interaction)
+			}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		default:
+			if client.interactionHandler != nil {
+				client.interactionHandler(interaction)
+			}
 		}
 
 		return
@@ -268,7 +312,7 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(interaction))
 		body, err := json.Marshal(ResponseChoice{
-			Type: ACKNOWLEDGE_WITH_CHOICES,
+			Type: AUTOCOMPLETE_RESPONSE,
 			Data: ResponseChoiceData{
 				Choices: choices,
 			},

@@ -16,11 +16,12 @@ const (
 	PONG_RESPONSE ResponseType = iota + 1
 	ACKNOWLEDGE_RESPONSE
 	CHANNEL_MESSAGE_RESPONSE
-	CHANNEL_MESSAGE_WITH_SOURCE
-	ACKNOWLEDGE_WITH_SOURCE_RESPONSE
-	_
-	_
-	ACKNOWLEDGE_WITH_CHOICES
+	CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE
+	DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE
+	DEFERRED_UPDATE_MESSAGE_RESPONSE // Only valid for component-based interactions.
+	UPDATE_MESSAGE_RESPONSE          // Only valid for component-based interactions.
+	AUTOCOMPLETE_RESPONSE
+	MODAL_RESPONSE // Not available for MODAL_SUBMIT and PING interactions.
 )
 
 type Interaction struct {
@@ -43,12 +44,14 @@ type Interaction struct {
 }
 
 type InteractionData struct {
-	Id       Snowflake            `json:"id"`
-	Name     string               `json:"name"`
-	Type     CommandType          `json:"type"`
-	Options  []*InteractionOption `json:"options,omitempty"`
-	GuildId  Snowflake            `json:"guild_id,omitempty"`
-	TargetId Snowflake            `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
+	Id            Snowflake            `json:"id,omitempty"`
+	CustomId      string               `json:"custom_id,omitempty"` // Present only for components.
+	Name          string               `json:"name"`
+	Type          CommandType          `json:"type"`
+	Options       []*InteractionOption `json:"options,omitempty"`
+	GuildId       Snowflake            `json:"guild_id,omitempty"`
+	TargetId      Snowflake            `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
+	ComponentType ComponentType        `json:"component_type,omitempty"`
 
 	// There's also "resolved" object which contains all converted users + roles + channels + attachments but it's hardly ever used so it got skipped.
 	// If you really need this then feel free to make a pull request.
@@ -65,8 +68,8 @@ type InteractionOption struct {
 
 // Similar to Message struct but used only for replying on interactions (mostly commands).
 type Response struct {
-	Type ResponseType `json:"type"`
-	Data ResponseData `json:"data,omitempty"`
+	Type ResponseType  `json:"type"`
+	Data *ResponseData `json:"data,omitempty"`
 }
 
 // Similar to Message struct - check: https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
@@ -90,3 +93,7 @@ type ResponseChoice struct {
 type ResponseChoiceData struct {
 	Choices []Choice `json:"choices,omitempty"`
 }
+
+type CommandInteraction Interaction
+type AutoCompleteInteraction Interaction
+type ButtonInteraction Interaction

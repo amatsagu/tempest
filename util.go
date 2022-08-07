@@ -129,8 +129,8 @@ func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) [
 
 func terminateCommandInteraction(w http.ResponseWriter) {
 	body, err := json.Marshal(Response{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE,
-		Data: ResponseData{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+		Data: &ResponseData{
 			Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
 		},
 	})
