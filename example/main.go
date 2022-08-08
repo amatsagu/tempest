@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	. "tempest"
 	"time"
+
+	. "github.com/Amatsagu/Tempest"
 )
 
 // ==[ CREDENTIALS (EXAMPLE) ]====================================================================
