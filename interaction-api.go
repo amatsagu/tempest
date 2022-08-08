@@ -155,14 +155,3 @@ func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
 }
-
-func (ctx ButtonInteraction) Acknowledge() error {
-	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
-		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE,
-	})
-
-	if err != nil {
-		return err
-	}
-	return nil
-}

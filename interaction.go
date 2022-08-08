@@ -96,4 +96,3 @@ type ResponseChoiceData struct {
 
 type CommandInteraction Interaction
 type AutoCompleteInteraction Interaction
-type ButtonInteraction Interaction
