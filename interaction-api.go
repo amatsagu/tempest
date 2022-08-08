@@ -157,8 +157,8 @@ func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 }
 
 func (ctx ButtonInteraction) Acknowledge() error {
-	_, err := ctx.Client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
-		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE,
 	})
 
 	if err != nil {

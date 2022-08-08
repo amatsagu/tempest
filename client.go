@@ -13,8 +13,14 @@ type ClientOptions struct {
 	Rest                       rest
 	ApplicationId              Snowflake                                                 // Your app/bot's user id.
 	PublicKey                  string                                                    // Hash like key used to verify incoming payloads from Discord.
-	InteractionHandler         func(interaction Interaction)                             // Function to call on all unhandled interactions.
 	PreCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue.
+	InteractionHandler         func(interaction Interaction)                             // Function to call on all unhandled interactions.
+}
+
+type QueueButtonMenu struct {
+	CustomIds []string
+	TargetId  Snowflake                       // User/Member id who can trigger button. If set and button is clicked by someone else - ignore.
+	Handler   func(button *ButtonInteraction) // ButtonInteraction will be <nil> on timeout!
 }
 
 type client struct {
@@ -24,9 +30,9 @@ type client struct {
 	PublicKey     ed25519.PublicKey
 
 	commands                   map[string]map[string]Command                             // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
-	queuedButtons              map[string]*queuedButton                                  // Map with all currently running button queues.
-	interactionHandler         func(interaction Interaction)                             // From options, called on all unhandled interactions.
+	queuedButtons              map[string]*QueueButtonMenu                               // Map with all currently running button queues.
 	preCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // From options, called before each slash command.
+	interactionHandler         func(interaction Interaction)                             // From options, called on all unhandled interactions.
 	running                    bool                                                      // Whether client's web server is already launched.
 }
 
@@ -38,25 +44,22 @@ func (client client) GetLatency() int64 {
 }
 
 // Adds button & filter to client's button queue. Await for data from channel to aknowledge moment when any of listened buttons gets clicked by matching target. It will emit struct with field Timeout = true on timeout.
-func (client client) CreateButtonMenu(CustomIds []string, timeout time.Duration, handler func(button *ButtonInteraction)) {
-	if time.Second*3 < timeout {
+func (client client) CreateButtonMenu(queue QueueButtonMenu, timeout time.Duration) {
+	if time.Second*3 > timeout {
 		timeout = time.Second * 3 // Min 3 seconds
 	}
 
-	anchor := queuedButton{
-		CustomIds: CustomIds,
-		Handler:   handler,
-	}
+	PrettyStructPrint(queue)
 
-	for _, key := range CustomIds {
-		client.queuedButtons[key] = &anchor
+	for _, key := range queue.CustomIds {
+		client.queuedButtons[key] = &queue
 	}
 
 	time.AfterFunc(timeout, func() {
-		for _, key := range CustomIds {
+		for _, key := range queue.CustomIds {
 			delete(client.queuedButtons, key)
 		}
-		handler(nil)
+		queue.Handler(nil)
 	})
 }
 
@@ -206,12 +209,14 @@ func CreateClient(options ClientOptions) client {
 	}
 
 	client := client{
-		Rest:               options.Rest,
-		ApplicationId:      options.ApplicationId,
-		PublicKey:          ed25519.PublicKey(discordPublicKey),
-		commands:           make(map[string]map[string]Command, 50), // Allocate space for 50 global slash commands
-		interactionHandler: options.InteractionHandler,
-		running:            false,
+		Rest:                       options.Rest,
+		ApplicationId:              options.ApplicationId,
+		PublicKey:                  ed25519.PublicKey(discordPublicKey),
+		commands:                   make(map[string]map[string]Command),
+		queuedButtons:              make(map[string]*QueueButtonMenu),
+		preCommandExecutionHandler: options.PreCommandExecutionHandler,
+		interactionHandler:         options.InteractionHandler,
+		running:                    false,
 	}
 
 	return client
@@ -250,7 +255,7 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			return
 		}
 
-		if interaction.GuildID == 0 && !command.AvailableInDM {
+		if !command.AvailableInDM && interaction.GuildId == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return // Stop execution since this command doesn't want to be used inside DM.
 		}
@@ -281,19 +286,25 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		switch interaction.Data.ComponentType {
 		case COMPONENT_BUTTON:
 			queue, exists := client.queuedButtons[interaction.Data.CustomId]
+			var targetId Snowflake
 
-			if exists {
+			if interaction.GuildId == 0 {
+				targetId = interaction.User.Id
+			} else {
+				targetId = interaction.Member.User.Id
+			}
+
+			if exists && (queue.TargetId == 0 || queue.TargetId == targetId) {
 				ctx := ButtonInteraction(interaction)
 				queue.Handler(&ctx)
 
 				for _, key := range queue.CustomIds {
 					delete(client.queuedButtons, key)
 				}
-			}
-
-			if client.interactionHandler != nil {
+			} else if client.interactionHandler != nil {
 				client.interactionHandler(interaction)
 			}
+
 			w.WriteHeader(http.StatusNoContent)
 			return
 		default:

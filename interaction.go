@@ -29,8 +29,8 @@ type Interaction struct {
 	ApplicationId   Snowflake        `json:"application_id"`
 	Type            InteractionType  `json:"type"`
 	Data            *InteractionData `json:"data,omitempty"`
-	GuildID         Snowflake        `json:"guild_id,omitempty"`
-	ChannelID       Snowflake        `json:"channel_id,omitempty"`
+	GuildId         Snowflake        `json:"guild_id,omitempty"`
+	ChannelId       Snowflake        `json:"channel_id,omitempty"`
 	Member          *Member          `json:"member,omitempty"`
 	User            *User            `json:"user,omitempty"`
 	Token           string           `json:"token"`                  // Continuation token for responding to the interaction. It's not the same as bot/app token!

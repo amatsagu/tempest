@@ -7,7 +7,7 @@ type PartialEmoji struct {
 }
 
 type Emoji struct {
-	ID            Snowflake   `json:"id,omitempty"`
+	Id            Snowflake   `json:"id,omitempty"`
 	Name          string      `json:"name"`
 	Roles         []Snowflake `json:"roles,omitempty"`
 	User          *User       `json:"user,omitempty"`
@@ -82,7 +82,7 @@ type Message struct {
 	Pinned            bool              `json:"pinned"`
 	MentionEveryone   bool              `json:"mention_everyone"`
 	Mentions          []*User           `json:"mentions"`
-	MentionRoleIDs    []Snowflake       `json:"mention_roles"`
+	MentionRoleIds    []Snowflake       `json:"mention_roles"`
 	Author            *User             `json:"author"`
 	Content           string            `json:"content"`
 	Timestamp         string            `json:"timestamp"`
@@ -94,7 +94,7 @@ type Message struct {
 }
 
 type MessageReference struct {
-	MessageID Snowflake `json:"message_id,omitempty"`
-	ChannelID Snowflake `json:"channel_id,omitempty"`
-	GuildID   Snowflake `json:"guild_id,omitempty"`
+	MessageId Snowflake `json:"message_id,omitempty"`
+	ChannelId Snowflake `json:"channel_id,omitempty"`
+	GuildId   Snowflake `json:"guild_id,omitempty"`
 }

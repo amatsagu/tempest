@@ -29,7 +29,7 @@ const (
 type ComponentType uint8
 
 const (
-	_ ComponentType = iota + 1
+	COMPONENT_ROW ComponentType = iota + 1
 	COMPONENT_BUTTON
 	COMPONENT_SELECT_MENU
 	COMPONENT_TEXT_INPUT
@@ -37,38 +37,38 @@ const (
 
 // Generic Component super struct
 type Component struct {
-	Type        uint8        `json:"type"`
-	CustomId    string       `json:"custom_id,omitempty"`
-	Style       ButtonStyle  `json:"style,omitempty"`
-	Disabled    bool         `json:"disabled,omitempty"`
-	Label       string       `json:"label,omitempty"`
-	Emoji       *Emoji       `json:"emoji,omitempty"`
-	Url         string       `json:"url,omitempty"`
-	Placeholder string       `json:"placeholder,omitempty"`
-	MinValues   int          `json:"min_values,omitempty"`
-	MaxValues   int          `json:"max_values,omitempty"`
-	Options     []*Option    `json:"options,omitempty"`
-	Components  []*Component `json:"components,omitempty"`
+	CustomId    string        `json:"custom_id,omitempty"`
+	Type        ComponentType `json:"type"`
+	Style       ButtonStyle   `json:"style,omitempty"`
+	Disabled    bool          `json:"disabled,omitempty"`
+	Label       string        `json:"label,omitempty"`
+	Emoji       *Emoji        `json:"emoji,omitempty"`
+	Url         string        `json:"url,omitempty"`
+	Placeholder string        `json:"placeholder,omitempty"`
+	MinValues   int           `json:"min_values,omitempty"`
+	MaxValues   int           `json:"max_values,omitempty"`
+	Options     []*Option     `json:"options,omitempty"`
+	Components  []*Component  `json:"components,omitempty"`
 }
 
 type ButtonComponent struct {
 	CustomId string        `json:"custom_id"`
+	Type     ComponentType `json:"type"`            // It gonna always be = 2 for button components.
 	Label    string        `json:"label,omitempty"` // Text label that appears on the button, max 80 characters.
 	Emoji    *PartialEmoji `json:"emoji,omitempty"`
 	Style    ButtonStyle   `json:"style"`
 	Url      string        `json:"url,omitempty"` // A url for link-style buttons.
 	Disabled bool          `json:"disabled,omitempty"`
-	Type     uint8         `json:"type"` // It gonna always be = 2 for button components.
 }
 
 type SelectMenuComponent struct {
 	CustomId    string              `json:"custom_id"`
+	Type        ComponentType       `json:"type"` // It gonna always be = 3 for select menu components.
 	Disabled    bool                `json:"disabled,omitempty"`
 	Placeholder string              `json:"placeholder,omitempty"` // Custom placeholder text if nothing is selected, max 150 characters
 	MinValues   uint64              `json:"min_values,omitempty"`
 	MaxValues   uint64              `json:"max_values,omitempty"`
 	Options     []*SelectMenuOption `json:"options"`
-	Type        uint8               `json:"type"` // It gonna always be = 3 for select menu components.
 }
 
 type SelectMenuOption struct {
@@ -77,10 +77,4 @@ type SelectMenuOption struct {
 	Emoji       *PartialEmoji `json:"emoji,omitempty"`
 	Description string        `json:"description,omitempty"` // An additional description of the option, max 100 characters.
 	Value       string        `json:"value"`                 // Value to return back to app once clicked, max 100 characters.
-}
-
-// Private struct for keeping track of queued set of buttons by client.
-type queuedButton struct {
-	CustomIds []string
-	Handler   func(button *ButtonInteraction)
 }

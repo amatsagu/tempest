@@ -10,8 +10,8 @@ const (
 
 type Command struct {
 	Id                 Snowflake   `json:"id,omitempty"`
-	ApplicationID      Snowflake   `json:"application_id,omitempty"`
-	GuildID            Snowflake   `json:"guild_id,omitempty"`
+	ApplicationId      Snowflake   `json:"application_id,omitempty"`
+	GuildId            Snowflake   `json:"guild_id,omitempty"`
 	Name               string      `json:"name,omitempty"`
 	Description        string      `json:"description,omitempty"`
 	Type               CommandType `json:"type,omitempty"`
