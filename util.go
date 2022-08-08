@@ -84,7 +84,7 @@ func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	return ed25519.Verify(key, msg.Bytes(), sig)
 }
 
-func parseCommandsToDiscordObjects(client *client, commandsToInclude []string) []interface{} {
+func parseCommandsToDiscordObjects(client *Client, commandsToInclude []string) []interface{} {
 	list := make([]interface{}, len(client.commands))
 	ip := 0
 

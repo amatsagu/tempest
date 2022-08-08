@@ -10,7 +10,8 @@ import (
 )
 
 type ClientOptions struct {
-	Rest                       rest
+	// Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
+	Rest                       Rest
 	ApplicationId              Snowflake                                                 // Your app/bot's user id.
 	PublicKey                  string                                                    // Hash like key used to verify incoming payloads from Discord.
 	PreCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue.
@@ -23,8 +24,9 @@ type QueueComponent struct {
 	Handler   func(interaction *Interaction)
 }
 
-type client struct {
-	Rest          rest
+// Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
+type Client struct {
+	Rest          Rest
 	User          User
 	ApplicationId Snowflake
 	PublicKey     ed25519.PublicKey
@@ -37,7 +39,7 @@ type client struct {
 }
 
 // Returns time it took to communicate with Discord API (in milliseconds).
-func (client client) GetLatency() int64 {
+func (client Client) GetLatency() int64 {
 	start := time.Now()
 	client.Rest.Request("GET", "/gateway", nil)
 	return time.Since(start).Milliseconds()
@@ -50,7 +52,7 @@ func (client client) GetLatency() int64 {
 // Warning! Automatically handled components will be already acknowledged by client.
 //
 // Set timeout equal to 0 to make it last infinitely.
-func (client client) AwaitComponent(queue QueueComponent, timeout time.Duration) {
+func (client Client) AwaitComponent(queue QueueComponent, timeout time.Duration) {
 	if timeout != 0 && time.Second*3 > timeout {
 		timeout = time.Second * 3 // Min 3 seconds
 	}
@@ -71,7 +73,7 @@ func (client client) AwaitComponent(queue QueueComponent, timeout time.Duration)
 	})
 }
 
-func (client client) SendMessage(channelId Snowflake, content Message) (Message, error) {
+func (client Client) SendMessage(channelId Snowflake, content Message) (Message, error) {
 	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", content)
 	if err != nil {
 		return Message{}, err
@@ -87,7 +89,7 @@ func (client client) SendMessage(channelId Snowflake, content Message) (Message,
 }
 
 // Use that for simple text messages that won't be modified.
-func (client client) SendLinearMessage(channelId Snowflake, content string) (Message, error) {
+func (client Client) SendLinearMessage(channelId Snowflake, content string) (Message, error) {
 	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", Message{Content: content})
 	if err != nil {
 		return Message{}, err
@@ -102,7 +104,7 @@ func (client client) SendLinearMessage(channelId Snowflake, content string) (Mes
 	return res, nil
 }
 
-func (client client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
+func (client Client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
 	_, err := client.Rest.Request("PATCH", "/channels/"+channelId.String()+"/messages"+messageId.String(), content)
 	if err != nil {
 		return err
@@ -110,7 +112,7 @@ func (client client) EditMessage(channelId Snowflake, messageId Snowflake, conte
 	return nil
 }
 
-func (client client) DeleteMessage(channelId Snowflake, messageId Snowflake) error {
+func (client Client) DeleteMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("DELETE", "/channels/"+channelId.String()+"/messages"+messageId.String(), nil)
 	if err != nil {
 		return err
@@ -118,7 +120,7 @@ func (client client) DeleteMessage(channelId Snowflake, messageId Snowflake) err
 	return nil
 }
 
-func (client client) CrosspostMessage(channelId Snowflake, messageId Snowflake) error {
+func (client Client) CrosspostMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages"+messageId.String()+"/crosspost", nil)
 	if err != nil {
 		return err
@@ -126,7 +128,7 @@ func (client client) CrosspostMessage(channelId Snowflake, messageId Snowflake) 
 	return nil
 }
 
-func (client client) FetchUser(id Snowflake) (User, error) {
+func (client Client) FetchUser(id Snowflake) (User, error) {
 	raw, err := client.Rest.Request("GET", "/users/"+id.String(), nil)
 	if err != nil {
 		return User{}, err
@@ -141,7 +143,7 @@ func (client client) FetchUser(id Snowflake) (User, error) {
 	return res, nil
 }
 
-func (client client) FetchMember(guildId Snowflake, memberId Snowflake) (Member, error) {
+func (client Client) FetchMember(guildId Snowflake, memberId Snowflake) (Member, error) {
 	raw, err := client.Rest.Request("GET", "/guilds/"+guildId.String()+"/members/"+memberId.String(), nil)
 	if err != nil {
 		return Member{}, err
@@ -156,7 +158,7 @@ func (client client) FetchMember(guildId Snowflake, memberId Snowflake) (Member,
 	return res, nil
 }
 
-func (client client) RegisterCommand(command Command) {
+func (client Client) RegisterCommand(command Command) {
 	if _, ok := client.commands[command.Name]; !ok {
 		if command.Options == nil {
 			command.Options = []Option{}
@@ -171,7 +173,7 @@ func (client client) RegisterCommand(command Command) {
 	panic("found already registered \"" + command.Name + "\" slash command")
 }
 
-func (client client) RegisterSubCommand(subCommand Command, rootCommandName string) {
+func (client Client) RegisterSubCommand(subCommand Command, rootCommandName string) {
 	if _, ok := client.commands[rootCommandName]; ok {
 		client.commands[rootCommandName][subCommand.Name] = subCommand
 		return
@@ -182,7 +184,7 @@ func (client client) RegisterSubCommand(subCommand Command, rootCommandName stri
 
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
 // You can also add second param -> slice with all command names you want to update (whitelist).
-func (client client) SyncCommands(guildIds []Snowflake, commandsToInclude []string) {
+func (client Client) SyncCommands(guildIds []Snowflake, commandsToInclude []string) {
 	payload := parseCommandsToDiscordObjects(&client, commandsToInclude)
 
 	if len(guildIds) == 0 {
@@ -195,7 +197,7 @@ func (client client) SyncCommands(guildIds []Snowflake, commandsToInclude []stri
 	}
 }
 
-func (client client) ListenAndServe(address string) error {
+func (client Client) ListenAndServe(address string) error {
 	if client.running {
 		panic("client's web server is already launched")
 	}
@@ -210,13 +212,13 @@ func (client client) ListenAndServe(address string) error {
 	return http.ListenAndServe(address, nil)
 }
 
-func CreateClient(options ClientOptions) client {
+func CreateClient(options ClientOptions) Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
 		panic("failed to decode \"%s\" discord's public key (check if it's correct key)")
 	}
 
-	client := client{
+	client := Client{
 		Rest:                       options.Rest,
 		ApplicationId:              options.ApplicationId,
 		PublicKey:                  ed25519.PublicKey(discordPublicKey),
@@ -230,7 +232,7 @@ func CreateClient(options ClientOptions) client {
 	return client
 }
 
-func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
+func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed.", http.StatusMethodNotAllowed)
 		return
@@ -341,8 +343,8 @@ func (client client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	}
 }
 
-// Returns command, subcommand, a command context (updated interaction) and bool to check whether it suceeded and is safe to use.
-func (client client) getCommand(interaction Interaction) (Command, Interaction, bool) {
+// Returns command, subcommand, a command context (updated interaction) and bool to check whether it succeeded and is safe to use.
+func (client Client) getCommand(interaction Interaction) (Command, Interaction, bool) {
 	if len(interaction.Data.Options) != 0 && interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
 		rootName := interaction.Data.Name
 		interaction.Data.Name, interaction.Data.Options = interaction.Data.Options[0].Name, interaction.Data.Options[0].Options

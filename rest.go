@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-type rest struct {
+// Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
+type Rest struct {
 	Token                  string // Discord Bot/App token. Remember to add "Bot" prefix.
 	MaxRequestsBeforeSweep uint16
 	GlobalRequestLimit     uint16
@@ -28,7 +29,7 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
-func (rest rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	rest.globalRequests++
 	rest.requestsSinceSweep++
 
@@ -130,12 +131,12 @@ func (rest rest) Request(method string, route string, jsonPayload interface{}) (
 	return body, nil
 }
 
-func CreateRest(token string, requestsBeforeSweep uint16) rest {
+func CreateRest(token string, requestsBeforeSweep uint16) Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
-	return rest{
+	return Rest{
 		Token:                  token,
 		MaxRequestsBeforeSweep: requestsBeforeSweep,
 		GlobalRequestLimit:     50,
