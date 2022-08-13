@@ -155,3 +155,13 @@ func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
 }
+
+// Use that if you need to make a call that is not already supported by Tempest.
+func (ctx Interaction) SendCustomCallback(method string, callback Response) error {
+	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", callback)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
