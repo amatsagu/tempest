@@ -72,8 +72,10 @@ func (ctx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
-			Content: content,
-			Flags:   flags,
+			Content:    content,
+			Embeds:     make([]*Embed, 1),
+			Components: make([]*Component, 1),
+			Flags:      flags,
 		},
 	})
 

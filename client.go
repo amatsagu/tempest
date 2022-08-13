@@ -95,7 +95,11 @@ func (client Client) SendMessage(channelId Snowflake, content Message) (Message,
 
 // Use that for simple text messages that won't be modified.
 func (client Client) SendLinearMessage(channelId Snowflake, content string) (Message, error) {
-	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", Message{Content: content})
+	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", Message{
+		Content:    content,
+		Embeds:     make([]*Embed, 1),
+		Components: make([]*Component, 1),
+	})
 	if err != nil {
 		return Message{}, err
 	}
