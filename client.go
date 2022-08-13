@@ -66,6 +66,11 @@ func (client Client) AwaitComponent(queue QueueComponent, timeout time.Duration)
 	}
 
 	time.AfterFunc(timeout, func() {
+		_, exists := client.queuedComponents[queue.CustomIds[0]]
+		if !exists {
+			return
+		}
+
 		for _, key := range queue.CustomIds {
 			delete(client.queuedComponents, key)
 		}
