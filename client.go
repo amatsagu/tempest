@@ -253,8 +253,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	err := json.NewDecoder(r.Body).Decode(&interaction)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
-		panic(err)
-
+		panic(err) // Should never happen
 	}
 	defer r.Body.Close()
 
