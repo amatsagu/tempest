@@ -29,7 +29,7 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
-func (rest Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	rest.globalRequests++
 	rest.requestsSinceSweep++
 
