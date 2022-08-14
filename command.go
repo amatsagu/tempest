@@ -26,7 +26,7 @@ const (
 	CHANNEL_GUILD_PRIVATE_THREAD
 	CHANNEL_GUILD_STAGE_VOICE
 	CHANNEL_GUILD_DIRECTORY
-	CHANNEL_GUILD_FORUM // (still in development) a channel that can only contain threads
+	CHANNEL_GUILD_FORUM // (still in development) Channel that can only contain threads.
 )
 
 type Command struct {
