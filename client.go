@@ -12,16 +12,16 @@ import (
 type ClientOptions struct {
 	// Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
 	Rest                       Rest
-	ApplicationId              Snowflake                                                 // Your app/bot's user id.
-	PublicKey                  string                                                    // Hash like key used to verify incoming payloads from Discord.
-	PreCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue.
-	InteractionHandler         func(interaction Interaction)                             // Function to call on all unhandled interactions.
+	ApplicationId              Snowflake                                  // Your app/bot's user id.
+	PublicKey                  string                                     // Hash like key used to verify incoming payloads from Discord.
+	PreCommandExecutionHandler func(itx CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue.
+	InteractionHandler         func(itx Interaction)                      // Function to call on all unhandled interactions.
 }
 
 type QueueComponent struct {
 	CustomIds []string
 	TargetId  Snowflake // User/Member id who can trigger button. If set and button is clicked by someone else - ignore.
-	Handler   func(interaction *Interaction)
+	Handler   func(itx *Interaction)
 }
 
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
@@ -31,11 +31,11 @@ type Client struct {
 	ApplicationId Snowflake
 	PublicKey     ed25519.PublicKey
 
-	commands                   map[string]map[string]Command                             // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
-	queuedComponents           map[string]*QueueComponent                                // Map with all currently running button queues.
-	preCommandExecutionHandler func(commandInteraction CommandInteraction) *ResponseData // From options, called before each slash command.
-	interactionHandler         func(interaction Interaction)                             // From options, called on all unhandled interactions.
-	running                    bool                                                      // Whether client's web server is already launched.
+	commands                   map[string]map[string]Command              // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
+	queuedComponents           map[string]*QueueComponent                 // Map with all currently running button queues.
+	preCommandExecutionHandler func(itx CommandInteraction) *ResponseData // From options, called before each slash command.
+	interactionHandler         func(itx Interaction)                      // From options, called on all unhandled interactions.
+	running                    bool                                       // Whether client's web server is already launched.
 }
 
 // Returns time it took to communicate with Discord API (in milliseconds).
@@ -53,10 +53,6 @@ func (client Client) GetLatency() int64 {
 //
 // Set timeout equal to 0 to make it last infinitely.
 func (client Client) AwaitComponent(queue QueueComponent, timeout time.Duration) {
-	if timeout != 0 && time.Second*3 > timeout {
-		timeout = time.Second * 3 // Min 3 seconds
-	}
-
 	for _, key := range queue.CustomIds {
 		client.queuedComponents[key] = &queue
 	}
