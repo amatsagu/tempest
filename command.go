@@ -51,19 +51,19 @@ type Command struct {
 
 // Option is an option for an application Command
 type Option struct {
-	Name         string      `json:"name"`
-	Type         OptionType  `json:"type"`
-	Description  string      `json:"description,omitempty"`
-	Required     bool        `json:"required,omitempty"`
-	MinValue     int         `json:"min_value,omitempty"`  // Declares min value for integer/number option.
-	MaxValue     int         `json:"max_value,omitempty"`  // Declares max value for integer/number option.
-	MinLength    uint        `json:"min_length,omitempty"` // Declares min length for string option.
-	MaxLength    uint        `json:"max_length,omitempty"` // Declares max length for string option.
-	ChannelTypes ChannelType `json:"channel_types,omitempty"`
-	Options      []Option    `json:"options,omitempty"`
-	Choices      []Choice    `json:"choices,omitempty"`
-	AutoComplete bool        `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
-	Focused      bool        `json:"focused,omitempty"`
+	Name         string        `json:"name"`
+	Type         OptionType    `json:"type"`
+	Description  string        `json:"description,omitempty"`
+	Required     bool          `json:"required,omitempty"`
+	MinValue     int           `json:"min_value,omitempty"`  // Declares min value for integer/number option.
+	MaxValue     int           `json:"max_value,omitempty"`  // Declares max value for integer/number option.
+	MinLength    uint          `json:"min_length,omitempty"` // Declares min length for string option.
+	MaxLength    uint          `json:"max_length,omitempty"` // Declares max length for string option.
+	ChannelTypes []ChannelType `json:"channel_types,omitempty"`
+	Options      []Option      `json:"options,omitempty"`
+	Choices      []Choice      `json:"choices,omitempty"`
+	AutoComplete bool          `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
+	Focused      bool          `json:"focused,omitempty"`
 }
 
 // Choice is an application Command choice
