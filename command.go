@@ -8,6 +8,27 @@ const (
 	COMMAND_MESSAGE
 )
 
+type ChannelType uint8
+
+const (
+	CHANNEL_GUILD_TEXT ChannelType = iota
+	CHANNEL_DM
+	CHANNEL_GUILD_VOICE
+	CHANNEL_GROUP_DM
+	CHANNEL_GUILD_CATEGORY
+	CHANNEL_GUILD_NEWS
+	_
+	_
+	_
+	_
+	CHANNEL_GUILD_NEWS_THREAD
+	CHANNEL_GUILD_PUBLIC_THREAD
+	CHANNEL_GUILD_PRIVATE_THREAD
+	CHANNEL_GUILD_STAGE_VOICE
+	CHANNEL_GUILD_DIRECTORY
+	CHANNEL_GUILD_FORUM // (still in development) a channel that can only contain threads
+)
+
 type Command struct {
 	Id                 Snowflake   `json:"id,omitempty"`
 	ApplicationId      Snowflake   `json:"application_id,omitempty"`
@@ -30,18 +51,19 @@ type Command struct {
 
 // Option is an option for an application Command
 type Option struct {
-	Name         string     `json:"name"`
-	Type         OptionType `json:"type"`
-	Description  string     `json:"description,omitempty"`
-	Required     bool       `json:"required,omitempty"`
-	MinValue     int        `json:"min_value,omitempty"`  // Declares min value for integer/number option.
-	MaxValue     int        `json:"max_value,omitempty"`  // Declares max value for integer/number option.
-	MinLength    uint       `json:"min_length,omitempty"` // Declares min length for string option.
-	MaxLength    uint       `json:"max_length,omitempty"` // Declares max length for string option.
-	Options      []Option   `json:"options,omitempty"`
-	Choices      []Choice   `json:"choices,omitempty"`
-	AutoComplete bool       `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
-	Focused      bool       `json:"focused,omitempty"`
+	Name         string      `json:"name"`
+	Type         OptionType  `json:"type"`
+	Description  string      `json:"description,omitempty"`
+	Required     bool        `json:"required,omitempty"`
+	MinValue     int         `json:"min_value,omitempty"`  // Declares min value for integer/number option.
+	MaxValue     int         `json:"max_value,omitempty"`  // Declares max value for integer/number option.
+	MinLength    uint        `json:"min_length,omitempty"` // Declares min length for string option.
+	MaxLength    uint        `json:"max_length,omitempty"` // Declares max length for string option.
+	ChannelTypes ChannelType `json:"channel_types,omitempty"`
+	Options      []Option    `json:"options,omitempty"`
+	Choices      []Choice    `json:"choices,omitempty"`
+	AutoComplete bool        `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
+	Focused      bool        `json:"focused,omitempty"`
 }
 
 // Choice is an application Command choice
