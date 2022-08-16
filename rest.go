@@ -133,19 +133,20 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 	return body, nil
 }
 
-func CreateRest(token string, requestsBeforeSweep uint16) Rest {
+// Creates standalone REST instance. Use CreateClient function if you want to create regular Discord App.
+func CreateRest(token string, globalRequestLimit uint16, capacity uint16) Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
 	return Rest{
 		Token:                  token,
-		MaxRequestsBeforeSweep: requestsBeforeSweep,
-		GlobalRequestLimit:     50,
+		MaxRequestsBeforeSweep: capacity,
+		GlobalRequestLimit:     globalRequestLimit,
 		globalRequests:         0,
 		requestsSinceSweep:     0,
 		lockedTo:               0,
-		locks:                  make(map[string]int64, requestsBeforeSweep),
+		locks:                  make(map[string]int64, capacity),
 		fails:                  0,
 	}
 }
