@@ -363,7 +363,7 @@ func (client Client) getCommand(interaction Interaction) (Command, Interaction, 
 			return Command{}, interaction, false
 		}
 
-		interaction.RootName = rootName
+		interaction.Data.Name = rootName + "@" + interaction.Data.Name
 		return command, interaction, true
 	}
 

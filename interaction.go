@@ -40,14 +40,13 @@ type Interaction struct {
 	Locale          string           `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string           `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 
-	Client   *Client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
-	RootName string  `json:"-"` // Name of main, parent command if this interaction is a sub command.
+	Client *Client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
 }
 
 type InteractionData struct {
 	Id            Snowflake            `json:"id,omitempty"`
 	CustomId      string               `json:"custom_id,omitempty"` // Present only for components.
-	Name          string               `json:"name"`
+	Name          string               `json:"name"`                // In case of commands it'll be name of command. If that's a subcommand then it'll be in format "rootCommand@subCommand".
 	Type          CommandType          `json:"type"`
 	Options       []*InteractionOption `json:"options,omitempty"`
 	GuildId       Snowflake            `json:"guild_id,omitempty"`
