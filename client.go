@@ -38,11 +38,11 @@ type Client struct {
 	running                    bool                                       // Whether client's web server is already launched.
 }
 
-// Returns time it took to communicate with Discord API (in milliseconds).
-func (client Client) GetLatency() int64 {
+// Pings Discord API and returns time it took to get response.
+func (client Client) Ping() time.Duration {
 	start := time.Now()
 	client.Rest.Request("GET", "/gateway", nil)
-	return time.Since(start).Milliseconds()
+	return time.Since(start)
 }
 
 // Makes client "listen" incoming component type interactions.
@@ -111,26 +111,17 @@ func (client Client) SendLinearMessage(channelId Snowflake, content string) (Mes
 
 func (client Client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
 	_, err := client.Rest.Request("PATCH", "/channels/"+channelId.String()+"/messages"+messageId.String(), content)
-	if err != nil {
-		return err
-	}
-	return nil
+	return error
 }
 
 func (client Client) DeleteMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("DELETE", "/channels/"+channelId.String()+"/messages"+messageId.String(), nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	return error
 }
 
 func (client Client) CrosspostMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages"+messageId.String()+"/crosspost", nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	return error
 }
 
 func (client Client) FetchUser(id Snowflake) (User, error) {
