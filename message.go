@@ -1,5 +1,7 @@
 package tempest
 
+import "time"
+
 type PartialEmoji struct {
 	Id       Snowflake `json:"id,omitempty"`
 	Name     string    `json:"name"`
@@ -29,7 +31,7 @@ type Embed struct {
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Video       *EmbedVideo     `json:"video,omitempty"`
 	Provider    *EmbedProvider  `json:"provider,omitempty"`
-	Timestamp   string          `json:"timestamp,omitempty"`
+	Timestamp   *time.Time      `json:"timestamp,omitempty"`
 }
 
 type EmbedAuthor struct {
@@ -85,8 +87,8 @@ type Message struct {
 	MentionRoleIds    []Snowflake       `json:"mention_roles"`
 	Author            *User             `json:"author"`
 	Content           string            `json:"content"`
-	Timestamp         string            `json:"timestamp"`
-	EditedTimestamp   string            `json:"edited_timestamp,omitempty"`
+	Timestamp         *time.Time        `json:"timestamp,omitempty"`
+	EditedTimestamp   *time.Time        `json:"edited_timestamp,omitempty"`
 	Embeds            []*Embed          `json:"embeds"`
 	Components        []*Component      `json:"components,omitempty"`
 	Reference         *MessageReference `json:"message_reference,omitempty"`  // Reference data sent with crossposted messages and inline replies.
