@@ -40,7 +40,8 @@ type Interaction struct {
 	Locale          string           `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string           `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 
-	Client *Client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
+	Client   *Client `json:"-"` // Client pointer is required for all "higher" structs methods that inherits Interaction data.
+	RootName string  `json:"-"` // Name of main, parent command if this interaction is a sub command.
 }
 
 type InteractionData struct {

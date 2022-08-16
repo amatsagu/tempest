@@ -347,6 +347,8 @@ func (client Client) getCommand(interaction Interaction) (Command, Interaction, 
 		if !exists {
 			return Command{}, interaction, false
 		}
+
+		interaction.RootName = rootName
 		return command, interaction, true
 	}
 
