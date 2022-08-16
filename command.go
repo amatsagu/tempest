@@ -41,8 +41,8 @@ type Command struct {
 	AvailableInDM      bool        `json:"dm_permission,omitempty"`                     // Whether command should be visible (usable) from private, dm channels. Works only for global commands!
 	Version            Snowflake   `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes
 
-	AutoCompleteHandler func(context AutoCompleteInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	SlashCommandHandler func(context CommandInteraction)               `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. Warning! Library will panic if command can be triggered but doesn't have this handler.
+	AutoCompleteHandler func(itx AutoCompleteInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
+	SlashCommandHandler func(itx CommandInteraction)               `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. Warning! Library will panic if command can be triggered but doesn't have this handler.
 
 	// There's missing localization support and "default_member_permissions" field which contains flag required for users/members to use this command.
 	// If you really need this then feel free to make a pull request.
