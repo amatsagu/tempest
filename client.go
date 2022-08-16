@@ -111,17 +111,17 @@ func (client Client) SendLinearMessage(channelId Snowflake, content string) (Mes
 
 func (client Client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
 	_, err := client.Rest.Request("PATCH", "/channels/"+channelId.String()+"/messages"+messageId.String(), content)
-	return error
+	return err
 }
 
 func (client Client) DeleteMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("DELETE", "/channels/"+channelId.String()+"/messages"+messageId.String(), nil)
-	return error
+	return err
 }
 
 func (client Client) CrosspostMessage(channelId Snowflake, messageId Snowflake) error {
 	_, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages"+messageId.String()+"/crosspost", nil)
-	return error
+	return err
 }
 
 func (client Client) FetchUser(id Snowflake) (User, error) {
