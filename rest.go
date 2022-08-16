@@ -139,7 +139,7 @@ func CreateRest(token string, globalRequestLimit uint16, capacity uint16) Rest {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
-	return Rest{
+	rest := Rest{
 		Token:                  token,
 		MaxRequestsBeforeSweep: capacity,
 		GlobalRequestLimit:     globalRequestLimit,
@@ -149,4 +149,10 @@ func CreateRest(token string, globalRequestLimit uint16, capacity uint16) Rest {
 		locks:                  make(map[string]int64, capacity),
 		fails:                  0,
 	}
+
+	if rest.MaxRequestsBeforeSweep < 50 {
+		rest.MaxRequestsBeforeSweep = 50 // Set 50 to be minimum to avoid pointless goroutine spam.
+	}
+
+	return rest
 }
