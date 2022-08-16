@@ -10,12 +10,20 @@ import (
 )
 
 type ClientOptions struct {
-	// Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
-	Rest                       Rest
-	ApplicationId              Snowflake                                  // Your app/bot's user id.
-	PublicKey                  string                                     // Hash like key used to verify incoming payloads from Discord.
-	PreCommandExecutionHandler func(itx CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue.
-	InteractionHandler         func(itx Interaction)                      // Function to call on all unhandled interactions.
+	ApplicationId              Snowflake                                  // The app's user id. (default: <nil>)
+	PublicKey                  string                                     // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
+	Token                      string                                     // The auth token to use. Bot tokens should be prefixed with Bot (e.g. "Bot MTExIHlvdSAgdHJpZWQgMTEx.O5rKAA.dQw4w9WgXcQ_wpV-gGA4PSk_bm8"). Prefix-less bot tokens are deprecated. (default: <nil>)
+	GlobalRequestLimit         uint16                                     // The maximum number of requests app can make to Discord API before reaching global rate limit. Default limit is 50 but big bots (over 100,000 guilds) receives bigger limits. (default: 50)
+	Cooldowns                  *ClientCooldownOptions                     // The built-in cooldown mechanic for commands. Skip this field if you don't want to use automatic cooldown system (it won't allocate any extra memory if it's not used). (default: <nil>)
+	PreCommandExecutionHandler func(itx CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue. (default: <nil>)
+	InteractionHandler         func(itx Interaction)                      // Function to call on all unhandled interactions. (default: <nil>)
+}
+
+type ClientCooldownOptions struct {
+	Duration               time.Time
+	Ephemeral              bool                                                          // Whether message about being on cooldown should be ephemeral.
+	CooldownMessageHandler func(itx CommandInteraction, timeLeft time.Time) ResponseData // Response object to reply to member/user on cooldown.
+	RestartCooldown        bool                                                          // Whether to reset cooldown if member/user repeatly tries to use command ignoring warning message.
 }
 
 type QueueComponent struct {
@@ -32,7 +40,9 @@ type Client struct {
 	PublicKey     ed25519.PublicKey
 
 	commands                   map[string]map[string]Command              // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
+	cooldowns                  ClientCooldownOptions                      // Copy of data from ClientOptions.
 	queuedComponents           map[string]*QueueComponent                 // Map with all currently running button queues.
+	activeCooldowns            map[Snowflake]time.Time                    // Map with all command cooldowns.
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseData // From options, called before each slash command.
 	interactionHandler         func(itx Interaction)                      // From options, called on all unhandled interactions.
 	running                    bool                                       // Whether client's web server is already launched.
@@ -215,14 +225,19 @@ func CreateClient(options ClientOptions) Client {
 	}
 
 	client := Client{
-		Rest:                       options.Rest,
+		Rest:                       CreateRest(options.Token, options.GlobalRequestLimit),
 		ApplicationId:              options.ApplicationId,
 		PublicKey:                  ed25519.PublicKey(discordPublicKey),
 		commands:                   make(map[string]map[string]Command, 50),
-		queuedComponents:           make(map[string]*QueueComponent, 25),
+		queuedComponents:           make(map[string]*QueueComponent, 50),
 		preCommandExecutionHandler: options.PreCommandExecutionHandler,
 		interactionHandler:         options.InteractionHandler,
 		running:                    false,
+	}
+
+	if options.Cooldowns != nil {
+		client.cooldowns = *options.Cooldowns
+		client.activeCooldowns = make(map[Snowflake]time.Time, 50)
 	}
 
 	return client

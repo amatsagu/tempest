@@ -134,24 +134,24 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 }
 
 // Creates standalone REST instance. Use CreateClient function if you want to create regular Discord App.
-func CreateRest(token string, globalRequestLimit uint16, capacity uint16) Rest {
+func CreateRest(token string, globalRequestLimit uint16) Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
 	rest := Rest{
 		Token:                  token,
-		MaxRequestsBeforeSweep: capacity,
+		MaxRequestsBeforeSweep: 100,
 		GlobalRequestLimit:     globalRequestLimit,
 		globalRequests:         0,
 		requestsSinceSweep:     0,
 		lockedTo:               0,
-		locks:                  make(map[string]int64, capacity),
+		locks:                  make(map[string]int64, 100),
 		fails:                  0,
 	}
 
-	if rest.MaxRequestsBeforeSweep < 50 {
-		rest.MaxRequestsBeforeSweep = 50 // Set 50 to be minimum to avoid pointless goroutine spam.
+	if rest.GlobalRequestLimit < 50 {
+		rest.GlobalRequestLimit = 50 // All Discord applications (or bots) have global limit = 50. Big bots can receive higher limits.
 	}
 
 	return rest
