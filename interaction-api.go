@@ -7,8 +7,8 @@ import (
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
 // Use this method when working with Command-like interactions.
-func (ctx CommandInteraction) GetOptionValue(name string) (any, bool) {
-	options := ctx.Data.Options
+func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
+	options := itx.Data.Options
 	if len(options) == 0 {
 		return nil, false
 	}
@@ -24,14 +24,14 @@ func (ctx CommandInteraction) GetOptionValue(name string) (any, bool) {
 
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
-func (ctx CommandInteraction) Defer(ephemeral bool) error {
+func (itx CommandInteraction) Defer(ephemeral bool) error {
 	var flags uint64 = 0
 
 	if ephemeral {
 		flags = 64
 	}
 
-	_, err := ctx.Client.Rest.Request("PUT", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request("PUT", "/interactions/"+itx.Id.String()+"/"+itx.Token+"/callback", Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Flags: flags,
@@ -45,12 +45,12 @@ func (ctx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (ctx CommandInteraction) SendReply(content ResponseData, ephemeral bool) error {
+func (itx CommandInteraction) SendReply(content ResponseData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
 
-	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.Id.String()+"/"+itx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &content,
 	})
@@ -62,14 +62,14 @@ func (ctx CommandInteraction) SendReply(content ResponseData, ephemeral bool) er
 }
 
 // Use that for simple text messages that won't be modified.
-func (ctx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
+func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
 	var flags uint64 = 0
 
 	if ephemeral {
 		flags = 64
 	}
 
-	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.Id.String()+"/"+itx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Content:    content,
@@ -85,12 +85,12 @@ func (ctx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 	return nil
 }
 
-func (ctx CommandInteraction) EditReply(content ResponseData, ephemeral bool) error {
+func (itx CommandInteraction) EditReply(content ResponseData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
 
-	_, err := ctx.Client.Rest.Request("PATCH", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", content)
+	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/@original", content)
 
 	if err != nil {
 		return err
@@ -98,8 +98,8 @@ func (ctx CommandInteraction) EditReply(content ResponseData, ephemeral bool) er
 	return nil
 }
 
-func (ctx CommandInteraction) DeleteReply() error {
-	_, err := ctx.Client.Rest.Request("DELETE", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/@original", nil)
+func (itx CommandInteraction) DeleteReply() error {
+	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/@original", nil)
 
 	if err != nil {
 		return err
@@ -108,12 +108,12 @@ func (ctx CommandInteraction) DeleteReply() error {
 }
 
 // Create a followup message for an Interaction.
-func (ctx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool) (Message, error) {
+func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool) (Message, error) {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
 
-	raw, err := ctx.Client.Rest.Request("POST", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token, content)
+	raw, err := itx.Client.Rest.Request("POST", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -128,8 +128,8 @@ func (ctx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 }
 
 // Edits a followup message for an Interaction.
-func (ctx CommandInteraction) EditFollowUp(messageId Snowflake, content ResponseData) error {
-	_, err := ctx.Client.Rest.Request("PATCH", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
+func (itx CommandInteraction) EditFollowUp(messageId Snowflake, content ResponseData) error {
+	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/"+messageId.String(), content)
 	if err != nil {
 		return err
 	}
@@ -137,8 +137,8 @@ func (ctx CommandInteraction) EditFollowUp(messageId Snowflake, content Response
 }
 
 // Deletes a followup message for an Interaction. It does not support ephemeral followups.
-func (ctx CommandInteraction) DeleteFollowUp(messageId Snowflake, content ResponseData) error {
-	_, err := ctx.Client.Rest.Request("DELETE", "/webhooks/"+ctx.Client.ApplicationId.String()+"/"+ctx.Token+"/messages/"+messageId.String(), content)
+func (itx CommandInteraction) DeleteFollowUp(messageId Snowflake, content ResponseData) error {
+	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/"+messageId.String(), content)
 	if err != nil {
 		return err
 	}
@@ -146,8 +146,8 @@ func (ctx CommandInteraction) DeleteFollowUp(messageId Snowflake, content Respon
 }
 
 // Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
-func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
-	options := ctx.Data.Options
+func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
+	options := itx.Data.Options
 
 	for _, option := range options {
 		if option.Focused {
@@ -159,8 +159,8 @@ func (ctx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 }
 
 // Use that if you need to make a call that is not already supported by Tempest.
-func (ctx Interaction) SendCustomCallback(method string, callback Response) error {
-	_, err := ctx.Client.Rest.Request("POST", "/interactions/"+ctx.Id.String()+"/"+ctx.Token+"/callback", callback)
+func (itx Interaction) SendCustomCallback(method string, callback Response) error {
+	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.Id.String()+"/"+itx.Token+"/callback", callback)
 
 	if err != nil {
 		return err
