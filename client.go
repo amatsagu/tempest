@@ -274,9 +274,9 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			return // Stop execution since this command doesn't want to be used inside DM.
 		}
 
-		ctx := CommandInteraction(interaction)
+		itx := CommandInteraction(interaction)
 		if client.preCommandExecutionHandler != nil {
-			content := client.preCommandExecutionHandler(ctx)
+			content := client.preCommandExecutionHandler(itx)
 			if content != nil {
 				body, err := json.Marshal(Response{
 					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
@@ -294,7 +294,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-		command.SlashCommandHandler(ctx)
+		command.SlashCommandHandler(itx)
 		return
 	case MESSAGE_COMPONENT_TYPE:
 		queue, exists := client.queuedComponents[interaction.Data.CustomId]
