@@ -38,10 +38,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 		},
 	})
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
@@ -55,10 +52,7 @@ func (itx CommandInteraction) SendReply(content ResponseData, ephemeral bool) er
 		Data: &content,
 	})
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Use that for simple text messages that won't be modified.
@@ -79,10 +73,7 @@ func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 		},
 	})
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (itx CommandInteraction) EditReply(content ResponseData, ephemeral bool) error {
@@ -91,20 +82,12 @@ func (itx CommandInteraction) EditReply(content ResponseData, ephemeral bool) er
 	}
 
 	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/@original", content)
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (itx CommandInteraction) DeleteReply() error {
 	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/@original", nil)
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Create a followup message for an Interaction.
@@ -130,19 +113,13 @@ func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 // Edits a followup message for an Interaction.
 func (itx CommandInteraction) EditFollowUp(messageId Snowflake, content ResponseData) error {
 	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/"+messageId.String(), content)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Deletes a followup message for an Interaction. It does not support ephemeral followups.
 func (itx CommandInteraction) DeleteFollowUp(messageId Snowflake, content ResponseData) error {
 	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationId.String()+"/"+itx.Token+"/messages/"+messageId.String(), content)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
@@ -161,9 +138,5 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 // Use that if you need to make a call that is not already supported by Tempest.
 func (itx Interaction) SendCustomCallback(method string, callback Response) error {
 	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.Id.String()+"/"+itx.Token+"/callback", callback)
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
