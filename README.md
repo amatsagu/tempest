@@ -33,6 +33,7 @@ In race for efficiency, interaction & component structures are bare metal withou
 * [Modals (P)](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal) - Technically you can use them but it'll require handling them manually using client's [interaction handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions).
 * [Localization (M)](https://discord.com/developers/docs/interactions/application-commands#localization) - Multi-language support is still highly unstable and barely ever used by bots so I'm going to ignore it for now.
 * [User/Message commands (P)](https://discord.com/developers/docs/interactions/application-commands#user-commands) - Those are possible to use but will require extra work when handling & synchronising with API.
+* [Attachments (M)](https://discord.com/developers/docs/resources/channel#attachment-object) - I never see any Discord App controlling attachments over slash commands so I decided to ignore it for now.
 
 ### Special features
 * [Easy to use & efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterCommand)
@@ -45,6 +46,7 @@ In race for efficiency, interaction & component structures are bare metal withou
 * Auto panic recovery inherited from `std/http`
 * Request failure auto recovery (3 attempts)
     - On failed attempts *(probably due to internet connection)*, it'll try again up to 3 times before panicking.
+* [Cooldown system for commands (optional)](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientCooldownOptions)
 
 ### Getting started
 1. Install with: `go get -u github.com/Amatsagu/Tempest`
@@ -53,7 +55,7 @@ In race for efficiency, interaction & component structures are bare metal withou
 
 
 ## Troubleshooting
-For help feel free to open an issue or reach out on Discord (invite `Amatsagu#0001`).
+For help feel free to open an issue on github.
 
 ## Contributing
-Contributions are welcomed but for bigger changes we recommend first reaching out via Discord (invite `Amatsagu#0001`) or create an issue to discuss your problems, intentions and ideas.
+Contributions are welcomed but for bigger changes I would like first reaching out via Discord (invite `Amatsagu#0001`) or create an issue to discuss your problems, intentions and ideas.
