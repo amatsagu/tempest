@@ -79,8 +79,6 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
-		// Workaround: Discord API requires empty array to hide embeds or components but Go std/json is kinda retarded in this...
-		// I'm not sure how much this will hurt performance. Probably barely but it needs deeper investigation.
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(bytes.ReplaceAll(body, REST_NULL_SLICE_FIND, REST_NULL_SLICE_REPLACE)))
 		if err != nil {
 			return nil, errors.New("failed to initialize new request: " + err.Error())
