@@ -4,31 +4,41 @@ import (
 	"example-bot/commands"
 	"fmt"
 	"log"
+	_ "net/http/pprof"
+	"time"
 
-	. "github.com/Amatsagu/Tempest"
+	tempest "github.com/Amatsagu/Tempest"
 )
 
-// ==[ CREDENTIALS (EXAMPLE) ]====================================================================
+// ==[ CREDENTIALS (FAKE EXAMPLE) ]====================================================================
 
-const AppId Snowflake = 1003423309444165733
-const PublicKey string = "168b4f26de412c4fcaaf7166b58cc234f0746e54b791551de3f55e716624761a"
-const Token string = "Bot MTAwMzQyMzMwOTQ0NDE2NTczMw.GhjosP.rkwPdZnNICM7xuCQCX6C-cf5D1SoySXzYVWaRk"
+const AppId tempest.Snowflake = 1003423309444165121
+const PublicKey string = "168b4f26de412c4fcaaf7166b58cc234f0746e54b791551de3f90e716624761a"
+const Token string = "Bot MTAwMzQyMzMwOTQ0NDE2NTczMw.GrvRPb.jcjBaT74BHU1ay--9-iZNvbN0I_vgvXhkeNnTw"
 const Addr string = "0.0.0.0:8080"
+const TestGuildId tempest.Snowflake = 957738153442172958
 
-// ===============================================================================================
+// ====================================================================================================
 
 func main() {
 	cmds := 0
-	client := CreateClient(ClientOptions{
-		ApplicationId:          AppId,
-		PublicKey:              PublicKey,
-		Token:                  Token,
-		GlobalRequestLimit:     50,
-		MaxRequestsBeforeSweep: 50,
-		PreCommandExecutionHandler: func(commandInteraction CommandInteraction) *ResponseData {
+	client := tempest.CreateClient(tempest.ClientOptions{
+		ApplicationId: AppId,
+		PublicKey:     PublicKey,
+		Token:         Token,
+		PreCommandExecutionHandler: func(itx tempest.CommandInteraction) *tempest.ResponseData {
 			cmds += 1
-			log.Println("Somebody's running \"" + commandInteraction.Data.Name + "\" slash command. That's " + fmt.Sprint(cmds) + " command since app start.")
+			log.Println("Somebody's running \"" + itx.Data.Name + "\" slash command. That's " + fmt.Sprint(cmds) + " command since app start.")
 			return nil
+		},
+		Cooldowns: &tempest.ClientCooldownOptions{
+			Duration:  time.Second * 3,
+			Ephemeral: true,
+			CooldownResponse: func(user tempest.User, timeLeft time.Duration) tempest.ResponseData {
+				return tempest.ResponseData{
+					Content: fmt.Sprintf("You're still on cooldown! Try again in **%.2fs**.", timeLeft.Seconds()),
+				}
+			},
 		},
 	})
 
@@ -40,13 +50,9 @@ func main() {
 	client.RegisterCommand(commands.Hello)
 	client.RegisterCommand(commands.Menu)
 	client.RegisterCommand(commands.Statistics)
-	client.SyncCommands([]Snowflake{957738153442172958}, nil)
+	client.SyncCommands([]tempest.Snowflake{TestGuildId}, nil)
 
 	if err := client.ListenAndServe(Addr); err != nil {
 		panic(err) // Will happen in situation where normal std/http would panic so most likely never.
 	}
-}
-
-func mb(value uint64) float64 {
-	return float64(value) / 1024.0 / 1024.0
 }

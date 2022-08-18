@@ -105,7 +105,7 @@ func parseCommandsToDiscordObjects(client *Client, commandsToInclude []string) [
 		}
 
 		list[ip] = root
-		ip += 1
+		ip++
 	}
 
 	if len(commandsToInclude) != 0 {
@@ -117,7 +117,7 @@ func parseCommandsToDiscordObjects(client *Client, commandsToInclude []string) [
 
 			if CheckInSlice(&commandsToInclude, cmd.Name) {
 				fList[ip] = cmd
-				ip += 1
+				ip++
 			}
 		}
 

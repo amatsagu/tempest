@@ -312,25 +312,22 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			cooldown := client.cdrCooldowns[user.Id]
 			timeLeft := cooldown.Sub(now)
 
-			if timeLeft < 0 {
+			if timeLeft > 0 {
 				if err := itx.SendReply(client.cdrResponse(user, timeLeft), client.cdrEphemeral); err != nil {
 					panic("failed to send cooldown warning message to " + user.Tag() + ", original error: " + err.Error())
 				}
 				return
 			} else {
+				client.cdrSinceSweep++
 				client.cdrCooldowns[user.Id] = time.Now().Add(client.cdrDuration)
 
 				if client.cdrSinceSweep%client.cdrMaxBeforeSweep == 0 {
 					client.cdrSinceSweep = 0
 
-					println("CLEANING COOLDOWNS")
-
 					go func() {
 						for userId, cdr := range client.cdrCooldowns {
-							if now.After(cdr) {
-								println("DELETED COOLDOWN FOR " + userId.String())
+							if cdr.Sub(now) < 1 {
 								delete(client.cdrCooldowns, userId)
-								println(len(client.cdrCooldowns))
 							}
 						}
 					}()
