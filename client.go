@@ -14,16 +14,17 @@ type ClientOptions struct {
 	PublicKey                  string                                     // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Token                      string                                     // The auth token to use. Bot tokens should be prefixed with Bot (e.g. "Bot MTExIHlvdSAgdHJpZWQgMTEx.O5rKAA.dQw4w9WgXcQ_wpV-gGA4PSk_bm8"). Prefix-less bot tokens are deprecated. (default: <nil>)
 	GlobalRequestLimit         uint16                                     // The maximum number of requests app can make to Discord API before reaching global rate limit. Default limit is 50 but big bots (over 100,000 guilds) receives bigger limits. (default: 50)
+	MaxRequestsBeforeSweep     uint16                                     // The maximum number of REST requests after which app start clearing memory. Majority of Discord applications can hold it on default 100 but if your app handles like hundreds of commands each second then it's recommend increasing that limit. Increasing it will result in higher memory usage but reduce CPU usage. (default: 100)
 	Cooldowns                  *ClientCooldownOptions                     // The built-in cooldown mechanic for commands. Skip this field if you don't want to use automatic cooldown system (it won't allocate any extra memory if it's not used). (default: <nil>)
 	PreCommandExecutionHandler func(itx CommandInteraction) *ResponseData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue. (default: <nil>)
 	InteractionHandler         func(itx Interaction)                      // Function to call on all unhandled interactions. (default: <nil>)
 }
 
 type ClientCooldownOptions struct {
-	Duration               time.Time
-	Ephemeral              bool                                                          // Whether message about being on cooldown should be ephemeral.
-	CooldownMessageHandler func(itx CommandInteraction, timeLeft time.Time) ResponseData // Response object to reply to member/user on cooldown.
-	RestartCooldown        bool                                                          // Whether to reset cooldown if member/user repeatly tries to use command ignoring warning message.
+	Duration                time.Duration
+	Ephemeral               bool                                                 // Whether message about being on cooldown should be ephemeral.
+	CooldownResponse        func(user User, timeLeft time.Duration) ResponseData // Response object to reply to member/user on cooldown.
+	MaxCooldownsBeforeSweep uint16                                               // The maximum number of cooldown entries to keep after which app start clearing memory. Majority of Discord applications can hold it on default 100 but if your app handles like hundreds of commands each second then it's recommend increasing that limit. Increasing it will result in higher memory usage but reduce CPU usage. (default: 100)
 }
 
 type QueueComponent struct {
@@ -34,18 +35,25 @@ type QueueComponent struct {
 
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
 type Client struct {
-	Rest          Rest
-	User          User
-	ApplicationId Snowflake
-	PublicKey     ed25519.PublicKey
+	Rest                    Rest
+	User                    User
+	ApplicationId           Snowflake
+	PublicKey               ed25519.PublicKey
+	MaxCooldownsBeforeSweep uint16
 
 	commands                   map[string]map[string]Command              // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
-	cooldowns                  ClientCooldownOptions                      // Copy of data from ClientOptions.
 	queuedComponents           map[string]*QueueComponent                 // Map with all currently running button queues.
-	activeCooldowns            map[Snowflake]time.Time                    // Map with all command cooldowns.
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseData // From options, called before each slash command.
 	interactionHandler         func(itx Interaction)                      // From options, called on all unhandled interactions.
 	running                    bool                                       // Whether client's web server is already launched.
+
+	cdrs              bool
+	cdrDuration       time.Duration
+	cdrEphemeral      bool
+	cdrResponse       func(user User, timeLeft time.Duration) ResponseData
+	cdrCooldowns      map[Snowflake]time.Time
+	cdrMaxBeforeSweep uint16
+	cdrSinceSweep     uint16
 }
 
 // Pings Discord API and returns time it took to get response.
@@ -225,19 +233,30 @@ func CreateClient(options ClientOptions) Client {
 	}
 
 	client := Client{
-		Rest:                       CreateRest(options.Token, options.GlobalRequestLimit),
+		Rest:                       CreateRest(options.Token, options.GlobalRequestLimit, options.MaxRequestsBeforeSweep),
 		ApplicationId:              options.ApplicationId,
 		PublicKey:                  ed25519.PublicKey(discordPublicKey),
-		commands:                   make(map[string]map[string]Command, 50),
+		commands:                   make(map[string]map[string]Command, 0),
 		queuedComponents:           make(map[string]*QueueComponent, 50),
 		preCommandExecutionHandler: options.PreCommandExecutionHandler,
 		interactionHandler:         options.InteractionHandler,
 		running:                    false,
+		cdrs:                       false,
 	}
 
 	if options.Cooldowns != nil {
-		client.cooldowns = *options.Cooldowns
-		client.activeCooldowns = make(map[Snowflake]time.Time, 50)
+		client.cdrs = true
+		client.cdrDuration = options.Cooldowns.Duration
+		client.cdrEphemeral = options.Cooldowns.Ephemeral
+		client.cdrResponse = options.Cooldowns.CooldownResponse
+		client.cdrCooldowns = make(map[Snowflake]time.Time, options.Cooldowns.MaxCooldownsBeforeSweep)
+		client.cdrSinceSweep = 0
+
+		if options.Cooldowns.MaxCooldownsBeforeSweep < 50 {
+			client.cdrMaxBeforeSweep = 50
+		} else {
+			client.cdrMaxBeforeSweep = options.MaxRequestsBeforeSweep
+		}
 	}
 
 	return client
@@ -281,6 +300,44 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		itx := CommandInteraction(interaction)
+		if client.cdrs {
+			var user User
+			if interaction.GuildId == 0 {
+				user = *itx.User
+			} else {
+				user = *itx.Member.User
+			}
+
+			now := time.Now()
+			cooldown := client.cdrCooldowns[user.Id]
+			timeLeft := cooldown.Sub(now)
+
+			if timeLeft < 0 {
+				if err := itx.SendReply(client.cdrResponse(user, timeLeft), client.cdrEphemeral); err != nil {
+					panic("failed to send cooldown warning message to " + user.Tag() + ", original error: " + err.Error())
+				}
+				return
+			} else {
+				client.cdrCooldowns[user.Id] = time.Now().Add(client.cdrDuration)
+
+				if client.cdrSinceSweep%client.cdrMaxBeforeSweep == 0 {
+					client.cdrSinceSweep = 0
+
+					println("CLEANING COOLDOWNS")
+
+					go func() {
+						for userId, cdr := range client.cdrCooldowns {
+							if now.After(cdr) {
+								println("DELETED COOLDOWN FOR " + userId.String())
+								delete(client.cdrCooldowns, userId)
+								println(len(client.cdrCooldowns))
+							}
+						}
+					}()
+				}
+			}
+		}
+
 		if client.preCommandExecutionHandler != nil {
 			content := client.preCommandExecutionHandler(itx)
 			if content != nil {
