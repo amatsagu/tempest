@@ -1,5 +1,7 @@
 package tempest
 
+import "strconv"
+
 type CommandType uint8
 
 const (
@@ -28,6 +30,11 @@ const (
 	CHANNEL_GUILD_DIRECTORY
 	CHANNEL_GUILD_FORUM // (still in development) Channel that can only contain threads.
 )
+
+func (ct ChannelType) MarshalJSON() (p []byte, err error) {
+	buf := strconv.FormatUint(uint64(ct), 10)
+	return []byte(buf), nil
+}
 
 type Command struct {
 	Id                 Snowflake   `json:"id,omitempty"`
