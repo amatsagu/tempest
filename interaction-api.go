@@ -22,6 +22,26 @@ func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
 	return nil, false
 }
 
+// Returns pointer to user if present in interaction.data.resolved. It'll return <nil> if there's no resolved user.
+func (itx CommandInteraction) ResolveUser(id Snowflake) *User {
+	return itx.Data.Resolved.Users[id]
+}
+
+// Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return <nil> if there's no resolved member.
+func (itx CommandInteraction) ResolveMember(id Snowflake) *Member {
+	member, available := itx.Data.Resolved.Members[id]
+	if available {
+		member.User = itx.Data.Resolved.Users[id]
+		return member
+	}
+	return nil
+}
+
+// Returns pointer to guild role if present in interaction.data.resolved. It'll return <nil> if there's no resolved role.
+func (itx CommandInteraction) ResolveRole(id Snowflake) *Role {
+	return itx.Data.Resolved.Roles[id]
+}
+
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
 func (itx CommandInteraction) Defer(ephemeral bool) error {
