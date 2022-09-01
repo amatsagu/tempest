@@ -62,7 +62,7 @@ type Member struct {
 	GuildAvatarHash string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.FetchGuildAvatarUrl to get direct url.
 	Nickname        string      `json:"nick,omitempty"`
 	JoinedAt        string      `json:"joined_at"`
-	NitroSince      string      `json:"premium_since,omitempty"`
+	BoostedSince    string      `json:"premium_since,omitempty"`
 	RoleIds         []Snowflake `json:"roles"`
 	PermissionFlags uint64      `json:"permissions,string"`
 }
@@ -78,4 +78,32 @@ func (member Member) FetchGuildAvatarUrl() string {
 	}
 
 	return DISCORD_CDN_URL + "/guilds/" + member.GuildId.String() + "/users/" + member.User.Id.String() + "/avatars/" + member.GuildAvatarHash
+}
+
+type Role struct {
+	Id              Snowflake  `json:"id"`
+	Name            string     `json:"name"`
+	Color           uint32     `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
+	Hoist           bool       `json:"hoist"` // Whether this role is pinned in the user listing.
+	IconHash        string     `json:"icon,omitempty"`
+	UnicodeEmoji    string     `json:"unicode_emoji,omitempty"`
+	Position        uint8      `json:"position"`
+	PermissionFlags uint64     `json:"permissions,string"`
+	Managed         bool       `json:"managed"`     // Whether this role is managed by an integration.
+	Mentionable     bool       `json:"mentionable"` // Whether this role is mentionable.
+	Tags            []*RoleTag `json:"tags,omitempty"`
+}
+
+type RoleTag struct {
+	BotId         Snowflake `json:"bot_id,omitempty"`
+	IntegrationId Snowflake `json:"integration_id,omitempty"`
+	// PremiumSubscriber bool <== UNKNOWN DOCUMENTATION
+}
+
+func (role Role) FetchIcon() string {
+	if role.IconHash == "" {
+		return ""
+	}
+
+	return DISCORD_CDN_URL + "/role-icons/" + role.Id.String() + "/" + role.IconHash + ".png"
 }

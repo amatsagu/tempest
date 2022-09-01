@@ -299,6 +299,20 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			return // Stop execution since this command doesn't want to be used inside DM.
 		}
 
+		if interaction.Member != nil && interaction.GuildId != 0 {
+			interaction.Member.GuildId = interaction.GuildId // Bind guild id to each member so they can easily access guild CDN.
+		}
+
+		// Trash code... It was supposed to automatically join all partial member objects with user objects...
+		// if interaction.Data.Resolved != nil {
+		// 	for id := range interaction.Data.Resolved.Members {
+		// 		user := interaction.Data.Resolved.Users[id]
+		// 		member := interaction.Data.Resolved.Members[id]
+		// 		member.User = &user
+		// 		interaction.Data.Resolved.Members[id] = member
+		// 	}
+		// }
+
 		itx := CommandInteraction(interaction)
 		if client.cdrs {
 			var user User

@@ -44,16 +44,22 @@ type Interaction struct {
 }
 
 type InteractionData struct {
-	Id            Snowflake            `json:"id,omitempty"`
-	CustomId      string               `json:"custom_id,omitempty"` // Present only for components.
-	Name          string               `json:"name"`                // In case of commands it'll be name of command. If that's a subcommand then it'll be in format "rootCommand@subCommand".
-	Type          CommandType          `json:"type"`
-	Options       []*InteractionOption `json:"options,omitempty"`
-	GuildId       Snowflake            `json:"guild_id,omitempty"`
-	TargetId      Snowflake            `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
-	ComponentType ComponentType        `json:"component_type,omitempty"`
+	Id            Snowflake                `json:"id,omitempty"`
+	CustomId      string                   `json:"custom_id,omitempty"` // Present only for components.
+	Name          string                   `json:"name"`                // In case of commands it'll be name of command. If that's a subcommand then it'll be in format "rootCommand@subCommand".
+	Type          CommandType              `json:"type"`
+	Options       []*InteractionOption     `json:"options,omitempty"`
+	GuildId       Snowflake                `json:"guild_id,omitempty"`
+	TargetId      Snowflake                `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
+	ComponentType ComponentType            `json:"component_type,omitempty"`
+	Resolved      *InteractionDataResolved `json:"resolved,omitempty"`
+}
 
-	// There's also "resolved" object which contains all converted users + roles + channels + attachments but it's hardly ever used so it got skipped.
+type InteractionDataResolved struct {
+	Users   map[Snowflake]*User   `json:"users,omitempty"`
+	Members map[Snowflake]*Member `json:"members,omitempty"`
+	Roles   map[Snowflake]*Role   `json:"roles,omitempty"`
+	// There's also roles + channels + attachments maps but it's hardly ever used so it got skipped.
 	// If you really need this then feel free to make a pull request.
 	// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 }
