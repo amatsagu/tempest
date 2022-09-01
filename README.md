@@ -26,13 +26,13 @@ In race for efficiency, interaction & component structures are bare metal withou
 * Full Rest interaction & component API coverage
 * [HTTP interactions](https://discord.com/developers/docs/interactions/slash-commands#receiving-an-interaction)
 * [Application commands](https://discord.com/developers/docs/interactions/application-commands)
+* [User/Message commands](https://discord.com/developers/docs/interactions/application-commands#user-commands)
 * [Message components](https://discord.com/developers/docs/interactions/message-components)
 * [Built-in rate limits](https://discord.com/developers/docs/topics/rate-limits)
 
 ### Missing or partially supported discord features
 * [Modals (P)](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal) - Technically you can use them but it'll require handling them manually using client's [interaction handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions).
 * [Localization (M)](https://discord.com/developers/docs/interactions/application-commands#localization) - Multi-language support is still highly unstable and barely ever used by bots so I'm going to ignore it for now.
-* [User/Message commands (P)](https://discord.com/developers/docs/interactions/application-commands#user-commands) - Those are possible to use but will require extra work when handling & synchronising with API.
 * [Attachments (M)](https://discord.com/developers/docs/resources/channel#attachment-object) - I never see any Discord App controlling attachments over slash commands so I decided to ignore it for now.
 
 ### Special features
