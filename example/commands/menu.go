@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
@@ -36,19 +37,20 @@ var Menu tempest.Command = tempest.Command{
 			},
 		}, false)
 
-		itx.Client.AwaitComponent(tempest.QueueComponent{
-			CustomIds: []string{firstButtonId, secondButtonId},
-			TargetId:  itx.Member.User.Id,
-			Handler: func(btx *tempest.Interaction) {
-				if btx == nil {
-					itx.SendFollowUp(tempest.ResponseData{Content: "You haven't clicked button within last 5 minutes!"}, false)
-					return
-				}
+		channel, stopFunction := itx.Client.AwaitComponent([]string{firstButtonId, secondButtonId}, time.Minute*2)
+		for {
+			citx := <-channel
+			if citx == nil {
+				itx.SendFollowUp(tempest.ResponseData{Content: "Nobody clicked button within last 2 minutes!"}, false)
+				return
+			}
 
-				itx.SendFollowUp(tempest.ResponseData{
-					Content: "Successfully clicked button within 5 minutes! Button Component id: " + btx.Data.CustomId,
-				}, false)
-			},
-		}, time.Minute*5)
+			if citx.Member.User.Id == itx.Member.User.Id {
+				itx.SendLinearReply(fmt.Sprintf(`Detected that you clicked "%s" button! Terminating listener!`, citx.Data.CustomId), false)
+				stopFunction() // <== Terminates listener before reaching timeout.
+			} else {
+				itx.SendLinearReply(fmt.Sprintf(`Member "%s" clicked "%s" button!`, citx.Member.User.Username, citx.Data.CustomId), false)
+			}
+		}
 	},
 }
