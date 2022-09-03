@@ -75,18 +75,15 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 			<-timer.C
 		}
 
-		_, available := client.queuedComponents[componentCustomIds[0]]
-		if !available {
-			return
-		}
-
 		for _, key := range componentCustomIds {
 			delete(client.queuedComponents, key)
 		}
 
-		signalChannel <- nil
-		close(signalChannel)
-		signalChannel = nil
+		if signalChannel != nil {
+			signalChannel <- nil
+			close(signalChannel)
+			signalChannel = nil
+		}
 	}
 
 	for _, key := range componentCustomIds {
