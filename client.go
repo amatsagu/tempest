@@ -27,12 +27,6 @@ type ClientCooldownOptions struct {
 	MaxCooldownsBeforeSweep uint16                                               // The maximum number of cooldown entries to keep after which app start clearing memory. Majority of Discord applications can hold it on default 100 but if your app handles like hundreds of commands each second then it's recommend increasing that limit. Increasing it will result in higher memory usage but reduce CPU usage. (default: 100)
 }
 
-type QueueComponent struct {
-	CustomIds []string
-	TargetId  Snowflake // User/Member id who can trigger button. If set and button is clicked by someone else - ignore.
-	Handler   func(itx *Interaction)
-}
-
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
 type Client struct {
 	Rest                    Rest
@@ -42,7 +36,7 @@ type Client struct {
 	MaxCooldownsBeforeSweep uint16
 
 	commands                   map[string]map[string]Command              // Search by command name, then subcommand name (if it's main command then provide "-" as subcommand name)
-	queuedComponents           map[string]*QueueComponent                 // Map with all currently running button queues.
+	queuedComponents           map[string]*(chan *Interaction)            // Map with all currently running button queues.
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseData // From options, called before each slash command.
 	interactionHandler         func(itx Interaction)                      // From options, called on all unhandled interactions.
 	running                    bool                                       // Whether client's web server is already launched.
@@ -64,32 +58,46 @@ func (client Client) Ping() time.Duration {
 }
 
 // Makes client "listen" incoming component type interactions.
-// When there's component with custom id matching queued component(s) it'll trigger your handler function.
-// Provided function will be also called with <nil> param on timeout.
+// When component custom id matches - it'll send back interaction through channel.
+// On timeout - client will send <nil> through channel and automatically call close function.
 //
-// Warning! Automatically handled components will be already acknowledged by client.
+// Warning! Don't try to acknowledge any component passed to this method, it'll be handled automatically.
+//
+// Warning! Listener will continue to work unless it timeouts or when calling close function that is returned to you with channel.
 //
 // Set timeout equal to 0 to make it last infinitely.
-func (client Client) AwaitComponent(queue QueueComponent, timeout time.Duration) {
-	for _, key := range queue.CustomIds {
-		client.queuedComponents[key] = &queue
-	}
+func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Duration) (chan *Interaction, func()) {
+	var timer *time.Timer
+	signalChannel := make(chan *Interaction)
+	closeFunction := func() {
+		if timer != nil {
+			timer.Stop()
+			<-timer.C
+		}
 
-	if timeout == 0 {
-		return
-	}
-
-	time.AfterFunc(timeout, func() {
-		_, exists := client.queuedComponents[queue.CustomIds[0]]
-		if !exists {
+		_, available := client.queuedComponents[componentCustomIds[0]]
+		if !available {
 			return
 		}
 
-		for _, key := range queue.CustomIds {
+		for _, key := range componentCustomIds {
 			delete(client.queuedComponents, key)
 		}
-		queue.Handler(nil)
-	})
+
+		signalChannel <- nil
+		close(signalChannel)
+		signalChannel = nil
+	}
+
+	for _, key := range componentCustomIds {
+		client.queuedComponents[key] = &signalChannel
+	}
+
+	if timeout != 0 {
+		time.AfterFunc(timeout, closeFunction)
+	}
+
+	return signalChannel, closeFunction
 }
 
 func (client Client) SendMessage(channelId Snowflake, content Message) (Message, error) {
@@ -236,8 +244,8 @@ func CreateClient(options ClientOptions) Client {
 		Rest:                       CreateRest(options.Token, options.GlobalRequestLimit, options.MaxRequestsBeforeSweep),
 		ApplicationId:              options.ApplicationId,
 		PublicKey:                  ed25519.PublicKey(discordPublicKey),
-		commands:                   make(map[string]map[string]Command, 0),
-		queuedComponents:           make(map[string]*QueueComponent, 50),
+		commands:                   make(map[string]map[string]Command),
+		queuedComponents:           make(map[string]*(chan *Interaction)),
 		preCommandExecutionHandler: options.PreCommandExecutionHandler,
 		interactionHandler:         options.InteractionHandler,
 		running:                    false,
@@ -288,8 +296,8 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		w.Write([]byte(`{"type":1}`))
 		return
 	case APPLICATION_COMMAND_TYPE:
-		command, interaction, exists := client.getCommand(interaction)
-		if !exists {
+		command, interaction, available := client.getCommand(interaction)
+		if !available {
 			terminateCommandInteraction(w)
 			return
 		}
@@ -302,16 +310,6 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		if interaction.Member != nil && interaction.GuildId != 0 {
 			interaction.Member.GuildId = interaction.GuildId // Bind guild id to each member so they can easily access guild CDN.
 		}
-
-		// Trash code... It was supposed to automatically join all partial member objects with user objects...
-		// if interaction.Data.Resolved != nil {
-		// 	for id := range interaction.Data.Resolved.Members {
-		// 		user := interaction.Data.Resolved.Users[id]
-		// 		member := interaction.Data.Resolved.Members[id]
-		// 		member.User = &user
-		// 		interaction.Data.Resolved.Members[id] = member
-		// 	}
-		// }
 
 		itx := CommandInteraction(interaction)
 		if client.cdrs {
@@ -371,30 +369,17 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		command.SlashCommandHandler(itx)
 		return
 	case MESSAGE_COMPONENT_TYPE:
-		queue, exists := client.queuedComponents[interaction.Data.CustomId]
-		var targetId Snowflake
-
-		if interaction.GuildId == 0 {
-			targetId = interaction.User.Id
-		} else {
-			targetId = interaction.Member.User.Id
-		}
-
-		if exists && (queue.TargetId == 0 || queue.TargetId == targetId) {
-			queue.Handler(&interaction)
-
-			for _, key := range queue.CustomIds {
-				delete(client.queuedComponents, key)
-			}
-		} else if client.interactionHandler != nil {
-			client.interactionHandler(interaction)
+		queue, available := client.queuedComponents[interaction.Data.CustomId]
+		if available && queue != nil {
+			*queue <- &interaction
+			return
 		}
 
 		acknowledgeComponentInteraction(w)
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_TYPE:
-		command, interaction, exists := client.getCommand(interaction)
-		if !exists || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
+		command, interaction, available := client.getCommand(interaction)
+		if !available || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -426,8 +411,8 @@ func (client Client) getCommand(interaction Interaction) (Command, Interaction, 
 	if len(interaction.Data.Options) != 0 && interaction.Data.Options[0].Type == OPTION_SUB_COMMAND {
 		rootName := interaction.Data.Name
 		interaction.Data.Name, interaction.Data.Options = interaction.Data.Options[0].Name, interaction.Data.Options[0].Options
-		command, exists := client.commands[rootName][interaction.Data.Name]
-		if !exists {
+		command, available := client.commands[rootName][interaction.Data.Name]
+		if !available {
 			return Command{}, interaction, false
 		}
 
@@ -435,8 +420,8 @@ func (client Client) getCommand(interaction Interaction) (Command, Interaction, 
 		return command, interaction, true
 	}
 
-	command, exists := client.commands[interaction.Data.Name]["-"]
-	if !exists {
+	command, available := client.commands[interaction.Data.Name]["-"]
+	if !available {
 		return Command{}, interaction, false
 	}
 
