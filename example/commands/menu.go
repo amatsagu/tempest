@@ -41,16 +41,19 @@ var Menu tempest.Command = tempest.Command{
 		for {
 			citx := <-channel
 			if citx == nil {
-				itx.SendFollowUp(tempest.ResponseData{Content: "Nobody clicked button within last 2 minutes!"}, false)
-				return
+				itx.SendFollowUp(tempest.ResponseData{Content: "Terminated listener (timeout)."}, false)
+				break
 			}
 
+			response := fmt.Sprintf(`Member "%s" clicked "%s" button!`, citx.Member.User.Username, citx.Data.CustomId)
 			if citx.Member.User.Id == itx.Member.User.Id {
-				itx.SendLinearReply(fmt.Sprintf(`Detected that you clicked "%s" button! Terminating listener!`, citx.Data.CustomId), false)
-				stopFunction() // <== Terminates listener before reaching timeout.
-			} else {
-				itx.SendLinearReply(fmt.Sprintf(`Member "%s" clicked "%s" button!`, citx.Member.User.Username, citx.Data.CustomId), false)
+				response += "\nSince it's you, this listener will be now terminated."
+				stopFunction() // <== Terminates listener before reaching timeout. Use it if it hits desired target.
+				itx.EditReply(tempest.ResponseData{Content: response}, false)
+				break
 			}
+
+			itx.EditReply(tempest.ResponseData{Content: response}, false)
 		}
 	},
 }

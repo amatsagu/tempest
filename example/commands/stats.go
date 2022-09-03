@@ -23,7 +23,7 @@ Current memory usage: %.2fMB
  => Stack usage: %.2fMB (Allocated: %.2fMB)
 
 Total system allocated memory: %.2fMB
-GC cycles: %d
+GC cycles: %d (like 95%% of all sweeps in example/tutorial code is not made by library but GC internal timer)
 Uptime: %.2f minute(s)`, mb(m.Alloc), mb(m.HeapInuse), mb(m.HeapSys), mb(m.StackInuse), mb(m.StackSys), mb(m.Sys), m.NumGC, time.Since(startedAt).Minutes())
 
 		itx.SendLinearReply(reply, false)
