@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -68,21 +67,13 @@ func (client Client) Ping() time.Duration {
 //
 // Set timeout equal to 0 to make it last infinitely.
 func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Duration) (chan *Interaction, func()) {
-	var timer *time.Timer
 	signalChannel := make(chan *Interaction)
 	closeFunction := func() {
-		if timer != nil && timer.Stop() {
-			<-timer.C
-		}
-
-		for _, key := range componentCustomIds {
-			fmt.Println("[DEBUG] Deleting queue component entry for key: " + key)
-			delete(client.queuedComponents, key)
-		}
-
 		if signalChannel != nil {
-			fmt.Println("[DEBUG] Sending <nil> through channel and next closing channel!")
-			signalChannel <- nil
+			for _, key := range componentCustomIds {
+				delete(client.queuedComponents, key)
+			}
+
 			close(signalChannel)
 			signalChannel = nil
 		}
@@ -93,7 +84,7 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 	}
 
 	if timeout != 0 {
-		timer = time.AfterFunc(timeout, closeFunction)
+		time.AfterFunc(timeout, closeFunction)
 	}
 
 	return signalChannel, closeFunction
@@ -368,9 +359,9 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		command.SlashCommandHandler(itx)
 		return
 	case MESSAGE_COMPONENT_TYPE:
-		queue, available := client.queuedComponents[interaction.Data.CustomId]
-		if available && queue != nil {
-			*queue <- &interaction
+		signalChannel, available := client.queuedComponents[interaction.Data.CustomId]
+		if available && signalChannel != nil {
+			*signalChannel <- &interaction
 			acknowledgeComponentInteraction(w)
 			return
 		}
