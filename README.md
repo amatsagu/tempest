@@ -41,7 +41,7 @@ In race for efficiency, interaction & component structures are bare metal withou
 * [Exposed REST](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.Rest)
 * [Easy component handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitComponent)
     - Works with buttons, select menus & text inputs.
-    - Supports timeouts & filter by target id.
+    - Supports timeouts & gives a lot of freedom.
 * [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.SyncCommands)
 * Auto panic recovery inherited from `std/http`
 * Request failure auto recovery (3 attempts)
