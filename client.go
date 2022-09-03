@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -70,16 +71,17 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 	var timer *time.Timer
 	signalChannel := make(chan *Interaction)
 	closeFunction := func() {
-		if timer != nil {
-			timer.Stop()
+		if timer != nil && timer.Stop() {
 			<-timer.C
 		}
 
 		for _, key := range componentCustomIds {
+			fmt.Println("[DEBUG] Deleting queue component entry for key: " + key)
 			delete(client.queuedComponents, key)
 		}
 
 		if signalChannel != nil {
+			fmt.Println("[DEBUG] Sending <nil> through channel and next closing channel!")
 			signalChannel <- nil
 			close(signalChannel)
 			signalChannel = nil
@@ -91,7 +93,7 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 	}
 
 	if timeout != 0 {
-		time.AfterFunc(timeout, closeFunction)
+		timer = time.AfterFunc(timeout, closeFunction)
 	}
 
 	return signalChannel, closeFunction
@@ -369,10 +371,13 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		queue, available := client.queuedComponents[interaction.Data.CustomId]
 		if available && queue != nil {
 			*queue <- &interaction
+			acknowledgeComponentInteraction(w)
 			return
 		}
 
-		acknowledgeComponentInteraction(w)
+		if client.interactionHandler != nil {
+			client.interactionHandler(interaction)
+		}
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_TYPE:
 		command, interaction, available := client.getCommand(interaction)
