@@ -170,7 +170,7 @@ func (client Client) FetchMember(guildId Snowflake, memberId Snowflake) (Member,
 	return res, nil
 }
 
-func (client Client) RegisterCommand(command Command) {
+func (client Client) RegisterCommand(command Command) error {
 	if _, ok := client.commands[command.Name]; !ok {
 		if command.Options == nil {
 			command.Options = []Option{}
@@ -179,34 +179,39 @@ func (client Client) RegisterCommand(command Command) {
 		tree := make(map[string]Command)
 		tree["-"] = command
 		client.commands[command.Name] = tree
-		return
+		return nil
 	}
 
-	panic("found already registered \"" + command.Name + "\" slash command")
+	return errors.New("found already registered \"" + command.Name + "\" slash command")
 }
 
-func (client Client) RegisterSubCommand(subCommand Command, rootCommandName string) {
+func (client Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
 	if _, ok := client.commands[rootCommandName]; ok {
 		client.commands[rootCommandName][subCommand.Name] = subCommand
-		return
+		return nil
 	}
 
-	panic("missing \"" + rootCommandName + "\" slash command in registry (register root command first before adding subcommands)")
+	return errors.New("missing \"" + rootCommandName + "\" slash command in registry (register root command first before adding subcommands)")
 }
 
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
-// You can also add second param -> slice with all command names you want to update (whitelist).
-func (client Client) SyncCommands(guildIds []Snowflake, commandsToInclude []string) {
-	payload := parseCommandsToDiscordObjects(&client, commandsToInclude)
+// You can also add second param -> slice with all command names you want to update (whitelist). There's also third, boolean param that when = true will reverse wishlist to work as blacklist.
+func (client Client) SyncCommands(guildIds []Snowflake, whitelist []string, switchToBlacklist bool) error {
+	payload := parseCommandsToDiscordObjects(&client, whitelist, switchToBlacklist)
 
 	if len(guildIds) == 0 {
-		client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/commands", payload)
-		return
+		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/commands", payload)
+		return err
 	}
 
 	for _, guildId := range guildIds {
-		client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/guilds/"+guildId.String()+"/commands", payload)
+		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/guilds/"+guildId.String()+"/commands", payload)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (client Client) ListenAndServe(address string) error {
