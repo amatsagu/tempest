@@ -84,7 +84,7 @@ func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	return ed25519.Verify(key, msg.Bytes(), sig)
 }
 
-func parseCommandsToDiscordObjects(client *Client, commandsToInclude []string) []interface{} {
+func parseCommandsToDiscordObjects(client *Client, whitelist []string, switchToBlacklist bool) []interface{} {
 	list := make([]interface{}, len(client.commands))
 	ip := 0
 
@@ -108,23 +108,47 @@ func parseCommandsToDiscordObjects(client *Client, commandsToInclude []string) [
 		ip++
 	}
 
-	if len(commandsToInclude) != 0 {
-		fList := make([]interface{}, len(client.commands))
-		ip := 0
+	s := len(whitelist)
+	if s == 0 {
+		return list
+	}
+
+	if switchToBlacklist {
+		s = len(client.commands) - s
+		fList := make([]interface{}, s)
+		ip = 0
 
 		for _, command := range list {
 			cmd := command.(Command)
 
-			if CheckInSlice(&commandsToInclude, cmd.Name) {
+			if !CheckInSlice(&whitelist, cmd.Name) {
 				fList[ip] = cmd
 				ip++
+				if ip == s {
+					return fList
+				}
+			}
+		}
+
+		return fList
+	} else {
+		fList := make([]interface{}, s)
+		ip = 0
+
+		for _, command := range list {
+			cmd := command.(Command)
+
+			if CheckInSlice(&whitelist, cmd.Name) {
+				fList[ip] = cmd
+				ip++
+				if ip == s {
+					return fList
+				}
 			}
 		}
 
 		return fList
 	}
-
-	return list
 }
 
 func terminateCommandInteraction(w http.ResponseWriter) {
