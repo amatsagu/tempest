@@ -4,7 +4,6 @@ import (
 	"example-bot/commands"
 	"fmt"
 	"log"
-	_ "net/http/pprof"
 	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
