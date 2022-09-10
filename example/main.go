@@ -50,7 +50,7 @@ func main() {
 	client.RegisterCommand(commands.Hello)
 	client.RegisterCommand(commands.Menu)
 	client.RegisterCommand(commands.Statistics)
-	client.SyncCommands([]tempest.Snowflake{TestGuildId}, nil)
+	client.SyncCommands([]tempest.Snowflake{TestGuildId}, nil, nil)
 
 	if err := client.ListenAndServe(Addr); err != nil {
 		panic(err) // Will happen in situation where normal std/http would panic so most likely never.
