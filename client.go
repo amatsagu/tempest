@@ -214,7 +214,9 @@ func (client Client) SyncCommands(guildIds []Snowflake, whitelist []string, swit
 	return nil
 }
 
-func (client Client) ListenAndServe(address string) error {
+// Starts bot on set route aka "endpoint". Setting example route = "/bot" and address = "192.168.0.7:9070" would make bot work under http://192.168.0.7:9070/bot.
+// Set route as "/" or leave empty string to make it work on any URI (default).
+func (client Client) ListenAndServe(route string, address string) error {
 	if client.running {
 		panic("client's web server is already launched")
 	}
@@ -225,7 +227,11 @@ func (client Client) ListenAndServe(address string) error {
 	}
 	client.User = user
 
-	http.HandleFunc("/", client.handleDiscordWebhookRequests)
+	if route == "" {
+		route = "/"
+	}
+
+	http.HandleFunc(route, client.handleDiscordWebhookRequests)
 	return http.ListenAndServe(address, nil)
 }
 
