@@ -125,6 +125,29 @@ func (client Client) SendLinearMessage(channelId Snowflake, content string) (Mes
 	return res, nil
 }
 
+// Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
+// Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelId whenever possible.
+func (client Client) SendPrivateMessage(userId Snowflake, content Message) (Message, error) {
+	res := make(map[string]interface{}, 0)
+	res["recipient_id"] = userId
+
+	raw, err := client.Rest.Request("POST", "/users/@me/channels", res)
+	if err != nil {
+		return Message{}, err
+	}
+
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return Message{}, errors.New("failed to parse received data from discord")
+	}
+
+	channelId := StringToSnowflake(res["id"].(string))
+	msg, err := client.SendMessage(channelId, content)
+	msg.ChannelId = channelId // Just in case.
+
+	return msg, err
+}
+
 func (client Client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
 	_, err := client.Rest.Request("PATCH", "/channels/"+channelId.String()+"/messages"+messageId.String(), content)
 	return err
