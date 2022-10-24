@@ -216,7 +216,7 @@ func (client Client) SyncCommands(guildIds []Snowflake, whitelist []string, swit
 
 // Starts bot on set route aka "endpoint". Setting example route = "/bot" and address = "192.168.0.7:9070" would make bot work under http://192.168.0.7:9070/bot.
 // Set route as "/" or leave empty string to make it work on any URI (default).
-func (client Client) ListenAndServe(route string, address string) error {
+func (client *Client) ListenAndServe(route string, address string) error {
 	if client.running {
 		panic("client's web server is already launched")
 	}
