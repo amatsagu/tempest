@@ -54,7 +54,8 @@ func main() {
 	client.RegisterCommand(commands.Add)
 	client.RegisterCommand(commands.Avatar)
 	client.RegisterCommand(commands.Hello)
-	client.RegisterCommand(commands.Menu)
+	client.RegisterCommand(commands.ButtonMenu)
+	client.RegisterCommand(commands.SelectMenu)
 	client.RegisterCommand(commands.Statistics)
 	client.SyncCommands([]tempest.Snowflake{experimentalServerID}, nil, false)
 

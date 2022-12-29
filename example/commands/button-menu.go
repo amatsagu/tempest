@@ -7,8 +7,8 @@ import (
 	tempest "github.com/Amatsagu/Tempest"
 )
 
-var Menu tempest.Command = tempest.Command{
-	Name:        "menu",
+var ButtonMenu tempest.Command = tempest.Command{
+	Name:        "button-menu",
 	Description: "Creates message with example button menu.",
 	SlashCommandHandler: func(itx tempest.CommandInteraction) {
 		firstButtonID := itx.ID.String() + "_first" // Some unique id to filter for later. It's recommended to use id or token of interaction because it's always unique.
