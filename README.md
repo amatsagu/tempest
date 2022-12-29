@@ -32,8 +32,8 @@ In race for efficiency, interaction & component structures are bare metal withou
 
 ### Missing or partially supported discord features
 * [Modals (P)](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal) - Technically you can use them but it'll require handling them manually using client's [interaction handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions).
+* [Attachments (P)](https://discord.com/developers/docs/resources/channel#attachment-object) - Tempest application can accept attachments but there's no support for sending own files.
 * [Localization (M)](https://discord.com/developers/docs/interactions/application-commands#localization) - Multi-language support is still highly unstable and barely ever used by bots so I'm going to ignore it for now.
-* [Attachments (M)](https://discord.com/developers/docs/resources/channel#attachment-object) - I never see any Discord App controlling attachments over slash commands so I decided to ignore it for now.
 
 ### Special features
 * [Easy to use & efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterCommand)
