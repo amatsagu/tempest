@@ -194,33 +194,33 @@ func (client Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member,
 }
 
 func (client Client) RegisterCommand(command Command) error {
-	if _, ok := client.commands[command.Name]; !ok {
-		if command.Options == nil {
-			command.Options = []Option{}
-		}
-
-		tree := make(map[string]Command)
-		tree["-"] = command
-		client.commands[command.Name] = tree
-		return nil
+	if _, available := client.commands[command.Name]; available {
+		return errors.New("client already has registered \"" + command.Name + "\" slash command (name already in use)")
 	}
 
-	return errors.New("found already registered \"" + command.Name + "\" slash command")
+	tree := make(map[string]Command)
+	tree["-"] = command
+	client.commands[command.Name] = tree
+	return nil
 }
 
 func (client Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
-	if _, ok := client.commands[rootCommandName]; ok {
-		client.commands[rootCommandName][subCommand.Name] = subCommand
-		return nil
+	if _, available := client.commands[rootCommandName]; !available {
+		return errors.New("missing \"" + rootCommandName + "\" slash command in registry (root command needs to be registered in client before adding subcommands)")
 	}
 
-	return errors.New("missing \"" + rootCommandName + "\" slash command in registry (register root command first before adding subcommands)")
+	if _, available := client.commands[rootCommandName][subCommand.Name]; available {
+		return errors.New("client already has registered \"" + rootCommandName + "@" + subCommand.Name + "\" slash subcommand")
+	}
+
+	client.commands[rootCommandName][subCommand.Name] = subCommand
+	return nil
 }
 
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
 // You can also add second param -> slice with all command names you want to update (whitelist). There's also third, boolean param that when = true will reverse wishlist to work as blacklist.
-func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchToBlacklist bool) error {
-	payload := parseCommandsToDiscordObjects(&client, whitelist, switchToBlacklist)
+func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchMode bool) error {
+	payload := parseCommandsToDiscordObjects(client.commands, whitelist, switchMode)
 
 	if len(guildIDs) == 0 {
 		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationID.String()+"/commands", payload)
@@ -246,7 +246,7 @@ func (client *Client) ListenAndServe(route string, address string) error {
 
 	user, err := client.FetchUser(client.ApplicationID)
 	if err != nil {
-		panic("failed to fetch bot user's details (check if application id is correct & your internet connection)\n")
+		panic("failed to fetch bot user's details (check if application id is correct & your internet connection works)\n")
 	}
 	client.User = user
 
@@ -296,20 +296,20 @@ func CreateClient(options ClientOptions) Client {
 
 func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method Not Allowed.", http.StatusMethodNotAllowed)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var interaction Interaction
 	err := json.NewDecoder(r.Body).Decode(&interaction)
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
 	}
 	defer r.Body.Close()

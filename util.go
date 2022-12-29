@@ -9,39 +9,6 @@ import (
 	"net/http"
 )
 
-func PrettyStructPrint(v any) {
-	str, _ := json.MarshalIndent(v, "", "  ")
-	println(string(str))
-}
-
-func CheckInSlice[T comparable](slice *[]T, item T) bool {
-	for _, value := range *slice {
-		if value == item {
-			return true
-		}
-	}
-	return false
-}
-
-// Makes Go's compiler thing be whatever type you want. You should avoid relying on it!
-func JsonReshape[T interface{}](object interface{}) T {
-	var shape T
-
-	raw, err := json.Marshal(object)
-	if err != nil {
-		panic(err)
-	}
-
-	json.Unmarshal(raw, shape)
-	return shape
-}
-
-// Simply reflects any data to type you need. Returns second param "true" when data is safe to use. You should avoid relying on it!
-func Reshape[T any](value any) (T, bool) {
-	v, safe := value.(T)
-	return v, safe
-}
-
 // Verifies incoming request if it's from Discord.
 func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	var msg bytes.Buffer
@@ -84,19 +51,19 @@ func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	return ed25519.Verify(key, msg.Bytes(), sig)
 }
 
-func parseCommandsToDiscordObjects(client *Client, whitelist []string, switchToBlacklist bool) []interface{} {
-	list := make([]interface{}, len(client.commands))
-	ip := 0
+func parseCommandsToDiscordObjects(commands map[string]map[string]Command, whitelist []string, reverseMode bool) []Command {
+	list := make([]Command, len(commands))
+	var itx uint32 = 0
 
-	for _, tree := range client.commands {
-		root := tree["-"]
+	for _, tree := range commands {
+		command := tree["-"]
 
 		for key, subCommand := range tree {
 			if key == "-" {
 				continue
 			}
 
-			root.Options = append(root.Options, Option{
+			command.Options = append(command.Options, Option{
 				Name:        subCommand.Name,
 				Description: subCommand.Description,
 				Type:        OPTION_SUB_COMMAND,
@@ -104,51 +71,53 @@ func parseCommandsToDiscordObjects(client *Client, whitelist []string, switchToB
 			})
 		}
 
-		list[ip] = root
-		ip++
+		list[itx] = command
+		itx++
 	}
 
-	s := len(whitelist)
-	if s == 0 {
+	wls := len(whitelist)
+	if wls == 0 {
 		return list
 	}
 
-	if switchToBlacklist {
-		s = len(client.commands) - s
-		fList := make([]interface{}, s)
-		ip = 0
+	itx = 0
 
-		for _, command := range list {
-			cmd := command.(Command)
+	// Work as blacklist
+	if reverseMode {
+		filteredList := make([]Command, len(commands)-wls)
 
-			if !CheckInSlice(&whitelist, cmd.Name) {
-				fList[ip] = cmd
-				ip++
-				if ip == s {
-					return fList
+		for itx, command := range list {
+			blocked := false
+			for _, cmdName := range whitelist {
+				if command.Name == cmdName {
+					blocked = true
+					break
 				}
 			}
-		}
 
-		return fList
-	} else {
-		fList := make([]interface{}, s)
-		ip = 0
-
-		for _, command := range list {
-			cmd := command.(Command)
-
-			if CheckInSlice(&whitelist, cmd.Name) {
-				fList[ip] = cmd
-				ip++
-				if ip == s {
-					return fList
-				}
+			if blocked {
+				continue
 			}
+
+			filteredList[itx] = command
 		}
 
-		return fList
+		return filteredList
 	}
+
+	// Work as whitelist
+	filteredList := make([]Command, wls)
+
+	for _, command := range list {
+		for _, cmdName := range whitelist {
+			if command.Name == cmdName {
+				filteredList[itx] = command
+				itx++
+			}
+		}
+	}
+
+	return filteredList
 }
 
 func terminateCommandInteraction(w http.ResponseWriter) {
