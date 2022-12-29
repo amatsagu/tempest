@@ -10,8 +10,8 @@ type User struct {
 	Username      string    `json:"username"`
 	Discriminator string    `json:"discriminator"`
 	IsBot         bool      `json:"bot,omitempty"`
-	AvatarHash    string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.FetchAvatarUrl to get direct url.
-	BannerHash    string    `json:"banner,omitempty"` // Hash code used to access user's baner. Call User.FetchBannerUrl to get direct url.
+	AvatarHash    string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.FetchAvatarURL to get direct url.
+	BannerHash    string    `json:"banner,omitempty"` // Hash code used to access user's baner. Call User.FetchBannerURL to get direct url.
 	PublicFlags   uint64    `json:"public_flags,omitempty"`
 	AccentColor   uint32    `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
 	PremiumType   uint8     `json:"premium_type,omitempty"`
@@ -26,7 +26,7 @@ func (user User) Mention() string {
 }
 
 // Returns a direct url to user's avatar. It'll return url to default Discord's avatar if targeted user don't use avatar.
-func (user User) FetchAvatarUrl() string {
+func (user User) FetchAvatarURL() string {
 	if user.AvatarHash == "" {
 		n, err := strconv.Atoi(user.Discriminator)
 		if err != nil {
@@ -44,7 +44,7 @@ func (user User) FetchAvatarUrl() string {
 }
 
 // Returns a direct url to user's banner. It'll return empty string if targeted user don't use avatar.
-func (user User) FetchBannerUrl() string {
+func (user User) FetchBannerURL() string {
 	if user.BannerHash == "" {
 		return ""
 	}
@@ -59,7 +59,7 @@ func (user User) FetchBannerUrl() string {
 type Member struct {
 	User            *User       `json:"user,omitempty"` // Struct with general user data. In theory it may be empty but I never seen such payload.
 	GuildID         Snowflake   `json:"-"`
-	GuildAvatarHash string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.FetchGuildAvatarUrl to get direct url.
+	GuildAvatarHash string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.FetchGuildAvatarURL to get direct url.
 	Nickname        string      `json:"nick,omitempty"`
 	JoinedAt        string      `json:"joined_at"`
 	BoostedSince    string      `json:"premium_since,omitempty"`
@@ -68,7 +68,7 @@ type Member struct {
 }
 
 // Returns a direct url to members's guild specific avatar. It'll return empty string if targeted member don't use custom avatar for that server.
-func (member Member) FetchGuildAvatarUrl() string {
+func (member Member) FetchGuildAvatarURL() string {
 	if member.GuildAvatarHash == "" {
 		return ""
 	}

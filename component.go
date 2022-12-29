@@ -56,7 +56,7 @@ type Component struct {
 	Style       ButtonStyle         `json:"style,omitempty"`
 	Label       string              `json:"label,omitempty"`
 	Emoji       *PartialEmoji       `json:"emoji,omitempty"`
-	Url         string              `json:"url,omitempty"`
+	URL         string              `json:"url,omitempty"`
 	Disabled    bool                `json:"disabled,omitempty"`
 	Placeholder string              `json:"placeholder,omitempty"`
 	MinValues   uint64              `json:"min_values,omitempty"`
@@ -72,7 +72,7 @@ type ButtonComponent struct {
 	Style    ButtonStyle   `json:"style"`
 	Label    string        `json:"label,omitempty"` // Text label that appears on the button, max 80 characters.
 	Emoji    *PartialEmoji `json:"emoji,omitempty"`
-	Url      string        `json:"url,omitempty"` // A url for link-style buttons.
+	URL      string        `json:"url,omitempty"` // A url for link-style buttons.
 	Disabled bool          `json:"disabled,omitempty"`
 }
 

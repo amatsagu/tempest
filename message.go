@@ -28,7 +28,7 @@ type Emoji struct {
 
 type Embed struct {
 	Title       string          `json:"title,omitempty"`
-	Url         string          `json:"url,omitempty"`
+	URL         string          `json:"url,omitempty"`
 	Author      *EmbedAuthor    `json:"author,omitempty"`
 	Color       uint32          `json:"color,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
@@ -42,14 +42,14 @@ type Embed struct {
 }
 
 type EmbedAuthor struct {
-	IconUrl string `json:"icon_url,omitempty"`
+	IconURL string `json:"icon_url,omitempty"`
 	Name    string `json:"name,omitempty"`
-	Url     string `json:"url,omitempty"`
+	URL     string `json:"url,omitempty"`
 }
 
 type EmbedThumbnail struct {
-	Url      string `json:"url"`
-	ProxyUrl string `json:"proxy_url,omitempty"`
+	URL      string `json:"url"`
+	ProxyURL string `json:"proxy_url,omitempty"`
 	Width    int    `json:"width,omitempty"`
 	Height   int    `json:"height,omitempty"`
 }
@@ -61,25 +61,25 @@ type EmbedField struct {
 }
 
 type EmbedFooter struct {
-	IconUrl string `json:"icon_url,omitempty"`
+	IconURL string `json:"icon_url,omitempty"`
 	Text    string `json:"text,omitempty"`
 }
 
 type EmbedImage struct {
-	Url      string `json:"url"`
-	ProxyUrl string `json:"proxy_url,omitempty"`
+	URL      string `json:"url"`
+	ProxyURL string `json:"proxy_url,omitempty"`
 	Width    int    `json:"width,omitempty"`
 	Height   int    `json:"height,omitempty"`
 }
 
 type EmbedVideo struct {
-	Url    string `json:"url,omitempty"`
+	URL    string `json:"url,omitempty"`
 	Width  int    `json:"width,omitempty"`
 	Height int    `json:"height,omitempty"`
 }
 
 type EmbedProvider struct {
-	Url  string `json:"url,omitempty"`
+	URL  string `json:"url,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
