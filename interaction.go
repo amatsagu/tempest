@@ -49,6 +49,7 @@ type InteractionData struct {
 	Name          string                   `json:"name"`                // In case of commands it'll be name of command. If that's a subcommand then it'll be in format "rootCommand@subCommand".
 	Type          CommandType              `json:"type"`
 	Options       []*InteractionOption     `json:"options,omitempty"`
+	Values        []string                 `json:"values,omitempty"`
 	GuildID       Snowflake                `json:"guild_id,omitempty"`
 	TargetID      Snowflake                `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 	ComponentType ComponentType            `json:"component_type,omitempty"`
