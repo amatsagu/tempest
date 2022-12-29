@@ -51,7 +51,7 @@ const (
 
 // Generic Component super struct! Use "ButtonComponent", "SelectMenuComponent" or "TextInputComponent" whenever possible and this super struct as "any" component.
 type Component struct {
-	CustomId    string              `json:"custom_id,omitempty"`
+	CustomID    string              `json:"custom_id,omitempty"`
 	Type        ComponentType       `json:"type"`
 	Style       ButtonStyle         `json:"style,omitempty"`
 	Label       string              `json:"label,omitempty"`
@@ -67,7 +67,7 @@ type Component struct {
 }
 
 type ButtonComponent struct {
-	CustomId string        `json:"custom_id"`
+	CustomID string        `json:"custom_id"`
 	Type     ComponentType `json:"type"` // It gonna always be = 2 for button components.
 	Style    ButtonStyle   `json:"style"`
 	Label    string        `json:"label,omitempty"` // Text label that appears on the button, max 80 characters.
@@ -77,7 +77,7 @@ type ButtonComponent struct {
 }
 
 type SelectMenuComponent struct {
-	CustomId    string              `json:"custom_id"`
+	CustomID    string              `json:"custom_id"`
 	Type        ComponentType       `json:"type"`                  // It gonna always be = 3 for select menu components.
 	Placeholder string              `json:"placeholder,omitempty"` // Custom placeholder text if nothing is selected, max 150 characters.
 	MinValues   uint64              `json:"min_values,omitempty"`
@@ -95,7 +95,7 @@ type SelectMenuOption struct {
 }
 
 type TextInputComponent struct {
-	CustomId    string         `json:"custom_id"`
+	CustomID    string         `json:"custom_id"`
 	Type        ComponentType  `json:"type"` // It gonna always be = 4 for text input components.
 	Style       TextInputStyle `json:"style"`
 	Label       string         `json:"label"`                 // Text label for text input, max 45 characters.

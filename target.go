@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	Id            Snowflake `json:"id"`
+	ID            Snowflake `json:"id"`
 	Username      string    `json:"username"`
 	Discriminator string    `json:"discriminator"`
 	IsBot         bool      `json:"bot,omitempty"`
@@ -37,10 +37,10 @@ func (user User) FetchAvatarUrl() string {
 	}
 
 	if strings.HasPrefix(user.AvatarHash, "a_") {
-		return DISCORD_CDN_URL + "/avatars/" + user.Id.String() + "/" + user.AvatarHash + ".gif"
+		return DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/avatars/" + user.Id.String() + "/" + user.AvatarHash
+	return DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
 }
 
 // Returns a direct url to user's banner. It'll return empty string if targeted user don't use avatar.
@@ -50,20 +50,20 @@ func (user User) FetchBannerUrl() string {
 	}
 
 	if strings.HasPrefix(user.AvatarHash, "a_") {
-		return DISCORD_CDN_URL + "/banners/" + user.Id.String() + "/" + user.BannerHash + ".gif"
+		return DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/banners/" + user.Id.String() + "/" + user.BannerHash
+	return DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash
 }
 
 type Member struct {
 	User            *User       `json:"user,omitempty"` // Struct with general user data. In theory it may be empty but I never seen such payload.
-	GuildId         Snowflake   `json:"-"`
+	GuildID         Snowflake   `json:"-"`
 	GuildAvatarHash string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.FetchGuildAvatarUrl to get direct url.
 	Nickname        string      `json:"nick,omitempty"`
 	JoinedAt        string      `json:"joined_at"`
 	BoostedSince    string      `json:"premium_since,omitempty"`
-	RoleIds         []Snowflake `json:"roles"`
+	RoleIDs         []Snowflake `json:"roles"`
 	PermissionFlags uint64      `json:"permissions,string"`
 }
 
@@ -74,14 +74,14 @@ func (member Member) FetchGuildAvatarUrl() string {
 	}
 
 	if strings.HasPrefix(member.GuildAvatarHash, "a_") {
-		return DISCORD_CDN_URL + "/guilds/" + member.GuildId.String() + "/users/" + member.User.Id.String() + "/avatars/" + member.GuildAvatarHash + ".gif"
+		return DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/guilds/" + member.GuildId.String() + "/users/" + member.User.Id.String() + "/avatars/" + member.GuildAvatarHash
+	return DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash
 }
 
 type Role struct {
-	Id              Snowflake  `json:"id"`
+	ID              Snowflake  `json:"id"`
 	Name            string     `json:"name"`
 	Color           uint32     `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
 	Hoist           bool       `json:"hoist"` // Whether this role is pinned in the user listing.
@@ -95,8 +95,8 @@ type Role struct {
 }
 
 type RoleTag struct {
-	BotId         Snowflake `json:"bot_id,omitempty"`
-	IntegrationId Snowflake `json:"integration_id,omitempty"`
+	BotID         Snowflake `json:"bot_id,omitempty"`
+	IntegrationID Snowflake `json:"integration_id,omitempty"`
 	// PremiumSubscriber bool <== UNKNOWN DOCUMENTATION
 }
 
@@ -105,5 +105,5 @@ func (role Role) FetchIcon() string {
 		return ""
 	}
 
-	return DISCORD_CDN_URL + "/role-icons/" + role.Id.String() + "/" + role.IconHash + ".png"
+	return DISCORD_CDN_URL + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"
 }

@@ -25,12 +25,12 @@ const (
 )
 
 type Interaction struct {
-	Id              Snowflake        `json:"id"`
-	ApplicationId   Snowflake        `json:"application_id"`
+	ID              Snowflake        `json:"id"`
+	ApplicationID   Snowflake        `json:"application_id"`
 	Type            InteractionType  `json:"type"`
 	Data            *InteractionData `json:"data,omitempty"`
-	GuildId         Snowflake        `json:"guild_id,omitempty"`
-	ChannelId       Snowflake        `json:"channel_id,omitempty"`
+	GuildID         Snowflake        `json:"guild_id,omitempty"`
+	ChannelID       Snowflake        `json:"channel_id,omitempty"`
 	Member          *Member          `json:"member,omitempty"`
 	User            *User            `json:"user,omitempty"`
 	Token           string           `json:"token"`                  // Continuation token for responding to the interaction. It's not the same as bot/app token!
@@ -44,13 +44,13 @@ type Interaction struct {
 }
 
 type InteractionData struct {
-	Id            Snowflake                `json:"id,omitempty"`
-	CustomId      string                   `json:"custom_id,omitempty"` // Present only for components.
+	ID            Snowflake                `json:"id,omitempty"`
+	CustomID      string                   `json:"custom_id,omitempty"` // Present only for components.
 	Name          string                   `json:"name"`                // In case of commands it'll be name of command. If that's a subcommand then it'll be in format "rootCommand@subCommand".
 	Type          CommandType              `json:"type"`
 	Options       []*InteractionOption     `json:"options,omitempty"`
-	GuildId       Snowflake                `json:"guild_id,omitempty"`
-	TargetId      Snowflake                `json:"target_id,omitempty"` // Id of either user or message targeted. Depends whether it was user command or message command.
+	GuildID       Snowflake                `json:"guild_id,omitempty"`
+	TargetID      Snowflake                `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 	ComponentType ComponentType            `json:"component_type,omitempty"`
 	Resolved      *InteractionDataResolved `json:"resolved,omitempty"`
 }

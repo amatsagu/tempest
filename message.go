@@ -3,13 +3,13 @@ package tempest
 import "time"
 
 type PartialEmoji struct {
-	Id       Snowflake `json:"id,omitempty"`
+	ID       Snowflake `json:"id,omitempty"`
 	Name     string    `json:"name"`
 	Animated bool      `json:"animated,omitempty"`
 }
 
 type Emoji struct {
-	Id            Snowflake   `json:"id,omitempty"`
+	ID            Snowflake   `json:"id,omitempty"`
 	Name          string      `json:"name"`
 	Roles         []Snowflake `json:"roles,omitempty"`
 	User          *User       `json:"user,omitempty"`
@@ -77,14 +77,14 @@ type EmbedProvider struct {
 }
 
 type Message struct {
-	Id                Snowflake         `json:"id"`
-	ChannelId         Snowflake         `json:"channel_id"`
-	GuildId           Snowflake         `json:"guild_id,omitempty"`
+	ID                Snowflake         `json:"id"`
+	ChannelID         Snowflake         `json:"channel_id"`
+	GuildID           Snowflake         `json:"guild_id,omitempty"`
 	TTS               bool              `json:"tts"`
 	Pinned            bool              `json:"pinned"`
 	MentionEveryone   bool              `json:"mention_everyone"`
 	Mentions          []*User           `json:"mentions"`
-	MentionRoleIds    []Snowflake       `json:"mention_roles"`
+	MentionRoleIDs    []Snowflake       `json:"mention_roles"`
 	Author            *User             `json:"author"`
 	Content           string            `json:"content"`
 	Timestamp         *time.Time        `json:"timestamp,omitempty"`
@@ -96,7 +96,7 @@ type Message struct {
 }
 
 type MessageReference struct {
-	MessageId Snowflake `json:"message_id,omitempty"`
-	ChannelId Snowflake `json:"channel_id,omitempty"`
-	GuildId   Snowflake `json:"guild_id,omitempty"`
+	MessageID Snowflake `json:"message_id,omitempty"`
+	ChannelID Snowflake `json:"channel_id,omitempty"`
+	GuildID   Snowflake `json:"guild_id,omitempty"`
 }

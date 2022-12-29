@@ -10,7 +10,7 @@ import (
 )
 
 type ClientOptions struct {
-	ApplicationId              Snowflake                                  // The app's user id. (default: <nil>)
+	ApplicationID              Snowflake                                  // The app's user id. (default: <nil>)
 	PublicKey                  string                                     // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Token                      string                                     // The auth token to use. Bot tokens should be prefixed with Bot (e.g. "Bot MTExIHlvdSAgdHJpZWQgMTEx.O5rKAA.dQw4w9WgXcQ_wpV-gGA4PSk_bm8"). Prefix-less bot tokens are deprecated. (default: <nil>)
 	GlobalRequestLimit         uint16                                     // The maximum number of requests app can make to Discord API before reaching global rate limit. Default limit is 50 but big bots (over 100,000 guilds) receives bigger limits. (default: 50)
@@ -31,7 +31,7 @@ type ClientCooldownOptions struct {
 type Client struct {
 	Rest                    Rest
 	User                    User
-	ApplicationId           Snowflake
+	ApplicationID           Snowflake
 	PublicKey               ed25519.PublicKey
 	MaxCooldownsBeforeSweep uint16
 
@@ -66,11 +66,11 @@ func (client Client) Ping() time.Duration {
 // Warning! Listener will continue to work unless it timeouts or when calling close function that is returned to you with channel.
 //
 // Set timeout equal to 0 to make it last infinitely.
-func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Duration) (chan *Interaction, func()) {
+func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Duration) (chan *Interaction, func()) {
 	signalChannel := make(chan *Interaction)
 	closeFunction := func() {
 		if signalChannel != nil {
-			for _, key := range componentCustomIds {
+			for _, key := range componentCustomIDs {
 				delete(client.queuedComponents, key)
 			}
 
@@ -79,7 +79,7 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 		}
 	}
 
-	for _, key := range componentCustomIds {
+	for _, key := range componentCustomIDs {
 		client.queuedComponents[key] = &signalChannel
 	}
 
@@ -90,8 +90,8 @@ func (client Client) AwaitComponent(componentCustomIds []string, timeout time.Du
 	return signalChannel, closeFunction
 }
 
-func (client Client) SendMessage(channelId Snowflake, content Message) (Message, error) {
-	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", content)
+func (client Client) SendMessage(channelID Snowflake, content Message) (Message, error) {
+	raw, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages", content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -106,8 +106,8 @@ func (client Client) SendMessage(channelId Snowflake, content Message) (Message,
 }
 
 // Use that for simple text messages that won't be modified.
-func (client Client) SendLinearMessage(channelId Snowflake, content string) (Message, error) {
-	raw, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages", Message{
+func (client Client) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
+	raw, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages", Message{
 		Content:    content,
 		Embeds:     make([]*Embed, 1),
 		Components: make([]*Component, 1),
@@ -126,10 +126,10 @@ func (client Client) SendLinearMessage(channelId Snowflake, content string) (Mes
 }
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
-// Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelId whenever possible.
-func (client Client) SendPrivateMessage(userId Snowflake, content Message) (Message, error) {
+// Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
+func (client Client) SendPrivateMessage(userID Snowflake, content Message) (Message, error) {
 	res := make(map[string]interface{}, 0)
-	res["recipient_id"] = userId
+	res["recipient_id"] = userID
 
 	raw, err := client.Rest.Request("POST", "/users/@me/channels", res)
 	if err != nil {
@@ -141,25 +141,25 @@ func (client Client) SendPrivateMessage(userId Snowflake, content Message) (Mess
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
-	channelId := StringToSnowflake(res["id"].(string))
-	msg, err := client.SendMessage(channelId, content)
-	msg.ChannelId = channelId // Just in case.
+	channelID := StringToSnowflake(res["id"].(string))
+	msg, err := client.SendMessage(channelID, content)
+	msg.ChannelID = channelID // Just in case.
 
 	return msg, err
 }
 
-func (client Client) EditMessage(channelId Snowflake, messageId Snowflake, content Message) error {
-	_, err := client.Rest.Request("PATCH", "/channels/"+channelId.String()+"/messages"+messageId.String(), content)
+func (client Client) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
+	_, err := client.Rest.Request("PATCH", "/channels/"+channelID.String()+"/messages"+messageID.String(), content)
 	return err
 }
 
-func (client Client) DeleteMessage(channelId Snowflake, messageId Snowflake) error {
-	_, err := client.Rest.Request("DELETE", "/channels/"+channelId.String()+"/messages"+messageId.String(), nil)
+func (client Client) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
+	_, err := client.Rest.Request("DELETE", "/channels/"+channelID.String()+"/messages"+messageID.String(), nil)
 	return err
 }
 
-func (client Client) CrosspostMessage(channelId Snowflake, messageId Snowflake) error {
-	_, err := client.Rest.Request("POST", "/channels/"+channelId.String()+"/messages"+messageId.String()+"/crosspost", nil)
+func (client Client) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
+	_, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages"+messageID.String()+"/crosspost", nil)
 	return err
 }
 
@@ -178,8 +178,8 @@ func (client Client) FetchUser(id Snowflake) (User, error) {
 	return res, nil
 }
 
-func (client Client) FetchMember(guildId Snowflake, memberId Snowflake) (Member, error) {
-	raw, err := client.Rest.Request("GET", "/guilds/"+guildId.String()+"/members/"+memberId.String(), nil)
+func (client Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
+	raw, err := client.Rest.Request("GET", "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil)
 	if err != nil {
 		return Member{}, err
 	}
@@ -219,16 +219,16 @@ func (client Client) RegisterSubCommand(subCommand Command, rootCommandName stri
 
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
 // You can also add second param -> slice with all command names you want to update (whitelist). There's also third, boolean param that when = true will reverse wishlist to work as blacklist.
-func (client Client) SyncCommands(guildIds []Snowflake, whitelist []string, switchToBlacklist bool) error {
+func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchToBlacklist bool) error {
 	payload := parseCommandsToDiscordObjects(&client, whitelist, switchToBlacklist)
 
-	if len(guildIds) == 0 {
-		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/commands", payload)
+	if len(guildIDs) == 0 {
+		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationID.String()+"/commands", payload)
 		return err
 	}
 
-	for _, guildId := range guildIds {
-		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationId.String()+"/guilds/"+guildId.String()+"/commands", payload)
+	for _, guildID := range guildIDs {
+		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", payload)
 		if err != nil {
 			return err
 		}
@@ -244,7 +244,7 @@ func (client *Client) ListenAndServe(route string, address string) error {
 		panic("client's web server is already launched")
 	}
 
-	user, err := client.FetchUser(client.ApplicationId)
+	user, err := client.FetchUser(client.ApplicationID)
 	if err != nil {
 		panic("failed to fetch bot user's details (check if application id is correct & your internet connection)\n")
 	}
@@ -266,7 +266,7 @@ func CreateClient(options ClientOptions) Client {
 
 	client := Client{
 		Rest:                       CreateRest(options.Token, options.GlobalRequestLimit, options.MaxRequestsBeforeSweep),
-		ApplicationId:              options.ApplicationId,
+		ApplicationID:              options.ApplicationID,
 		PublicKey:                  ed25519.PublicKey(discordPublicKey),
 		commands:                   make(map[string]map[string]Command),
 		queuedComponents:           make(map[string]*(chan *Interaction)),
@@ -326,26 +326,26 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			return
 		}
 
-		if !command.AvailableInDM && interaction.GuildId == 0 {
+		if !command.AvailableInDM && interaction.GuildID == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return // Stop execution since this command doesn't want to be used inside DM.
 		}
 
-		if interaction.Member != nil && interaction.GuildId != 0 {
-			interaction.Member.GuildId = interaction.GuildId // Bind guild id to each member so they can easily access guild CDN.
+		if interaction.Member != nil && interaction.GuildID != 0 {
+			interaction.Member.GuildID = interaction.GuildID // Bind guild id to each member so they can easily access guild CDN.
 		}
 
 		itx := CommandInteraction(interaction)
 		if client.cdrs {
 			var user User
-			if interaction.GuildId == 0 {
+			if interaction.GuildID == 0 {
 				user = *itx.User
 			} else {
 				user = *itx.Member.User
 			}
 
 			now := time.Now()
-			cooldown := client.cdrCooldowns[user.Id]
+			cooldown := client.cdrCooldowns[user.ID]
 			timeLeft := cooldown.Sub(now)
 
 			if timeLeft > 0 {
@@ -355,15 +355,15 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 				return
 			} else {
 				client.cdrSinceSweep++
-				client.cdrCooldowns[user.Id] = time.Now().Add(client.cdrDuration)
+				client.cdrCooldowns[user.ID] = time.Now().Add(client.cdrDuration)
 
 				if client.cdrSinceSweep%client.cdrMaxBeforeSweep == 0 {
 					client.cdrSinceSweep = 0
 
 					go func() {
-						for userId, cdr := range client.cdrCooldowns {
+						for userID, cdr := range client.cdrCooldowns {
 							if cdr.Sub(now) < 1 {
-								delete(client.cdrCooldowns, userId)
+								delete(client.cdrCooldowns, userID)
 							}
 						}
 					}()
@@ -393,7 +393,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		command.SlashCommandHandler(itx)
 		return
 	case MESSAGE_COMPONENT_TYPE:
-		signalChannel, available := client.queuedComponents[interaction.Data.CustomId]
+		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
 		if available && signalChannel != nil {
 			*signalChannel <- &interaction
 			acknowledgeComponentInteraction(w)
