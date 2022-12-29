@@ -57,12 +57,11 @@ type InteractionData struct {
 }
 
 type InteractionDataResolved struct {
-	Users   map[Snowflake]*User   `json:"users,omitempty"`
-	Members map[Snowflake]*Member `json:"members,omitempty"`
-	Roles   map[Snowflake]*Role   `json:"roles,omitempty"`
-	// There's also roles + channels + attachments maps but it's hardly ever used so it got skipped.
-	// If you really need this then feel free to make a pull request.
-	// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
+	Users       map[Snowflake]*User           `json:"users,omitempty"`
+	Members     map[Snowflake]*Member         `json:"members,omitempty"`
+	Roles       map[Snowflake]*Role           `json:"roles,omitempty"`
+	Channels    map[Snowflake]*PartialChannel `json:"channels,omitempty"`
+	Attachments map[Snowflake]*Attachment     `json:"attachments,omitempty"`
 }
 
 type InteractionOption struct {
