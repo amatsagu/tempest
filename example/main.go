@@ -2,32 +2,39 @@ package main
 
 import (
 	"example-bot/commands"
+	"example-bot/other"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
+	godotenv "github.com/joho/godotenv"
 )
 
-// ==[ CREDENTIALS (FAKE EXAMPLE) ]====================================================================
+func ensureValue(key string) string {
+	if value, available := os.LookupEnv(key); available {
+		return value
+	}
 
-const AppId tempest.Snowflake = 1003423309444165121
-const PublicKey string = "168b4f26de412c4fcaaf7166b58cc234f0746e54b791551de3f90e716624761a"
-const Token string = "Bot MTAwMzQyMzMwOTQ0NDE2NTczMw.GrvRPb.jcjBaT74BHU1ay--9-iZNvbN0I_vgvXhkeNnTw"
-const Addr string = "0.0.0.0:8080"
-const TestGuildId tempest.Snowflake = 957738153442172958
-
-// ====================================================================================================
+	other.FormatError(fmt.Errorf("failed to obtain environmental value using \"%s\" key", key))
+	os.Exit(0)
+	return "" // never reaches
+}
 
 func main() {
-	cmds := 0
+	if err := godotenv.Load(".env"); err != nil {
+		other.FormatError(err)
+		os.Exit(1)
+	}
+
 	client := tempest.CreateClient(tempest.ClientOptions{
-		ApplicationId: AppId,
-		PublicKey:     PublicKey,
-		Token:         Token,
+		ApplicationID: tempest.StringToSnowflake(ensureValue("DISCORD_APP_ID")),
+		PublicKey:     ensureValue("DISCORD_PUBLIC_KEY"),
+		Token:         "Bot " + ensureValue("DISCORD_BOT_TOKEN"),
 		PreCommandExecutionHandler: func(itx tempest.CommandInteraction) *tempest.ResponseData {
-			cmds += 1
-			log.Println("Somebody's running \"" + itx.Data.Name + "\" slash command. That's " + fmt.Sprint(cmds) + " command since app start.")
+			commands.CommandCounter++
+			log.Printf("%s (%d) uses %s slash command (that's %d executed command since app start)\n", itx.Member.User.Tag(), itx.Member.User.ID, itx.Data.Name, commands.CommandCounter)
 			return nil
 		},
 		Cooldowns: &tempest.ClientCooldownOptions{
@@ -41,17 +48,22 @@ func main() {
 		},
 	})
 
-	log.Printf("Starting server at %s", Addr)
-	log.Printf("Latency: %dms", client.Ping().Milliseconds())
+	addr := fmt.Sprintf("0.0.0.0:%s", ensureValue("DISCORD_APP_PORT"))
+	experimentalServerID := tempest.StringToSnowflake(ensureValue("DISCORD_EXPERIMENTAL_SERVER_ID"))
 
 	client.RegisterCommand(commands.Add)
 	client.RegisterCommand(commands.Avatar)
 	client.RegisterCommand(commands.Hello)
 	client.RegisterCommand(commands.Menu)
 	client.RegisterCommand(commands.Statistics)
-	client.SyncCommands([]tempest.Snowflake{TestGuildId}, nil, false)
+	client.SyncCommands([]tempest.Snowflake{experimentalServerID}, nil, false)
 
-	if err := client.ListenAndServe("/", Addr); err != nil {
-		panic(err) // Will happen in situation where normal std/http would panic so most likely never.
+	log.Printf("Starting application at %s", addr)
+	log.Printf("Latency: %dms", client.Ping().Milliseconds())
+
+	if err := client.ListenAndServe("/", addr); err != nil {
+		// Will happen in situation where normal std/http would panic so most likely never.
+		other.FormatError(err)
+		os.Exit(1)
 	}
 }
