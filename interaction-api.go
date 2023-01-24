@@ -51,7 +51,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 		flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request("PUT", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Flags: flags,
