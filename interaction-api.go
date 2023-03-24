@@ -155,8 +155,16 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
 }
 
+func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
+	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
+		Type: MODAL_RESPONSE,
+		Data: &modal,
+	})
+	return err
+}
+
 // Use that if you need to make a call that is not already supported by Tempest.
 func (itx Interaction) SendCustomCallback(method string, callback Response) error {
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", callback)
+	_, err := itx.Client.Rest.Request(method, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", callback)
 	return err
 }
