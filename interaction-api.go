@@ -155,7 +155,7 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
 }
 
-func (itx Interaction) SendModal(modal ResponseModalData) error {
+func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
 		Type: MODAL_RESPONSE,
 		Data: &modal,
