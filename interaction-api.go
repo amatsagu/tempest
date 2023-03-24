@@ -157,6 +157,6 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 // Use that if you need to make a call that is not already supported by Tempest.
 func (itx Interaction) SendCustomCallback(method string, callback Response) error {
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", callback)
+	_, err := itx.Client.Rest.Request(method, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", callback)
 	return err
 }
