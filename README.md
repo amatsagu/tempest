@@ -29,11 +29,11 @@ In race for efficiency, interaction & component structures are bare metal withou
 * [User/Message commands](https://discord.com/developers/docs/interactions/application-commands#user-commands)
 * [Message components](https://discord.com/developers/docs/interactions/message-components)
 * [Built-in rate limits](https://discord.com/developers/docs/topics/rate-limits)
+* [Modals (P)](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal)
+* [Localization (M)](https://discord.com/developers/docs/interactions/application-commands#localization)
 
 ### Missing or partially supported discord features
-* [Modals (P)](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal) - Technically you can use them but it'll require handling them manually using client's [interaction handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions).
 * [Attachments (P)](https://discord.com/developers/docs/resources/channel#attachment-object) - Tempest application can accept attachments but there's no support for sending own files.
-* [Localization (M)](https://discord.com/developers/docs/interactions/application-commands#localization) - Multi-language support is still highly unstable and barely ever used by bots so I'm going to ignore it for now.
 
 ### Special features
 * [Easy to use & efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterCommand)
