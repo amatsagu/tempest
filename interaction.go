@@ -100,5 +100,18 @@ type ResponseChoiceData struct {
 	Choices []Choice `json:"choices,omitempty"`
 }
 
+// Unique to modal interaction.
+type ResponseModal struct {
+	Type ResponseType       `json:"type"`
+	Data *ResponseModalData `json:"data,omitempty"`
+}
+
+// Unique to modal interaction.
+type ResponseModalData struct {
+	CustomID   string       `json:"custom_id"`
+	Title      string       `json:"title"`
+	Components []*Component `json:"components,omitempty"`
+}
+
 type CommandInteraction Interaction
 type AutoCompleteInteraction Interaction
