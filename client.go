@@ -53,7 +53,7 @@ type Client struct {
 // Pings Discord API and returns time it took to get response.
 func (client Client) Ping() time.Duration {
 	start := time.Now()
-	client.Rest.Request("GET", "/gateway", nil)
+	client.Rest.Request(http.MethodGet, "/gateway", nil)
 	return time.Since(start)
 }
 
@@ -91,7 +91,7 @@ func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Du
 }
 
 func (client Client) SendMessage(channelID Snowflake, content Message) (Message, error) {
-	raw, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages", content)
+	raw, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages", content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -107,7 +107,7 @@ func (client Client) SendMessage(channelID Snowflake, content Message) (Message,
 
 // Use that for simple text messages that won't be modified.
 func (client Client) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
-	raw, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages", Message{
+	raw, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages", Message{
 		Content:    content,
 		Embeds:     make([]*Embed, 1),
 		Components: make([]*Component, 1),
@@ -131,7 +131,7 @@ func (client Client) SendPrivateMessage(userID Snowflake, content Message) (Mess
 	res := make(map[string]interface{}, 0)
 	res["recipient_id"] = userID
 
-	raw, err := client.Rest.Request("POST", "/users/@me/channels", res)
+	raw, err := client.Rest.Request(http.MethodPost, "/users/@me/channels", res)
 	if err != nil {
 		return Message{}, err
 	}
@@ -149,22 +149,22 @@ func (client Client) SendPrivateMessage(userID Snowflake, content Message) (Mess
 }
 
 func (client Client) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
-	_, err := client.Rest.Request("PATCH", "/channels/"+channelID.String()+"/messages"+messageID.String(), content)
+	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages"+messageID.String(), content)
 	return err
 }
 
 func (client Client) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request("DELETE", "/channels/"+channelID.String()+"/messages"+messageID.String(), nil)
+	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages"+messageID.String(), nil)
 	return err
 }
 
 func (client Client) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request("POST", "/channels/"+channelID.String()+"/messages"+messageID.String()+"/crosspost", nil)
+	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages"+messageID.String()+"/crosspost", nil)
 	return err
 }
 
 func (client Client) FetchUser(id Snowflake) (User, error) {
-	raw, err := client.Rest.Request("GET", "/users/"+id.String(), nil)
+	raw, err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil)
 	if err != nil {
 		return User{}, err
 	}
@@ -179,7 +179,7 @@ func (client Client) FetchUser(id Snowflake) (User, error) {
 }
 
 func (client Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
-	raw, err := client.Rest.Request("GET", "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil)
+	raw, err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil)
 	if err != nil {
 		return Member{}, err
 	}
@@ -223,12 +223,12 @@ func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, swit
 	payload := parseCommandsToDiscordObjects(client.commands, whitelist, switchMode)
 
 	if len(guildIDs) == 0 {
-		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationID.String()+"/commands", payload)
+		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", payload)
 		return err
 	}
 
 	for _, guildID := range guildIDs {
-		_, err := client.Rest.Request("PUT", "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", payload)
+		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", payload)
 		if err != nil {
 			return err
 		}

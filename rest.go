@@ -79,7 +79,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
-		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(bytes.ReplaceAll(body, REST_NULL_SLICE_FIND, REST_NULL_SLICE_REPLACE)))
+		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(bytes.ReplaceAll(body, p_REST_NULL_SLICE_FIND, p_REST_NULL_SLICE_REPLACE)))
 		if err != nil {
 			return nil, errors.New("failed to initialize new request: " + err.Error())
 		}
@@ -95,7 +95,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 	if err != nil {
 		rest.fails++
 		if rest.fails == 3 {
-			panic("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and app credentials)")
+			panic("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 		} else {
 			time.Sleep(time.Millisecond * time.Duration(250*rest.fails))
 			return rest.Request(method, route, jsonPayload) // Try again after potential internet connection failure.

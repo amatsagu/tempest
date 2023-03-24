@@ -3,6 +3,7 @@ package tempest
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -83,7 +84,7 @@ func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 		flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Content:    content,
@@ -101,12 +102,12 @@ func (itx CommandInteraction) EditReply(content ResponseData, ephemeral bool) er
 		content.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
 func (itx CommandInteraction) DeleteReply() error {
-	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
 	return err
 }
 
@@ -116,7 +117,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 		content.Flags = 64
 	}
 
-	raw, err := itx.Client.Rest.Request("POST", "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -132,13 +133,13 @@ func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 
 // Edits a followup message for an Interaction.
 func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseData) error {
-	_, err := itx.Client.Rest.Request("PATCH", "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
 // Deletes a followup message for an Interaction. It does not support ephemeral followups.
 func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseData) error {
-	_, err := itx.Client.Rest.Request("DELETE", "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
@@ -156,7 +157,7 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 }
 
 func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
 		Type: MODAL_RESPONSE,
 		Data: &modal,
 	})
