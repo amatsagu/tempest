@@ -258,6 +258,25 @@ func (client *Client) ListenAndServe(route string, address string) error {
 	return http.ListenAndServe(address, nil)
 }
 
+func (client *Client) ListenAndServeTLS(route string, address string, certFile, keyFile string) error {
+	if client.running {
+		panic("client's web server is already launched")
+	}
+
+	user, err := client.FetchUser(client.ApplicationID)
+	if err != nil {
+		panic("failed to fetch bot user's details (check if application id is correct & your internet connection works)\n")
+	}
+	client.User = user
+
+	if route == "" {
+		route = "/"
+	}
+
+	http.HandleFunc(route, client.handleDiscordWebhookRequests)
+	return http.ListenAndServeTLS(address, certFile, keyFile, nil)
+}
+
 func CreateClient(options ClientOptions) Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
