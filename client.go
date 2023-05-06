@@ -3,10 +3,11 @@ package tempest
 import (
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 type ClientOptions struct {
@@ -97,7 +98,7 @@ func (client Client) SendMessage(channelID Snowflake, content Message) (Message,
 	}
 
 	res := Message{}
-	err = json.Unmarshal(raw, &res)
+	err = sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -117,7 +118,7 @@ func (client Client) SendLinearMessage(channelID Snowflake, content string) (Mes
 	}
 
 	res := Message{}
-	err = json.Unmarshal(raw, &res)
+	err = sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -136,7 +137,7 @@ func (client Client) SendPrivateMessage(userID Snowflake, content Message) (Mess
 		return Message{}, err
 	}
 
-	err = json.Unmarshal(raw, &res)
+	err = sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -170,7 +171,7 @@ func (client Client) FetchUser(id Snowflake) (User, error) {
 	}
 
 	res := User{}
-	json.Unmarshal(raw, &res)
+	sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return User{}, errors.New("failed to parse received data from discord")
 	}
@@ -185,7 +186,7 @@ func (client Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member,
 	}
 
 	res := Member{}
-	json.Unmarshal(raw, &res)
+	sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return Member{}, errors.New("failed to parse received data from discord")
 	}
@@ -326,7 +327,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	}
 
 	var interaction Interaction
-	err := json.NewDecoder(r.Body).Decode(&interaction)
+	err := sonnet.NewDecoder(r.Body).Decode(&interaction)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
@@ -393,7 +394,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		if client.preCommandExecutionHandler != nil {
 			content := client.preCommandExecutionHandler(itx)
 			if content != nil {
-				body, err := json.Marshal(Response{
+				body, err := sonnet.Marshal(Response{
 					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 					Data: content,
 				})
@@ -431,7 +432,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(interaction))
-		body, err := json.Marshal(ResponseChoice{
+		body, err := sonnet.Marshal(ResponseChoice{
 			Type: AUTOCOMPLETE_RESPONSE,
 			Data: ResponseChoiceData{
 				Choices: choices,

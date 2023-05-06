@@ -2,13 +2,14 @@ package tempest
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 // Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
@@ -74,7 +75,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 		}
 		req = request
 	} else {
-		body, err := json.Marshal(jsonPayload)
+		body, err := sonnet.Marshal(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
@@ -121,7 +122,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
-		json.Unmarshal(body, &rateErr)
+		sonnet.Unmarshal(body, &rateErr)
 		time.Sleep(time.Second * time.Duration(rateErr.RetryAfter+2.5))
 		return rest.Request(method, route, jsonPayload) // Try again after rate limit.
 	} else if res.StatusCode >= 400 {

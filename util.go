@@ -5,8 +5,11 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
+
 	"io"
 	"net/http"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 // Verifies incoming request if it's from Discord.
@@ -121,7 +124,7 @@ func parseCommandsToDiscordObjects(commands map[string]map[string]Command, white
 }
 
 func terminateCommandInteraction(w http.ResponseWriter) {
-	body, err := json.Marshal(Response{
+	body, err := sonnet.Marshal(Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
