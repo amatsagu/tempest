@@ -1,4 +1,4 @@
-package commands
+package command
 
 import tempest "github.com/Amatsagu/Tempest"
 
@@ -21,14 +21,14 @@ var Avatar tempest.Command = tempest.Command{
 			itx.SendLinearReply(err.Error(), false) // Received id may potentially be fake (be a non existing snowflake).
 		}
 
-		avatar := user.FetchAvatarUrl()
+		avatar := user.FetchAvatarURL()
 		itx.SendReply(tempest.ResponseData{
 			Embeds: []*tempest.Embed{
 				{
 					Title: user.Tag() + " avatar",
-					Url:   avatar,
+					URL:   avatar,
 					Image: &tempest.EmbedImage{
-						Url: avatar,
+						URL: avatar,
 					},
 				},
 			},

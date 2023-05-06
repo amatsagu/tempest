@@ -446,6 +446,18 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(body)
 		return
+	case MODAL_SUBMIT_TYPE:
+		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
+		if available && signalChannel != nil {
+			*signalChannel <- &interaction
+			acknowledgeComponentInteraction(w)
+			return
+		}
+
+		if client.interactionHandler != nil {
+			client.interactionHandler(interaction)
+		}
+		return
 	default:
 		if client.interactionHandler != nil {
 			client.interactionHandler(interaction)

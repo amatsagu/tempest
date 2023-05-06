@@ -1,4 +1,4 @@
-package commands
+package command
 
 import tempest "github.com/Amatsagu/Tempest"
 

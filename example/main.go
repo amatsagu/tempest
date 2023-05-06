@@ -1,7 +1,7 @@
 package main
 
 import (
-	"example-bot/commands"
+	"example-bot/command"
 	"example-bot/other"
 	"fmt"
 	"log"
@@ -33,8 +33,8 @@ func main() {
 		PublicKey:     ensureValue("DISCORD_PUBLIC_KEY"),
 		Token:         "Bot " + ensureValue("DISCORD_BOT_TOKEN"),
 		PreCommandExecutionHandler: func(itx tempest.CommandInteraction) *tempest.ResponseData {
-			commands.CommandCounter++
-			log.Printf("%s (%d) uses %s slash command (that's %d executed command since app start)\n", itx.Member.User.Tag(), itx.Member.User.ID, itx.Data.Name, commands.CommandCounter)
+			command.CommandCounter++
+			log.Printf("%s (%d) uses %s slash command (that's %d executed command since app start)\n", itx.Member.User.Tag(), itx.Member.User.ID, itx.Data.Name, command.CommandCounter)
 			return nil
 		},
 		Cooldowns: &tempest.ClientCooldownOptions{
@@ -51,12 +51,13 @@ func main() {
 	addr := fmt.Sprintf("0.0.0.0:%s", ensureValue("DISCORD_APP_PORT"))
 	experimentalServerID := tempest.StringToSnowflake(ensureValue("DISCORD_EXPERIMENTAL_SERVER_ID"))
 
-	client.RegisterCommand(commands.Add)
-	client.RegisterCommand(commands.Avatar)
-	client.RegisterCommand(commands.Hello)
-	client.RegisterCommand(commands.ButtonMenu)
-	client.RegisterCommand(commands.SelectMenu)
-	client.RegisterCommand(commands.Statistics)
+	client.RegisterCommand(command.Add)
+	client.RegisterCommand(command.Avatar)
+	client.RegisterCommand(command.Hello)
+	client.RegisterCommand(command.Modal)
+	client.RegisterCommand(command.ButtonMenu)
+	client.RegisterCommand(command.SelectMenu)
+	client.RegisterCommand(command.Statistics)
 	client.SyncCommands([]tempest.Snowflake{experimentalServerID}, nil, false)
 
 	log.Printf("Starting application at %s", addr)
