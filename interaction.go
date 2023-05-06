@@ -54,6 +54,7 @@ type InteractionData struct {
 	TargetID      Snowflake                `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 	ComponentType ComponentType            `json:"component_type,omitempty"`
 	Resolved      *InteractionDataResolved `json:"resolved,omitempty"`
+	Components    []*Component             `json:"components,omitempty"`
 }
 
 type InteractionDataResolved struct {
