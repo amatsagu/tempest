@@ -8,7 +8,7 @@ import (
 type User struct {
 	ID            Snowflake `json:"id"`
 	Username      string    `json:"username"`
-	Discriminator string    `json:"discriminator"`
+	Discriminator string    `json:"discriminator"` // Deprecated: Read more at https://discord.com/blog/usernames.
 	IsBot         bool      `json:"bot,omitempty"`
 	AvatarHash    string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.FetchAvatarURL to get direct url.
 	BannerHash    string    `json:"banner,omitempty"` // Hash code used to access user's baner. Call User.FetchBannerURL to get direct url.
