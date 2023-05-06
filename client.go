@@ -315,7 +315,7 @@ func CreateClient(options ClientOptions) Client {
 }
 
 func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}

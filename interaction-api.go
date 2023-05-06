@@ -53,7 +53,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 		flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &ResponseData{
 			Flags: flags,
@@ -69,7 +69,7 @@ func (itx CommandInteraction) SendReply(content ResponseData, ephemeral bool) er
 		content.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request("POST", "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
 		Data: &content,
 	})
