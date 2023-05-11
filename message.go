@@ -2,6 +2,25 @@ package tempest
 
 import "time"
 
+// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types
+type StickerFormatType uint8
+
+const (
+	PNG_STICKER_FORMAT_TYPE StickerFormatType = iota + 1
+	APNG_STICKER_FORMAT_TYPE
+	LOTTIE_STICKER_FORMAT_TYPE
+	GIF_STICKER_FORMAT_TYPE
+)
+
+// https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
+type AllowedMentions struct {
+	Parse       []string    `json:"parse,omitempty"`
+	Roles       []Snowflake `json:"roles,omitempty"`
+	Users       []Snowflake `json:"users,omitempty"`
+	RepliedUser bool        `json:"replied_user,omitempty"`
+}
+
+// https://discord.com/developers/docs/resources/channel#channel-object
 type PartialChannel struct {
 	ID              Snowflake   `json:"id"`
 	Name            string      `json:"name"`
@@ -9,12 +28,36 @@ type PartialChannel struct {
 	Type            ChannelType `json:"type"`
 }
 
+// https://discord.com/developers/docs/resources/channel#channel-mention-object-channel-mention-structure
+type ChannelMention struct {
+	ID      Snowflake   `json:"id"`
+	Name    string      `json:"name"`
+	GuildID Snowflake   `json:"guild_id"`
+	Type    ChannelType `json:"type"`
+}
+
+// https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type PartialEmoji struct {
 	ID       Snowflake `json:"id,omitempty"`
 	Name     string    `json:"name"`
 	Animated bool      `json:"animated,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#reaction-object-reaction-structure
+type Reaction struct {
+	Count uint         `json:"count"`
+	Me    bool         `json:"me"`
+	Emoji PartialEmoji `json:"emoji"`
+}
+
+// https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
+type StickerItem struct {
+	ID         Snowflake         `json:"id"`
+	Name       string            `json:"name"`
+	FormatType StickerFormatType `json:"format_type"`
+}
+
+// https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
 	ID            Snowflake   `json:"id,omitempty"`
 	Name          string      `json:"name"`
@@ -26,6 +69,7 @@ type Emoji struct {
 	Available     bool        `json:"available,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-structure (always rich embed type)
 type Embed struct {
 	Title       string          `json:"title,omitempty"`
 	URL         string          `json:"url,omitempty"`
@@ -33,94 +77,79 @@ type Embed struct {
 	Color       uint32          `json:"color,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
 	Description string          `json:"description,omitempty"`
-	Fields      []*EmbedField   `json:"fields,omitempty"`
+	Fields      []EmbedField    `json:"fields,omitempty"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
-	Video       *EmbedVideo     `json:"video,omitempty"`
-	Provider    *EmbedProvider  `json:"provider,omitempty"`
 	Timestamp   *time.Time      `json:"timestamp,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-author-structure
 type EmbedAuthor struct {
 	IconURL string `json:"icon_url,omitempty"`
 	Name    string `json:"name,omitempty"`
 	URL     string `json:"url,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-thumbnail-structure
 type EmbedThumbnail struct {
 	URL      string `json:"url"`
 	ProxyURL string `json:"proxy_url,omitempty"`
-	Width    int    `json:"width,omitempty"`
-	Height   int    `json:"height,omitempty"`
+	Width    uint   `json:"width,omitempty"`
+	Height   uint   `json:"height,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-field-structure
 type EmbedField struct {
 	Name   string `json:"name,omitempty"`
 	Value  string `json:"value,omitempty"`
 	Inline bool   `json:"inline,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
 type EmbedFooter struct {
 	IconURL string `json:"icon_url,omitempty"`
 	Text    string `json:"text,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#embed-object-embed-image-structure
 type EmbedImage struct {
 	URL      string `json:"url"`
 	ProxyURL string `json:"proxy_url,omitempty"`
-	Width    int    `json:"width,omitempty"`
-	Height   int    `json:"height,omitempty"`
+	Width    uint   `json:"width,omitempty"`
+	Height   uint   `json:"height,omitempty"`
 }
 
-type EmbedVideo struct {
-	URL    string `json:"url,omitempty"`
-	Width  int    `json:"width,omitempty"`
-	Height int    `json:"height,omitempty"`
-}
-
-type EmbedProvider struct {
-	URL  string `json:"url,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
+// https://discord.com/developers/docs/resources/channel#message-object-message-structure
 type Message struct {
-	ID                Snowflake         `json:"id"`
-	ChannelID         Snowflake         `json:"channel_id"`
-	GuildID           Snowflake         `json:"guild_id,omitempty"`
-	TTS               bool              `json:"tts"`
-	Pinned            bool              `json:"pinned"`
-	MentionEveryone   bool              `json:"mention_everyone"`
-	Mentions          []*User           `json:"mentions"`
-	MentionRoleIDs    []Snowflake       `json:"mention_roles"`
-	Author            *User             `json:"author"`
-	Content           string            `json:"content"`
-	Timestamp         *time.Time        `json:"timestamp,omitempty"`
-	EditedTimestamp   *time.Time        `json:"edited_timestamp,omitempty"`
-	Embeds            []*Embed          `json:"embeds"`
-	Components        []*Component      `json:"components,omitempty"`
-	Reference         *MessageReference `json:"message_reference,omitempty"`  // Reference data sent with crossposted messages and inline replies.
-	ReferencedMessage *Message          `json:"referenced_message,omitempty"` // ReferencedMessage is the message that was replied to.
+	ID                Snowflake           `json:"id"`
+	ChannelID         Snowflake           `json:"channel_id"`
+	Author            *User               `json:"author,omitempty"`
+	Content           string              `json:"content,omitempty"`
+	Timestamp         *time.Time          `json:"timestamp"`
+	EditedTimestamp   *time.Time          `json:"edited_timestamp,omitempty"`
+	TTS               bool                `json:"tts"`
+	MentionEveryone   bool                `json:"mention_everyone"`
+	Mentions          []User              `json:"mentions"`
+	MentionRoles      []Snowflake         `json:"mention_roles"`
+	MentionChannels   []ChannelMention    `json:"mention_channels,omitempty"`
+	Embeds            []Embed             `json:"embeds"`
+	Reactions         []Reaction          `json:"reactions,omitempty"`
+	Pinned            bool                `json:"pinned"`
+	WebhookID         Snowflake           `json:"webhook_id,omitempty"`
+	Type              uint                `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
+	ApplicationID     Snowflake           `json:"application_id,omitempty"`
+	MessageReference  *MessageReference   `json:"message_reference,omitempty"`
+	Flags             uint64              `json:"flags,omitempty"`
+	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
+	interaction       *MessageInteraction `json:"interaction,omitempty"`
+	Components        []Component         `json:"components,omitempty"`
+	StickerItems      []StickerItem       `json:"sticker_items,omitempty"`
 }
 
+// https://discord.com/developers/docs/resources/channel#message-reference-object-message-reference-structure
 type MessageReference struct {
-	MessageID Snowflake `json:"message_id,omitempty"`
-	ChannelID Snowflake `json:"channel_id,omitempty"`
-	GuildID   Snowflake `json:"guild_id,omitempty"`
-}
-
-// Ephemeral attachments will automatically be removed after a set period of time. Ephemeral attachments on messages are guaranteed to be available as long as the message itself exists.
-type Attachment struct {
-	ID          Snowflake `json:"id"`
-	FileName    string    `json:"filename,omitempty"`
-	Description string    `json:"description,omitempty"`
-	ContentType string    `json:"content_type,omitempty"`
-	// Size of file in bytes.
-	Size     uint32 `json:"size"`
-	URL      string `json:"url"`
-	ProxyURL string `json:"proxy_url"`
-	// Height of file in pixels (if image).
-	Height uint32 `json:"height,omitempty"`
-	// Width of file in pixels (if image).
-	Width     uint32 `json:"width,omitempty"`
-	Ephemeral bool   `json:"ephemeral"`
+	MessageID       Snowflake `json:"message_id,omitempty"`
+	ChannelID       Snowflake `json:"channel_id,omitempty"`
+	GuildID         Snowflake `json:"guild_id,omitempty"`
+	FailIfNotExists bool      `json:"fail_if_not_exists,omitempty"`
 }
