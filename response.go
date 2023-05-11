@@ -17,8 +17,8 @@ const (
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
 type ResponseMessage struct {
-	Type ResponseType        `json:"type"`
-	Data ResponseMessageData `json:"data,omitempty"`
+	Type ResponseType         `json:"type"`
+	Data *ResponseMessageData `json:"data,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
@@ -33,8 +33,8 @@ type ResponseMessageData struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
 type ResponseAutoComplete struct {
-	Type ResponseType             `json:"type"`
-	Data ResponseAutoCompleteData `json:"data,omitempty"`
+	Type ResponseType              `json:"type"`
+	Data *ResponseAutoCompleteData `json:"data,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-autocomplete
