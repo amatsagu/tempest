@@ -53,9 +53,9 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 		flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
-		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
-		Data: &ResponseData{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &ResponseMessageData{
 			Flags: flags,
 		},
 	})
@@ -64,13 +64,13 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(content ResponseData, ephemeral bool) error {
+func (itx CommandInteraction) SendReply(content ResponseMessageData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
 
@@ -85,20 +85,18 @@ func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 		flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", Response{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE,
-		Data: &ResponseData{
-			Content:    content,
-			Embeds:     make([]*Embed, 1),
-			Components: make([]*Component, 1),
-			Flags:      flags,
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &ResponseMessageData{
+			Content: content,
+			Flags:   flags,
 		},
 	})
 
 	return err
 }
 
-func (itx CommandInteraction) EditReply(content ResponseData, ephemeral bool) error {
+func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
@@ -113,7 +111,7 @@ func (itx CommandInteraction) DeleteReply() error {
 }
 
 // Create a followup message for an Interaction.
-func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool) (Message, error) {
+func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
@@ -133,13 +131,13 @@ func (itx CommandInteraction) SendFollowUp(content ResponseData, ephemeral bool)
 }
 
 // Edits a followup message for an Interaction.
-func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseData) error {
+func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessage) error {
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
 // Deletes a followup message for an Interaction. It does not support ephemeral followups.
-func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseData) error {
+func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseMessage) error {
 	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
@@ -159,14 +157,8 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
-		Type: MODAL_RESPONSE,
+		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
-	return err
-}
-
-// Use that if you need to make a call that is not already supported by Tempest.
-func (itx Interaction) SendCustomCallback(method string, callback Response) error {
-	_, err := itx.Client.Rest.Request(method, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", callback)
 	return err
 }
