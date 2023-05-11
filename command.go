@@ -65,18 +65,18 @@ type Command struct {
 	NameLocalizations        map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
 	Description              string            `json:"description"`
 	DescriptionLocalizations map[string]string `json:"description_localizations,omitempty"`
-	Options                  []Option          `json:"options,omitempty"`
+	Options                  []CommandOption   `json:"options,omitempty"`
 	DefaultMemberPermissions uint64            `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
 	AvailableInDM            bool              `json:"dm_permission,omitempty"`                     // Whether command should be visible (usable) from private, dm channels. Works only for global commands!
 	NSFW                     bool              `json:"nsfw,omitempty"`                              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
 	Version                  Snowflake         `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes
 
-	AutoCompleteHandler func(itx AutoCompleteInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	SlashCommandHandler func(itx CommandInteraction)               `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. Warning! Library will panic if command can be triggered but doesn't have this handler.
+	AutoCompleteHandler func(itx AutoCompleteInteraction) []CommandChoice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
+	SlashCommandHandler func(itx CommandInteraction)                      `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. Warning! Library will panic if command can be triggered but doesn't have this handler.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
-type Option struct {
+type CommandOption struct {
 	Type                     OptionType        `json:"type"`
 	Name                     string            `json:"name"`
 	NameLocalizations        map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
@@ -87,14 +87,14 @@ type Option struct {
 	MaxValue                 float64           `json:"max_value,omitempty"`
 	MinLength                uint              `json:"min_length,omitempty"`
 	MaxLength                uint              `json:"max_length,omitempty"`
-	Options                  []Option          `json:"options,omitempty"`
+	Options                  []CommandOption   `json:"options,omitempty"`
 	ChannelTypes             []ChannelType     `json:"channel_types,omitempty"`
-	Choices                  []Choice          `json:"choices,omitempty"`
+	Choices                  []CommandChoice   `json:"choices,omitempty"`
 	AutoComplete             bool              `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
-type Choice struct {
+type CommandChoice struct {
 	Name              string            `json:"name"`
 	NameLocalizations map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
 	Value             any               `json:"value"`                        // string or float64 (integer or number type), needs to be handled
