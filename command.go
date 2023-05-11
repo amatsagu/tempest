@@ -2,33 +2,52 @@ package tempest
 
 import "strconv"
 
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
 type CommandType uint8
 
 const (
-	COMMAND_CHAT_INPUT CommandType = iota + 1
-	COMMAND_USER
-	COMMAND_MESSAGE
+	CHAT_INPUT_COMMAND_TYPE CommandType = iota + 1 // Default option, a slash command.
+	USER_COMMAND_TYPE                              // Mounted to user/member profile.
+	MESSAGE_COMMAND_TYPE                           // Mounted to text message.
 )
 
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
+type OptionType uint8
+
+const (
+	SUB_OPTION_TYPE OptionType = iota + 1
+	_                          // OPTION_SUB_COMMAND_GROUP (not supported)
+	STRING_OPTION_TYPE
+	INTEGER_OPTION_TYPE
+	BOOLEAN_OPTION_TYPE
+	USER_OPTION_TYPE
+	CHANNEL_OPTION_TYPE
+	ROLE_OPTION_TYPE
+	MENTIONABLE_OPTION_TYPE
+	NUMBER_OPTION_TYPE
+	ATTACHMENT_OPTION_TYPE
+)
+
+// https://discord.com/developers/docs/resources/channel#channel-object-channel-types
 type ChannelType uint8
 
 const (
-	CHANNEL_GUILD_TEXT ChannelType = iota
-	CHANNEL_DM
-	CHANNEL_GUILD_VOICE
-	CHANNEL_GROUP_DM
-	CHANNEL_GUILD_CATEGORY
-	CHANNEL_GUILD_NEWS
+	GUILD_TEXT_CHANNEL_TYPE ChannelType = iota
+	DM_CHANNEL_TYPE
+	GUILD_VOICE_CHANNEL_TYPE
+	GROUP_DM_CHANNEL_TYPE
+	GUILD_CATEGORY_CHANNEL_TYPE
+	GUILD_ANNOUNCEMENT_CHANNEL_TYPE // Formerly news channel.
 	_
 	_
 	_
 	_
-	CHANNEL_GUILD_NEWS_THREAD
-	CHANNEL_GUILD_PUBLIC_THREAD
-	CHANNEL_GUILD_PRIVATE_THREAD
-	CHANNEL_GUILD_STAGE_VOICE
-	CHANNEL_GUILD_DIRECTORY
-	CHANNEL_GUILD_FORUM // (still in development) Channel that can only contain threads.
+	GUILD_ANNOUNCEMENT_THREAD_CHANNEL_TYPE
+	GUILD_PUBLIC_THREAD_CHANNEL_TYPE
+	GUILD_PRIVATE_THREAD_CHANNEL_TYPE
+	GUILD_STAGE_VOICE_CHANNEL_TYPE
+	GUILD_DIRECTORY_CHANNEL_TYPE
+	GUILD_FORUM_CHANNEL_TYPE
 )
 
 func (ct ChannelType) MarshalJSON() (p []byte, err error) {
@@ -36,51 +55,47 @@ func (ct ChannelType) MarshalJSON() (p []byte, err error) {
 	return []byte(buf), nil
 }
 
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	ID                       Snowflake     `json:"id,omitempty"`
-	ApplicationID            Snowflake     `json:"application_id,omitempty"`
-	GuildID                  Snowflake     `json:"guild_id,omitempty"`
-	Name                     string        `json:"name,omitempty"`
-	NameLocalizations        Localizations `json:"name_localizations,omitempty"`
-	Description              string        `json:"description,omitempty"`
-	DescriptionLocalizations Localizations `json:"description_localizations,omitempty"`
-	Type                     CommandType   `json:"type,omitempty"`
-	Options                  []Option      `json:"options,omitempty"`
-	DefaultPermissions       uint64        `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
-	AvailableInDM            bool          `json:"dm_permission,omitempty"`                     // Whether command should be visible (usable) from private, dm channels. Works only for global commands!
-	Version                  Snowflake     `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes
+	ID                       Snowflake         `json:"id"`
+	Type                     CommandType       `json:"type,omitempty"`
+	ApplicationID            Snowflake         `json:"application_id"`
+	GuildID                  Snowflake         `json:"guild_id,omitempty"` // "Guild ID of the command, if not global"
+	Name                     string            `json:"name"`
+	NameLocalizations        map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	Description              string            `json:"description"`
+	DescriptionLocalizations map[string]string `json:"description_localizations,omitempty"`
+	Options                  []Option          `json:"options,omitempty"`
+	DefaultMemberPermissions uint64            `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
+	AvailableInDM            bool              `json:"dm_permission,omitempty"`                     // Whether command should be visible (usable) from private, dm channels. Works only for global commands!
+	NSFW                     bool              `json:"nsfw,omitempty"`                              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	Version                  Snowflake         `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes
 
 	AutoCompleteHandler func(itx AutoCompleteInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
 	SlashCommandHandler func(itx CommandInteraction)               `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. Warning! Library will panic if command can be triggered but doesn't have this handler.
-
-	// There's missing localization support and "default_member_permissions" field which contains flag required for users/members to use this command.
-	// If you really need this then feel free to make a pull request.
-	// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 }
 
-// Option is an option for an application Command
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
 type Option struct {
-	Name                     string        `json:"name"`
-	NameLocalizations        Localizations `json:"name_localizations,omitempty"`
-	Type                     OptionType    `json:"type"`
-	Description              string        `json:"description,omitempty"`
-	DescriptionLocalizations Localizations `json:"description_localizations,omitempty"`
-	Required                 bool          `json:"required,omitempty"`
-	MinValue                 int           `json:"min_value,omitempty"`  // Declares min value for integer/number option.
-	MaxValue                 int           `json:"max_value,omitempty"`  // Declares max value for integer/number option.
-	MinLength                uint          `json:"min_length,omitempty"` // Declares min length for string option.
-	MaxLength                uint          `json:"max_length,omitempty"` // Declares max length for string option.
-	ChannelTypes             []ChannelType `json:"channel_types,omitempty"`
-	Options                  []Option      `json:"options,omitempty"`
-	Choices                  []Choice      `json:"choices,omitempty"`
-	AutoComplete             bool          `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
-	Focused                  bool          `json:"focused,omitempty"`
+	Type                     OptionType        `json:"type"`
+	Name                     string            `json:"name"`
+	NameLocalizations        map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	Description              string            `json:"description"`
+	DescriptionLocalizations map[string]string `json:"description_localizations,omitempty"`
+	Required                 bool              `json:"required,omitempty"`
+	MinValue                 float64           `json:"min_value,omitempty"`
+	MaxValue                 float64           `json:"max_value,omitempty"`
+	MinLength                uint              `json:"min_length,omitempty"`
+	MaxLength                uint              `json:"max_length,omitempty"`
+	Options                  []Option          `json:"options,omitempty"`
+	ChannelTypes             []ChannelType     `json:"channel_types,omitempty"`
+	Choices                  []Choice          `json:"choices,omitempty"`
+	AutoComplete             bool              `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
 }
 
-type Localizations map[string]string
-
-// Choice is an application Command choice
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
 type Choice struct {
-	Name  string `json:"name"`
-	Value any    `json:"value"`
+	Name              string            `json:"name"`
+	NameLocalizations map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	Value             any               `json:"value"`                        // string or float64 (integer or number type), needs to be handled
 }
