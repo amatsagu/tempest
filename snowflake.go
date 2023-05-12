@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/sugawarayuuta/sonnet"
 )
@@ -16,6 +17,10 @@ func StringToSnowflake(s string) Snowflake {
 
 func (s Snowflake) String() string {
 	return strconv.FormatUint(uint64(s), 10)
+}
+
+func (s Snowflake) CreationTimestamp() time.Time {
+	return time.UnixMilli(int64(s>>22 + EPOCH))
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
