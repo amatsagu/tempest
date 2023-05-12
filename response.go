@@ -28,7 +28,7 @@ type ResponseMessageData struct {
 	Embeds          []*Embed         `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Flags           uint64           `json:"flags,omitempty"`
-	Components      []*Component     `json:"components,omitempty"`
+	Components      []*ComponentRow  `json:"components,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
@@ -50,7 +50,7 @@ type ResponseModal struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
-	CustomID   string       `json:"custom_id"`
-	Title      string       `json:"title"`
-	Components []*Component `json:"components,omitempty"`
+	CustomID   string          `json:"custom_id"`
+	Title      string          `json:"title"`
+	Components []*ComponentRow `json:"components,omitempty"`
 }

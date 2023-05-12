@@ -7,53 +7,50 @@ package tempest
 // Feel free to make a pull request with better type definitions if you have idea how to improve it.
 // ==========================================================================================
 
+// https://discord.com/developers/docs/interactions/message-components#button-object-button-styles
 type ButtonStyle uint8
 
 const (
-	BUTTON_PRIMARY   ButtonStyle = iota + 1 // BUTTON_PRIMARY blurple
-	BUTTON_SECONDARY                        // BUTTON_SECONDARY grey
-	BUTTON_SUCCESS                          // BUTTON_SUCCESS green
-	BUTTON_DANGER                           // BUTTON_DANGER red
-	BUTTON_LINK                             // BUTTON_LINK grey, navigate to URL
-)
-
-type OptionType uint8
-
-const (
-	OPTION_SUB_COMMAND OptionType = iota + 1
-	_                             // OPTION_SUB_COMMAND_GROUP (not supported)
-	OPTION_STRING
-	OPTION_INTEGER
-	OPTION_BOOLEAN
-	OPTION_USER
-	OPTION_CHANNEL
-	OPTION_ROLE
-	OPTION_MENTIONABLE
-	OPTION_NUMBER
-	OPTION_ATTACHMENT
+	PRIMARY_BUTTON_STYLE   ButtonStyle = iota + 1 // blurple
+	SECONDARY_BUTTON_STYLE                        // grey
+	SUCCESS_BUTTON_STYLE                          // green
+	DANGER_BUTTON_STYLE                           // red
+	LINK_BUTTON_STYLE                             // grey, navigate to URL
 )
 
 type ComponentType uint8
 
+// https://discord.com/developers/docs/interactions/message-components#component-object-component-types
 const (
-	COMPONENT_ROW ComponentType = iota + 1
-	COMPONENT_BUTTON
-	COMPONENT_SELECT_MENU
-	COMPONENT_TEXT_INPUT
+	ROW_COMPONENT_TYPE ComponentType = iota + 1
+	BUTTON_COMPONENT_TYPE
+	SELECT_MENU_COMPONENT_TYPE
+	TEXT_INPUT_COMPONENT_TYPE
+	USER_SELECT_COMPONENT_TYPE
+	ROLE_SELECT_COMPONENT_TYPE
+	MENTIONABLE_SELECT_COMPONENT_TYPE
+	CHANNEL_SELECT_COMPONENT_TYPE
 )
 
+// https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-styles
 type TextInputStyle uint8
 
 const (
-	TEXT_INPUT_SHORT     = iota + 1 // 	A single-line input.
-	TEXT_INPUT_PARAGRAPH            // A multi-line input.
+	SHORT_TEXT_INPUT_STYLE     = iota + 1 // 	A single-line input.
+	PARAGRAPH_TEXT_INPUT_STYLE            // A multi-line input.
 )
 
-// Generic Component super struct! Use "ButtonComponent", "SelectMenuComponent" or "TextInputComponent" whenever possible and this super struct as "any" component.
+// Generic Component super struct (because Go doesn't support unions)!
+//
+// https://discord.com/developers/docs/interactions/message-components#button-object-button-structure
+//
+// https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-menu-structure
+//
+// https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-structure
 type Component struct {
 	CustomID    string              `json:"custom_id,omitempty"`
 	Type        ComponentType       `json:"type"`
-	Style       ButtonStyle         `json:"style,omitempty"`
+	Style       uint8               `json:"style,omitempty"` // Either ButtonStyle or TextInputStyle
 	Label       string              `json:"label,omitempty"`
 	Emoji       *PartialEmoji       `json:"emoji,omitempty"`
 	URL         string              `json:"url,omitempty"`
@@ -63,27 +60,6 @@ type Component struct {
 	MaxValues   uint64              `json:"max_values,omitempty"`
 	Required    bool                `json:"required,omitempty"`
 	Options     []*SelectMenuOption `json:"options,omitempty"`
-	Components  []*Component        `json:"components,omitempty"`
-}
-
-type ButtonComponent struct {
-	CustomID string        `json:"custom_id"`
-	Type     ComponentType `json:"type"` // It gonna always be = 2 for button components.
-	Style    ButtonStyle   `json:"style"`
-	Label    string        `json:"label,omitempty"` // Text label that appears on the button, max 80 characters.
-	Emoji    *PartialEmoji `json:"emoji,omitempty"`
-	URL      string        `json:"url,omitempty"` // A url for link-style buttons.
-	Disabled bool          `json:"disabled,omitempty"`
-}
-
-type SelectMenuComponent struct {
-	CustomID    string              `json:"custom_id"`
-	Type        ComponentType       `json:"type"`                  // It gonna always be = 3 for select menu components.
-	Placeholder string              `json:"placeholder,omitempty"` // Custom placeholder text if nothing is selected, max 150 characters.
-	MinValues   uint64              `json:"min_values,omitempty"`
-	MaxValues   uint64              `json:"max_values,omitempty"`
-	Options     []*SelectMenuOption `json:"options"`
-	Disabled    bool                `json:"disabled,omitempty"`
 }
 
 type SelectMenuOption struct {
@@ -94,14 +70,7 @@ type SelectMenuOption struct {
 	Default     bool          `json:"default"` // Whether to render this option as selected by default.
 }
 
-type TextInputComponent struct {
-	CustomID    string         `json:"custom_id"`
-	Type        ComponentType  `json:"type"` // It gonna always be = 4 for text input components.
-	Style       TextInputStyle `json:"style"`
-	Label       string         `json:"label"`                 // Text label for text input, max 45 characters.
-	Placeholder string         `json:"placeholder,omitempty"` // Custom placeholder text if the input is empty, max 100 characters.
-	Value       string         `json:"value,omitempty"`       // A pre-filled value for this component, max 4000 characters.
-	MinValues   uint64         `json:"min_values,omitempty"`
-	MaxValues   uint64         `json:"max_values,omitempty"`
-	Required    bool           `json:"required,omitempty"` // Whether this component is required to be filled, default = true.
+type ComponentRow struct {
+	Type       ComponentType `json:"type"`
+	Components []*Component  `json:"components"`
 }

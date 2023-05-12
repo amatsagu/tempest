@@ -157,7 +157,7 @@ type Message struct {
 	Flags             uint64              `json:"flags,omitempty"`
 	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
 	Interaction       *MessageInteraction `json:"interaction,omitempty"`
-	Components        []*Component        `json:"components,omitempty"`
+	Components        []*ComponentRow     `json:"components,omitempty"`
 	StickerItems      []*StickerItem      `json:"sticker_items,omitempty"`
 }
 
