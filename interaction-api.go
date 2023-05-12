@@ -33,7 +33,7 @@ func (itx CommandInteraction) ResolveUser(id Snowflake) *User {
 func (itx CommandInteraction) ResolveMember(id Snowflake) *Member {
 	member, available := itx.Data.Resolved.Members[id]
 	if available {
-		member.User = *itx.Data.Resolved.Users[id]
+		member.User = itx.Data.Resolved.Users[id]
 		return member
 	}
 	return nil
@@ -152,7 +152,7 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 		}
 	}
 
-	panic("auto complete interaction had no option with \"focused\" field. This error should never happen")
+	panic("auto complete interaction had no option with \"focused\" field. This error should never happen with correctly defined slash command")
 }
 
 func (itx CommandInteraction) SendModal(modal ResponseModalData) error {

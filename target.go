@@ -73,7 +73,7 @@ func (user User) BannerURL() string {
 
 // https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-structure
 type Member struct {
-	User                       User        `json:"user"` // In this library case it will always be defined.
+	User                       *User       `json:"user,omitempty"`
 	Nickname                   string      `json:"nick,omitempty"`
 	GuildAvatarHash            string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.GuildAvatarURL to get direct url.
 	RoleIDs                    []Snowflake `json:"roles"`
@@ -120,6 +120,7 @@ type Role struct {
 type RoleTag struct {
 	BotID         Snowflake `json:"bot_id,omitempty"`
 	IntegrationID Snowflake `json:"integration_id,omitempty"`
+	// PremiumSubscriber bool <== UNKNOWN DOCUMENTATION
 }
 
 func (role Role) IconURL() string {
