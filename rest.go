@@ -80,7 +80,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
-		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(bytes.ReplaceAll(body, p_REST_NULL_SLICE_FIND, p_REST_NULL_SLICE_REPLACE)))
+		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, errors.New("failed to initialize new request: " + err.Error())
 		}
@@ -133,27 +133,23 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 }
 
 // Creates standalone REST instance. Use CreateClient function if you want to create regular Discord App.
-func CreateRest(token string, globalRequestLimit uint16, maxRequestsBeforeSweep uint16) Rest {
+func CreateRest(token string, globalRequestLimit uint16) Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
 	rest := Rest{
 		Token:                  token,
-		MaxRequestsBeforeSweep: maxRequestsBeforeSweep,
+		MaxRequestsBeforeSweep: globalRequestLimit,
 		GlobalRequestLimit:     globalRequestLimit,
 		globalRequests:         0,
 		requestsSinceSweep:     0,
 		lockedTo:               0,
-		// locks:                  make(map[string]int64, 100),
-		fails: 0,
+		fails:                  0,
 	}
 
 	if rest.GlobalRequestLimit < 50 {
 		rest.GlobalRequestLimit = 50 // All Discord applications (or bots) have global limit = 50. Big bots can receive higher limits.
-	}
-
-	if maxRequestsBeforeSweep < 50 {
 		rest.MaxRequestsBeforeSweep = 50
 	}
 
