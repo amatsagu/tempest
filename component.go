@@ -48,20 +48,22 @@ const (
 //
 // https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-structure
 type Component struct {
-	CustomID    string              `json:"custom_id,omitempty"`
-	Type        ComponentType       `json:"type"`
-	Style       uint8               `json:"style,omitempty"` // Either ButtonStyle or TextInputStyle
-	Label       string              `json:"label,omitempty"`
-	Emoji       *PartialEmoji       `json:"emoji,omitempty"`
-	URL         string              `json:"url,omitempty"`
-	Disabled    bool                `json:"disabled,omitempty"`
-	Placeholder string              `json:"placeholder,omitempty"`
-	MinValues   uint64              `json:"min_values,omitempty"`
-	MaxValues   uint64              `json:"max_values,omitempty"`
-	Required    bool                `json:"required,omitempty"`
-	Options     []*SelectMenuOption `json:"options,omitempty"`
+	Type         ComponentType       `json:"type"`
+	CustomID     string              `json:"custom_id,omitempty"`
+	Style        uint8               `json:"style,omitempty"` // Either ButtonStyle or TextInputStyle.
+	Label        string              `json:"label,omitempty"`
+	Emoji        *PartialEmoji       `json:"emoji,omitempty"`
+	URL          string              `json:"url,omitempty"`
+	Disabled     bool                `json:"disabled,omitempty"`
+	Placeholder  string              `json:"placeholder,omitempty"`
+	MinValues    uint64              `json:"min_values,omitempty"`
+	MaxValues    uint64              `json:"max_values,omitempty"`
+	Required     bool                `json:"required,omitempty"`
+	Options      []*SelectMenuOption `json:"options,omitempty"`
+	ChannelTypes []*ChannelType      `json:"channel_types,omitempty"` // Only available for 8th ComponentType.
 }
 
+// https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-option-structure
 type SelectMenuOption struct {
 	Label       string        `json:"label,omitempty"`       // Text label that appears on the option label, max 80 characters.
 	Description string        `json:"description,omitempty"` // An additional description of the option, max 100 characters.
@@ -70,6 +72,7 @@ type SelectMenuOption struct {
 	Default     bool          `json:"default"` // Whether to render this option as selected by default.
 }
 
+// https://discord.com/developers/docs/interactions/message-components#action-rows
 type ComponentRow struct {
 	Type       ComponentType `json:"type"`
 	Components []*Component  `json:"components"`
