@@ -33,7 +33,7 @@ func (itx CommandInteraction) ResolveUser(id Snowflake) *User {
 func (itx CommandInteraction) ResolveMember(id Snowflake) *Member {
 	member, available := itx.Data.Resolved.Members[id]
 	if available {
-		member.User = itx.Data.Resolved.Users[id]
+		member.User = *itx.Data.Resolved.Users[id]
 		return member
 	}
 	return nil

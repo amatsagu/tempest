@@ -19,7 +19,7 @@ type Interaction struct {
 	ID              Snowflake       `json:"id"`
 	ApplicationID   Snowflake       `json:"application_id"`
 	Type            InteractionType `json:"type"`
-	Data            InteractionData `json:"data,omitempty"` // It's always present on application command, message component, and modal submit interaction types. It is optional for future-proofing against new interaction types.
+	Data            InteractionData `json:"data,omitempty"`
 	GuildID         Snowflake       `json:"guild_id,omitempty"`
 	ChannelID       Snowflake       `json:"channel_id,omitempty"`
 	Member          *Member         `json:"member,omitempty"`
@@ -40,7 +40,7 @@ type InteractionData struct {
 	Name     string                   `json:"name"`
 	Type     CommandType              `json:"type"`
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
-	Options  []*InteractionOption     `json:"options,omitempty"`
+	Options  []InteractionOption      `json:"options,omitempty"`
 	GuildID  Snowflake                `json:"guild_id,omitempty"`
 	TargetID Snowflake                `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 }
@@ -56,11 +56,10 @@ type InteractionOption struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type InteractionDataResolved struct {
-	Users       map[Snowflake]*User           `json:"users,omitempty"`
-	Members     map[Snowflake]*Member         `json:"members,omitempty"`
-	Roles       map[Snowflake]*Role           `json:"roles,omitempty"`
-	Channels    map[Snowflake]*PartialChannel `json:"channels,omitempty"`
-	Attachments map[Snowflake]*Attachment     `json:"attachments,omitempty"`
+	Users    map[Snowflake]*User           `json:"users,omitempty"`
+	Members  map[Snowflake]*Member         `json:"members,omitempty"`
+	Roles    map[Snowflake]*Role           `json:"roles,omitempty"`
+	Channels map[Snowflake]*PartialChannel `json:"channels,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
@@ -68,4 +67,13 @@ type Choice struct {
 	Name              string            `json:"name"`
 	NameLocalizations map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
 	Value             any               `json:"value"`                        // string or float64 (integer or number type), needs to be handled
+}
+
+// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
+type MessageInteraction struct {
+	ID     Snowflake       `json:"id"`
+	Type   InteractionType `json:"type"`
+	Name   string          `json:"name"`
+	User   User            `json:"user"`
+	Member *Member         `json:"member,omitempty"`
 }
