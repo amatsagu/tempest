@@ -5,23 +5,16 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/sugawarayuuta/sonnet"
 )
 
-// Please avoid creating raw Rest struct unless you know what you're doing. Use CreateRest function instead.
 type Rest struct {
-	Token                  string // Discord Bot/App token. Remember to add "Bot" prefix.
-	MaxRequestsBeforeSweep uint16
-	GlobalRequestLimit     uint16
-	globalRequests         uint16
-	requestsSinceSweep     uint16
-	lockedTo               int64 // Timestamp (in ms) to when it's locked, 0 means there's no lock.
-	locks                  map[string]int64
-	fails                  uint16 // If request failed, try again up to 3 times (delay 250/500/750ms) - after 3rd failed attempt => panic
+	Token    string // Discord App token. Remember to add "Bot" prefix.
+	lockedTo int64  // Timestamp (in ms) to when it's locked, 0 means there's no lock.
+	fails    uint8  // If request failed, try again up to 3 times (delay 250/500/750ms) - after 3rd failed attempt => panic
 }
 
 type rateLimitError struct {
@@ -30,44 +23,14 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
+// Handles communication with Discord API. It automatically handles various return types and controls global rate limit of your discord app.
 func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
-	rest.globalRequests++
-	rest.requestsSinceSweep++
-
-	if rest.locks == nil {
-		rest.locks = make(map[string]int64, rest.MaxRequestsBeforeSweep)
+	now := time.Now().UnixMilli()
+	if now < rest.lockedTo {
+		time.Sleep(time.Millisecond * time.Duration(rest.lockedTo-now))
 	}
 
-	now := time.Now().Unix()
-	var offset uint16 = 0
 	var req *http.Request
-
-	if rest.globalRequests == rest.GlobalRequestLimit && now < rest.lockedTo {
-		rest.globalRequests = 0
-		offset += 8
-	}
-
-	expiresTimestamp, exists := rest.locks[route]
-	if exists && expiresTimestamp > now {
-		offset += uint16(expiresTimestamp - now)
-	}
-
-	if rest.requestsSinceSweep%rest.MaxRequestsBeforeSweep == 0 {
-		rest.requestsSinceSweep = 0
-
-		go func() {
-			for key, value := range rest.locks {
-				if now > value {
-					delete(rest.locks, key)
-				}
-			}
-		}()
-	}
-
-	if offset != 0 {
-		time.Sleep(time.Second * time.Duration(offset))
-	}
-
 	if jsonPayload == nil {
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, nil)
 		if err != nil {
@@ -103,13 +66,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 		}
 	}
 	defer res.Body.Close()
-
 	rest.fails = 0
-	remaining, err := strconv.ParseFloat(res.Header.Get("x-ratelimit-remaining"), 32)
-	if err == nil && remaining == 0 {
-		resetAt, _ := strconv.ParseFloat(res.Header.Get("x-ratelimit-reset"), 64) // If first succeeded then there's no need to check this one.
-		rest.locks[route] = int64(resetAt + 6)
-	}
 
 	if res.StatusCode == 204 {
 		return nil, nil
@@ -123,7 +80,8 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
 		sonnet.Unmarshal(body, &rateErr)
-		time.Sleep(time.Second * time.Duration(rateErr.RetryAfter+2.5))
+		rest.lockedTo = int64(rateErr.RetryAfter+3) * 1000
+		time.Sleep(time.Second * time.Duration(rateErr.RetryAfter+3))
 		return rest.Request(method, route, jsonPayload) // Try again after rate limit.
 	} else if res.StatusCode >= 400 {
 		return nil, errors.New(res.Status + " :: " + string(body))
@@ -133,26 +91,14 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 }
 
 // Creates standalone REST instance. Use CreateClient function if you want to create regular Discord App.
-func CreateRest(token string, globalRequestLimit uint16) Rest {
+func CreateRest(token string) Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
-	rest := Rest{
-		Token:                  token,
-		MaxRequestsBeforeSweep: globalRequestLimit,
-		GlobalRequestLimit:     globalRequestLimit,
-		globalRequests:         0,
-		requestsSinceSweep:     0,
-		lockedTo:               0,
-		fails:                  0,
+	return Rest{
+		Token:    token,
+		lockedTo: 0,
+		fails:    0,
 	}
-
-	if rest.GlobalRequestLimit < 50 {
-		rest.GlobalRequestLimit = 50 // All Discord applications (or bots) have global limit = 50. Big bots can receive higher limits.
-		rest.MaxRequestsBeforeSweep = 50
-	}
-
-	rest.locks = make(map[string]int64, rest.MaxRequestsBeforeSweep)
-	return rest
 }
