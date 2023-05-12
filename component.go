@@ -74,6 +74,6 @@ type SelectMenuOption struct {
 
 // https://discord.com/developers/docs/interactions/message-components#action-rows
 type ComponentRow struct {
-	Type       ComponentType `json:"type"`
+	Type       ComponentType `json:"type"` // Always 1
 	Components []*Component  `json:"components"`
 }
