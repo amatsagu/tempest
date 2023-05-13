@@ -168,3 +168,12 @@ type MessageReference struct {
 	GuildID         Snowflake `json:"guild_id,omitempty"`
 	FailIfNotExists bool      `json:"fail_if_not_exists,omitempty"`
 }
+
+// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
+type MessageInteraction struct {
+	ID     Snowflake       `json:"id"`
+	Type   InteractionType `json:"type"`
+	Name   string          `json:"name"`
+	User   User            `json:"user"`
+	Member *Member         `json:"member,omitempty"`
+}

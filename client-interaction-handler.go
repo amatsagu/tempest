@@ -19,20 +19,27 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	}
 
-	var interaction Interaction
-	err := sonnet.NewDecoder(r.Body).Decode(&interaction)
+	var extractor InteractionTypeExtractor
+	err := sonnet.NewDecoder(r.Body).Decode(&extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
 	}
 	defer r.Body.Close()
 
-	switch interaction.Type {
+	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
 		w.Write([]byte(`{"type":1}`))
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		command, interaction, available := client.seekCommand(interaction)
+		var interaction CommandInteraction
+		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
+
+		command, ctx, available := client.seekCommand(interaction)
 		if !available {
 			terminateCommandInteraction(w)
 			return
@@ -49,7 +56,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 		interaction.Client = &client
 		if client.preCommandExecutionHandler != nil {
-			content := client.preCommandExecutionHandler(interaction)
+			content := client.preCommandExecutionHandler(ctx)
 			if content != nil {
 				body, err := sonnet.Marshal(ResponseMessage{
 					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
@@ -67,7 +74,26 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-		command.SlashCommandHandler(interaction)
+		command.SlashCommandHandler(ctx)
+		return
+	case MESSAGE_COMPONENT_INTERACTION_TYPE:
+		var interaction ComponentInteraction
+		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
+
+		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
+		if available && signalChannel != nil {
+			*signalChannel <- &interaction
+			acknowledgeComponentInteraction(w)
+			return
+		}
+
+		if client.componentHandler != nil {
+			client.componentHandler(interaction)
+		}
 		return
 	}
 }

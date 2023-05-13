@@ -6,6 +6,10 @@ import (
 )
 
 func (client Client) RegisterCommand(command Command) error {
+	if client.commands == nil {
+		client.commands = make(map[string]map[string]Command, 1)
+	}
+
 	if _, available := client.commands[command.Name]; available {
 		return errors.New("client already has registered \"" + command.Name + "\" slash command (name already in use)")
 	}
@@ -49,7 +53,7 @@ func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, swit
 	return nil
 }
 
-func (client Client) seekCommand(itx Interaction) (Command, CommandInteraction, bool) {
+func (client Client) seekCommand(itx CommandInteraction) (Command, CommandInteraction, bool) {
 	if len(itx.Data.Options) != 0 && itx.Data.Options[0].Type == SUB_OPTION_TYPE {
 		command, available := client.commands[itx.Data.Name][itx.Data.Options[0].Name]
 		if available {
