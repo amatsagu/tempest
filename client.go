@@ -153,12 +153,19 @@ func CreateClient(options ClientOptions) Client {
 		panic("failed to decode \"%s\" discord's public key (check if it's correct key)")
 	}
 
+	// I have no idea why but queuedComponents & queuedModals needs to be defined from start in order to work...
+	// I've spent 4 hours trying to debug it and I have no idea, we have example bot (./example) that has /dynamic command where it awaits button component,
+	// it calls Client.AwaitComponent (goroutine A) that successfully initializes Client.queuedComponents map but later in Client.handleDiscordWebhookRequests (goroutine B), this map is nil.
+	// Somehow definiting map in Client.CreateClient instead dynamically as needed fixes that issue.
+
 	client := Client{
-		Rest:          CreateRest(options.Token),
-		ApplicationID: options.ApplicationID,
-		PublicKey:     ed25519.PublicKey(discordPublicKey),
-		// commands:                   make(map[string]map[string]Command, 0),
-		// queuedComponents:           make(map[string]*chan *Interaction, 0),
+		Rest:                       CreateRest(options.Token),
+		ApplicationID:              options.ApplicationID,
+		PublicKey:                  ed25519.PublicKey(discordPublicKey),
+		commands:                   make(map[string]map[string]Command, 0),
+		components:                 make(map[string]func(ComponentInteraction), 0),
+		modals:                     make(map[string]func(ModalInteraction), 0),
+		queuedComponents:           make(map[string]*(chan *ComponentInteraction), 0),
 		preCommandExecutionHandler: options.CommandMiddleware,
 		running:                    false,
 	}
