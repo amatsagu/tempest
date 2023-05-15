@@ -14,6 +14,10 @@ func (client Client) RegisterCommand(command Command) error {
 		return errors.New("client already has registered \"" + command.Name + "\" slash command (name already in use)")
 	}
 
+	if command.Type == 0 {
+		command.Type = CHAT_INPUT_COMMAND_TYPE
+	}
+
 	tree := make(map[string]Command)
 	tree[ROOT_PLACEHOLDER] = command
 	client.commands[command.Name] = tree

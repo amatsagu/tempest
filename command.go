@@ -57,10 +57,10 @@ func (ct ChannelType) MarshalJSON() (p []byte, err error) {
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	ID                       Snowflake         `json:"id"`
+	ID                       Snowflake         `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
 	Type                     CommandType       `json:"type,omitempty"`
 	ApplicationID            Snowflake         `json:"application_id"`
-	GuildID                  Snowflake         `json:"guild_id,omitempty"` // "Guild ID of the command, if not global"
+	GuildID                  Snowflake         `json:"guild_id,omitempty"`
 	Name                     string            `json:"name"`
 	NameLocalizations        map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
 	Description              string            `json:"description"`
