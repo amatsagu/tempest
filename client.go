@@ -8,11 +8,10 @@ import (
 )
 
 type ClientOptions struct {
-	ApplicationID              Snowflake                                         // The app's user id. (default: <nil>)
-	PublicKey                  string                                            // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
-	Token                      string                                            // The auth token to use. Bot tokens should be prefixed with Bot (e.g. "Bot MTExIHlvdSAgdHJpZWQgMTEx.O5rKAA.dQw4w9WgXcQ_wpV-gGA4PSk_bm8"). Prefix-less bot tokens are deprecated. (default: <nil>)
-	PreCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // Function to call after doing initial processing but before executing slash command. Allows to attach own, global logic to all slash commands (similar to routing). Return pointer to ResponseData struct if you want to send messageand stop execution or <nil> to continue. (default: <nil>)
-	componentHandler           func(itx ComponentInteraction)                    // Function to call on all unhandled component interactions. (default: <nil>)
+	ApplicationID     Snowflake                                         // The app's user id. (default: <nil>)
+	PublicKey         string                                            // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
+	Token             string                                            // The auth token to use. Bot tokens should be prefixed with Bot (e.g. "Bot MTExIHlvdSAgdHJpZWQgMTEx.O5rKAA.dQw4w9WgXcQ_wpV-gGA4PSk_bm8"). Prefix-less bot tokens are deprecated. (default: <nil>)
+	CommandMiddleware func(itx CommandInteraction) *ResponseMessageData // Functions that runs before each command. Returning *ResponseMessageData will send your payload (for example error or cooldown message) and stop command execution.
 }
 
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
@@ -24,8 +23,8 @@ type Client struct {
 
 	commands                   map[string]map[string]Command
 	queuedComponents           map[string]*(chan *ComponentInteraction)
+	queuedModals               map[string]*(chan *ModalInteraction)
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // From options, called before each slash command.
-	componentHandler           func(itx ComponentInteraction)                    // From options, called on all unhandled interactions.
 	running                    bool                                              // Whether client's web server is already launched.
 }
 
@@ -33,7 +32,7 @@ type Client struct {
 // When component custom id matches - it'll send back interaction through channel.
 // On timeout (min 2s -> max 15min) - client will send <nil> through channel and automatically call close function.
 //
-// Warning: Don't try to acknowledge any component passed to this method, it'll be handled automatically.
+// Warning: You still need to acknowledge received component interaction.
 //
 // Warning: Using this method creates state inpurity. Don't use this method if you want to build "cache-free" applications and scale them behind balance loader.
 func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Duration) (chan *ComponentInteraction, func()) {
@@ -54,6 +53,41 @@ func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Du
 	}
 
 	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*2)
+	if timeout > maxTime {
+		timeout = maxTime
+	} else if timeout < minTime {
+		timeout = minTime
+	}
+
+	time.AfterFunc(timeout, closeFunction)
+	return signalChannel, closeFunction
+}
+
+// Makes client "listen" incoming modal type interactions.
+// When modal custom id matches - it'll send back interaction through channel.
+// On timeout (min 30s -> max 15min) - client will send <nil> through channel and automatically call close function.
+//
+// Warning: You still need to acknowledge received modal interaction.
+//
+// Warning: Using this method creates state inpurity. Don't use this method if you want to build "cache-free" applications and scale them behind balance loader.
+func (client Client) AwaitModal(componentCustomIDs []string, timeout time.Duration) (chan *ModalInteraction, func()) {
+	signalChannel := make(chan *ModalInteraction)
+	closeFunction := func() {
+		if signalChannel != nil {
+			for _, key := range componentCustomIDs {
+				delete(client.queuedModals, key)
+			}
+
+			close(signalChannel)
+			signalChannel = nil
+		}
+	}
+
+	for _, key := range componentCustomIDs {
+		client.queuedModals[key] = &signalChannel
+	}
+
+	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*30)
 	if timeout > maxTime {
 		timeout = maxTime
 	} else if timeout < minTime {
@@ -116,8 +150,7 @@ func CreateClient(options ClientOptions) Client {
 		PublicKey:     ed25519.PublicKey(discordPublicKey),
 		// commands:                   make(map[string]map[string]Command, 0),
 		// queuedComponents:           make(map[string]*chan *Interaction, 0),
-		preCommandExecutionHandler: options.PreCommandExecutionHandler,
-		componentHandler:           options.componentHandler,
+		preCommandExecutionHandler: options.CommandMiddleware,
 		running:                    false,
 	}
 
