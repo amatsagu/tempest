@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"io"
 	"net/http"
@@ -27,9 +26,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		panic(err) // Should never happen
 	}
 
-	r.Body = io.NopCloser(bytes.NewReader(buf))
 	var extractor InteractionTypeExtractor
-
 	err = sonnet.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -43,7 +40,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -88,7 +85,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var interaction ComponentInteraction
-		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -109,7 +106,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -138,7 +135,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
-		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
