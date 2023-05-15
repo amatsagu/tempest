@@ -87,13 +87,9 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
 		if available && signalChannel != nil {
 			*signalChannel <- &interaction
-			acknowledgeComponentInteraction(w)
 			return
 		}
 
-		if client.componentHandler != nil {
-			client.componentHandler(interaction)
-		}
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
@@ -123,6 +119,8 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(body)
+		return
+	case MODAL_SUBMIT_INTERACTION_TYPE:
 		return
 	}
 }

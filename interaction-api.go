@@ -155,6 +155,34 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen with correctly defined slash command")
 }
 
+// Sends to discord info that this component was handled successfully without sending anything more.
+func (itx ComponentInteraction) Acknowledge() error {
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
+	})
+	return err
+}
+
+func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageData, ephemeral bool) error {
+	if ephemeral && content.Flags == 0 {
+		content.Flags = 64
+	}
+
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &content,
+	})
+	return err
+}
+
+func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
+		Type: MODAL_RESPONSE_TYPE,
+		Data: &modal,
+	})
+	return err
+}
+
 func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
