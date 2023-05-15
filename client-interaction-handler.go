@@ -153,7 +153,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
 		if available && signalChannel != nil {
-			signalChannel <- &interaction
+			*signalChannel <- &interaction
 		}
 
 		return
