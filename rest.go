@@ -16,7 +16,7 @@ type Rest struct {
 	mu         sync.RWMutex
 	token      string
 	httpClient *http.Client
-	lockedTo   *time.Time
+	lockedTo   time.Time
 }
 
 type rateLimitError struct {
@@ -27,8 +27,8 @@ type rateLimitError struct {
 
 func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	rest.mu.RLock()
-	if rest.lockedTo != nil {
-		timeLeft := time.Until(*rest.lockedTo)
+	if !rest.lockedTo.IsZero() {
+		timeLeft := time.Until(rest.lockedTo)
 		rest.mu.RUnlock()
 		if timeLeft > 0 {
 			time.Sleep(timeLeft)
@@ -92,14 +92,13 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		json.Unmarshal(body, &rateErr)
 
 		rest.mu.Lock()
-		t := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
-		rest.lockedTo = &t
+		rest.lockedTo = time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
 		rest.mu.Unlock()
 
-		time.Sleep(time.Until(*rest.lockedTo))
+		time.Sleep(time.Until(rest.lockedTo))
 
 		rest.mu.Lock()
-		rest.lockedTo = nil
+		rest.lockedTo = time.Time{}
 		rest.mu.Unlock()
 		return nil, errors.New("rate limit"), false
 	} else if res.StatusCode >= 400 {
@@ -109,23 +108,16 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 	return body, nil, true
 }
 
-func NewRest(token string) Rest {
-	if !strings.HasPrefix(token, "Bot ") {
-		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
-	}
-
-	return Rest{
-		token:      token,
-		httpClient: http.DefaultClient,
-	}
+func NewRest(token string) *Rest {
+	return NewCustomRest(token, http.DefaultClient)
 }
 
-func NewCustomRest(token string, client *http.Client) Rest {
+func NewCustomRest(token string, client *http.Client) *Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
-	return Rest{
+	return &Rest{
 		token:      token,
 		httpClient: client,
 	}
