@@ -24,9 +24,9 @@ type Client struct {
 
 	commands                   map[string]map[string]Command
 	components                 map[string]*(func(ComponentInteraction)) // Cache for registered, "static" components
-	modals                     map[string]*(func(ModalInteraction))     // Cache for registered, "static" modals
+	modals                     map[string]func(ModalInteraction)        // Cache for registered, "static" modals
 	queuedComponents           map[string]*(chan *ComponentInteraction)
-	queuedModals               map[string]*(chan *ModalInteraction)
+	queuedModals               map[string]chan *ModalInteraction
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // From options, called before each slash command.
 	running                    bool                                              // Whether client's web server is already launched.
 }
@@ -95,7 +95,7 @@ func (client Client) AwaitModal(customID string, timeout time.Duration) (chan *M
 		}
 	}
 
-	client.queuedModals[customID] = &signalChannel
+	client.queuedModals[customID] = signalChannel
 	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*30)
 	if timeout > maxTime {
 		timeout = maxTime

@@ -26,9 +26,9 @@ func (client Client) RegisterComponent(customIDs []string, fn *(func(ComponentIn
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving modal interaction with matching custom id.
 // This method doesn't rely on any in-memory state so it's safe to use it for bot single instance applications as well as network of instances.
-func (client Client) RegisterModal(customID string, fn *(func(ModalInteraction))) error {
+func (client Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
 	if client.modals == nil {
-		client.modals = make(map[string]*(func(ModalInteraction)), 1)
+		client.modals = make(map[string]func(ModalInteraction), 1)
 	}
 
 	_, exists := client.modals[customID]

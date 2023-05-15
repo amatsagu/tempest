@@ -137,13 +137,13 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		awaitInteraction(w)
 		fn, available := client.modals[interaction.Data.CustomID]
 		if available && fn != nil {
-			(*fn)(interaction)
+			fn(interaction)
 			return
 		}
 
 		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
 		if available && signalChannel != nil {
-			*signalChannel <- &interaction
+			signalChannel <- &interaction
 		}
 
 		return
