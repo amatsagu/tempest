@@ -1,7 +1,9 @@
 package tempest
 
 import (
+	"bytes"
 	"crypto/ed25519"
+	"io"
 	"net/http"
 
 	"github.com/sugawarayuuta/sonnet"
@@ -19,8 +21,16 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	}
 
+	buf, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		panic(err) // Should never happen
+	}
+
+	r.Body = io.NopCloser(bytes.NewReader(buf))
 	var extractor InteractionTypeExtractor
-	err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+
+	err = sonnet.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
