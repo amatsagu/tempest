@@ -69,3 +69,16 @@ func terminateCommandInteraction(w http.ResponseWriter) {
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(body)
 }
+
+func awaitInteraction(w http.ResponseWriter) {
+	body, err := sonnet.Marshal(ResponseMessage{
+		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+	})
+
+	if err != nil {
+		panic("failed to parse json payload")
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(body)
+}

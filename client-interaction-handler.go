@@ -84,10 +84,10 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			panic(err) // Should never happen
 		}
 
+		awaitInteraction(w)
 		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
 		if available && signalChannel != nil {
 			*signalChannel <- &interaction
-			return
 		}
 
 		return
@@ -121,6 +121,19 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		w.Write(body)
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
+		var interaction ModalInteraction
+		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
+
+		awaitInteraction(w)
+		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
+		if available && signalChannel != nil {
+			*signalChannel <- &interaction
+		}
+
 		return
 	}
 }
