@@ -95,5 +95,34 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			client.componentHandler(interaction)
 		}
 		return
+	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
+		var interaction CommandInteraction
+		err := sonnet.NewDecoder(r.Body).Decode(&extractor)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
+
+		command, ctx, available := client.seekCommand(interaction)
+		if !available || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		choices := command.AutoCompleteHandler(AutoCompleteInteraction(ctx))
+		body, err := sonnet.Marshal(ResponseAutoComplete{
+			Type: AUTOCOMPLETE_RESPONSE_TYPE,
+			Data: &ResponseAutoCompleteData{
+				Choices: choices,
+			},
+		})
+
+		if err != nil {
+			panic("failed to parse payload received from client's \"auto complete\" handler (make sure it's in JSON format)")
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(body)
+		return
 	}
 }
