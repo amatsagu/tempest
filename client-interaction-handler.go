@@ -91,7 +91,9 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			panic(err) // Should never happen
 		}
 
+		interaction.Client = &client
 		awaitInteraction(w)
+
 		fn, available := client.components[interaction.Data.CustomID]
 		if available && fn != nil {
 			fn(interaction)
@@ -141,7 +143,9 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			panic(err) // Should never happen
 		}
 
+		interaction.Client = &client
 		awaitInteraction(w)
+
 		fn, available := client.modals[interaction.Data.CustomID]
 		if available && fn != nil {
 			fn(interaction)
