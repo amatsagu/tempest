@@ -92,10 +92,11 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		json.Unmarshal(body, &rateErr)
 
 		rest.mu.Lock()
-		rest.lockedTo = time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
+		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
+		rest.lockedTo = timeLeft
 		rest.mu.Unlock()
 
-		time.Sleep(time.Until(rest.lockedTo))
+		time.Sleep(time.Until(timeLeft))
 
 		rest.mu.Lock()
 		rest.lockedTo = time.Time{}
