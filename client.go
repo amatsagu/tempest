@@ -3,6 +3,7 @@ package tempest
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"time"
 )
@@ -22,6 +23,8 @@ type Client struct {
 	PublicKey     ed25519.PublicKey
 
 	commands                   map[string]map[string]Command
+	components                 map[string]*(func(ComponentInteraction)) // Cache for registered, "static" components
+	modals                     map[string]*(func(ModalInteraction))     // Cache for registered, "static" modals
 	queuedComponents           map[string]*(chan *ComponentInteraction)
 	queuedModals               map[string]*(chan *ModalInteraction)
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // From options, called before each slash command.
@@ -35,11 +38,18 @@ type Client struct {
 // Warning: You still need to acknowledge received component interaction.
 //
 // Warning: Using this method creates state inpurity. Don't use this method if you want to build "cache-free" applications and scale them behind balance loader.
-func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Duration) (chan *ComponentInteraction, func()) {
+func (client Client) AwaitComponent(customIDs []string, timeout time.Duration) (chan *ComponentInteraction, func(), error) {
+	for _, ID := range customIDs {
+		_, exists := client.components[ID]
+		if exists {
+			return nil, nil, errors.New("client already has registered \"" + ID + "\" component as static (custom id already in use)")
+		}
+	}
+
 	signalChannel := make(chan *ComponentInteraction)
 	closeFunction := func() {
 		if signalChannel != nil {
-			for _, key := range componentCustomIDs {
+			for _, key := range customIDs {
 				delete(client.queuedComponents, key)
 			}
 
@@ -48,8 +58,8 @@ func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Du
 		}
 	}
 
-	for _, key := range componentCustomIDs {
-		client.queuedComponents[key] = &signalChannel
+	for _, ID := range customIDs {
+		client.queuedComponents[ID] = &signalChannel
 	}
 
 	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*2)
@@ -60,7 +70,7 @@ func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Du
 	}
 
 	time.AfterFunc(timeout, closeFunction)
-	return signalChannel, closeFunction
+	return signalChannel, closeFunction, nil
 }
 
 // Makes client "listen" incoming modal type interactions.
@@ -70,23 +80,22 @@ func (client Client) AwaitComponent(componentCustomIDs []string, timeout time.Du
 // Warning: You still need to acknowledge received modal interaction.
 //
 // Warning: Using this method creates state inpurity. Don't use this method if you want to build "cache-free" applications and scale them behind balance loader.
-func (client Client) AwaitModal(componentCustomIDs []string, timeout time.Duration) (chan *ModalInteraction, func()) {
+func (client Client) AwaitModal(customID string, timeout time.Duration) (chan *ModalInteraction, func(), error) {
+	_, exists := client.components[customID]
+	if exists {
+		return nil, nil, errors.New("client already has registered \"" + customID + "\" modal as static (custom id already in use)")
+	}
+
 	signalChannel := make(chan *ModalInteraction)
 	closeFunction := func() {
 		if signalChannel != nil {
-			for _, key := range componentCustomIDs {
-				delete(client.queuedModals, key)
-			}
-
+			delete(client.queuedModals, customID)
 			close(signalChannel)
 			signalChannel = nil
 		}
 	}
 
-	for _, key := range componentCustomIDs {
-		client.queuedModals[key] = &signalChannel
-	}
-
+	client.queuedModals[customID] = &signalChannel
 	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*30)
 	if timeout > maxTime {
 		timeout = maxTime
@@ -95,7 +104,7 @@ func (client Client) AwaitModal(componentCustomIDs []string, timeout time.Durati
 	}
 
 	time.AfterFunc(timeout, closeFunction)
-	return signalChannel, closeFunction
+	return signalChannel, closeFunction, nil
 }
 
 // Starts bot on set route aka "endpoint". Setting example route = "/bot" and address = "192.168.0.7:9070" would make bot work under http://192.168.0.7:9070/bot.

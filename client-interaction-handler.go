@@ -85,6 +85,12 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		awaitInteraction(w)
+		fn, available := client.components[interaction.Data.CustomID]
+		if available && fn != nil {
+			(*fn)(interaction)
+			return
+		}
+
 		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
 		if available && signalChannel != nil {
 			*signalChannel <- &interaction
@@ -129,6 +135,12 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		awaitInteraction(w)
+		fn, available := client.modals[interaction.Data.CustomID]
+		if available && fn != nil {
+			(*fn)(interaction)
+			return
+		}
+
 		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
 		if available && signalChannel != nil {
 			*signalChannel <- &interaction
