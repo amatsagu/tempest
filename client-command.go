@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (client Client) RegisterCommand(command Command) error {
+func (client *Client) RegisterCommand(command Command) error {
 	if client.commands == nil {
 		client.commands = make(map[string]map[string]Command, 1)
 	}
@@ -24,7 +24,7 @@ func (client Client) RegisterCommand(command Command) error {
 	return nil
 }
 
-func (client Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
+func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
 	if _, available := client.commands[rootCommandName]; !available {
 		return errors.New("missing \"" + rootCommandName + "\" slash command in registry (root command needs to be registered in client before adding subcommands)")
 	}
@@ -62,10 +62,12 @@ func (client Client) seekCommand(itx CommandInteraction) (Command, CommandIntera
 		command, available := client.commands[itx.Data.Name][itx.Data.Options[0].Name]
 		if available {
 			itx.Data.Name, itx.Data.Options = itx.Data.Options[0].Name, itx.Data.Options[0].Options
+			itx.Client = &client
 		}
 		return command, CommandInteraction(itx), available
 	}
 
+	itx.Client = &client
 	command, available := client.commands[itx.Data.Name][ROOT_PLACEHOLDER]
 	return command, CommandInteraction(itx), available
 }
