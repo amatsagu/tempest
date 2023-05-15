@@ -13,7 +13,7 @@ import (
 )
 
 type Rest struct {
-	sync.RWMutex
+	mu         sync.RWMutex
 	token      string
 	httpClient *http.Client
 	lockedTo   *time.Time
@@ -26,10 +26,10 @@ type rateLimitError struct {
 }
 
 func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
-	rest.RWMutex.RLock()
+	rest.mu.RLock()
 	if rest.lockedTo != nil {
 		timeLeft := time.Until(*rest.lockedTo)
-		rest.RWMutex.RUnlock()
+		rest.mu.RUnlock()
 		if timeLeft > 0 {
 			time.Sleep(timeLeft)
 		}
@@ -91,16 +91,16 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		rateErr := rateLimitError{}
 		json.Unmarshal(body, &rateErr)
 
-		rest.RWMutex.Lock()
+		rest.mu.Lock()
 		t := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
 		rest.lockedTo = &t
-		rest.RWMutex.Unlock()
+		rest.mu.Unlock()
 
 		time.Sleep(time.Until(*rest.lockedTo))
 
-		rest.RWMutex.Lock()
+		rest.mu.Lock()
 		rest.lockedTo = nil
-		rest.RWMutex.Unlock()
+		rest.mu.Unlock()
 		return nil, errors.New("rate limit"), false
 	} else if res.StatusCode >= 400 {
 		return nil, errors.New(res.Status + " :: " + string(body)), true
