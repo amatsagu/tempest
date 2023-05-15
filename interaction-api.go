@@ -1,10 +1,9 @@
 package tempest
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -122,7 +121,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 	}
 
 	res := Message{}
-	err = sonnet.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}

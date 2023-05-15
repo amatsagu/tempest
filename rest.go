@@ -2,13 +2,12 @@ package tempest
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 type Rest struct {
@@ -38,7 +37,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 		}
 		req = request
 	} else {
-		body, err := sonnet.Marshal(jsonPayload)
+		body, err := json.Marshal(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
@@ -79,7 +78,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
-		sonnet.Unmarshal(body, &rateErr)
+		json.Unmarshal(body, &rateErr)
 		rest.lockedTo = int64(rateErr.RetryAfter+3) * 1000
 		time.Sleep(time.Second * time.Duration(rateErr.RetryAfter+3))
 		return rest.Request(method, route, jsonPayload) // Try again after rate limit.

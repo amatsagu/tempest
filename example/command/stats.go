@@ -1,6 +1,7 @@
 package command
 
 import (
+	"example-bot/middleware"
 	"fmt"
 	"runtime"
 	"time"
@@ -9,7 +10,6 @@ import (
 	_ "github.com/joho/godotenv"
 )
 
-var CommandCounter uint32 = 0
 var startedAt = time.Now()
 
 var Statistics tempest.Command = tempest.Command{
@@ -20,16 +20,18 @@ var Statistics tempest.Command = tempest.Command{
 		runtime.ReadMemStats(&m)
 
 		reply := fmt.Sprintf(`
-Current memory usage: %.2fMB
- => Heap usage: %.2fMB (Allocated: %.2fMB)
- => Stack usage: %.2fMB (Allocated: %.2fMB)
-
-Total system allocated memory: %.2fMB
-GC cycles: %d (like 95%% of all sweeps in example/tutorial code is not made by library but GC internal timer)
-Uptime: %.2f minute(s)
-
-Ping: %dms
-Executed commands: %d`, mb(m.Alloc), mb(m.HeapInuse), mb(m.HeapSys), mb(m.StackInuse), mb(m.StackSys), mb(m.Sys), m.NumGC, time.Since(startedAt).Minutes(), itx.Client.Ping().Milliseconds(), CommandCounter)
+Current memory usage: **%.2fMB**
+Finished GC cycles: **%d**
+Uptime: **%s**
+Ping (to Discord API): **%dms**
+Executed commands: **%d**
+`,
+			mb(m.Alloc),
+			m.NumGC,
+			time.Since(startedAt).String(),
+			itx.Client.Ping().Milliseconds(),
+			middleware.ExecutedCommands,
+		)
 
 		itx.SendLinearReply(reply, false)
 	},

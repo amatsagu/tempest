@@ -1,31 +1,20 @@
 package command
 
-import tempest "github.com/Amatsagu/Tempest"
+import (
+	tempest "github.com/Amatsagu/Tempest"
+)
 
 var Avatar tempest.Command = tempest.Command{
-	Name:        "avatar",
-	Description: "Sends member's avatar!",
-	Options: []tempest.Option{
-		{
-			Name:        "user",
-			Description: "User to take avatar from.",
-			Type:        tempest.OPTION_USER,
-			Required:    true,
-		},
-	},
+	Type: tempest.USER_COMMAND_TYPE,
+	Name: "avatar",
 	SlashCommandHandler: func(itx tempest.CommandInteraction) {
-		raw, _ := itx.GetOptionValue("user")
+		user := itx.ResolveUser(itx.Data.TargetID)
 
-		user, err := itx.Client.FetchUser(tempest.StringToSnowflake(raw.(string)))
-		if err != nil {
-			itx.SendLinearReply(err.Error(), false) // Received id may potentially be fake (be a non existing snowflake).
-		}
-
-		avatar := user.FetchAvatarURL()
-		itx.SendReply(tempest.ResponseData{
+		avatar := user.AvatarURL()
+		itx.SendReply(tempest.ResponseMessageData{
 			Embeds: []*tempest.Embed{
 				{
-					Title: user.Tag() + " avatar",
+					Title: user.Username + "'s avatar",
 					URL:   avatar,
 					Image: &tempest.EmbedImage{
 						URL: avatar,

@@ -2,10 +2,9 @@ package tempest
 
 import (
 	"crypto/ed25519"
+	"encoding/json"
 	"io"
 	"net/http"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +26,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	}
 
 	var extractor InteractionTypeExtractor
-	err = sonnet.Unmarshal(buf, &extractor)
+	err = json.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
@@ -40,7 +39,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -65,7 +64,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		if client.preCommandExecutionHandler != nil {
 			content := client.preCommandExecutionHandler(ctx)
 			if content != nil {
-				body, err := sonnet.Marshal(ResponseMessage{
+				body, err := json.Marshal(ResponseMessage{
 					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 					Data: content,
 				})
@@ -85,7 +84,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var interaction ComponentInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -108,7 +107,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -121,7 +120,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(ctx))
-		body, err := sonnet.Marshal(ResponseAutoComplete{
+		body, err := json.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
 				Choices: choices,
@@ -137,7 +136,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen

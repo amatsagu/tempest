@@ -2,70 +2,62 @@ package main
 
 import (
 	"example-bot/command"
-	"example-bot/other"
-	"fmt"
-	"log"
+	"example-bot/logger"
+	"example-bot/middleware"
+	_ "net/http/pprof"
 	"os"
-	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
 	godotenv "github.com/joho/godotenv"
 )
 
-func ensureValue(key string) string {
-	if value, available := os.LookupEnv(key); available {
-		return value
-	}
-
-	other.FormatError(fmt.Errorf("failed to obtain environmental value using \"%s\" key", key))
-	os.Exit(0)
-	return "" // never reaches
-}
-
 func main() {
+	logger.InitLogger()
+
+	logger.Info.Println("Loading environmental variables...")
 	if err := godotenv.Load(".env"); err != nil {
-		other.FormatError(err)
-		os.Exit(1)
+		logger.Error.Panicln(err)
 	}
 
+	logger.Info.Println("Creating new Tempest client...")
 	client := tempest.CreateClient(tempest.ClientOptions{
-		ApplicationID: tempest.StringToSnowflake(ensureValue("DISCORD_APP_ID")),
-		PublicKey:     ensureValue("DISCORD_PUBLIC_KEY"),
-		Token:         "Bot " + ensureValue("DISCORD_BOT_TOKEN"),
-		PreCommandExecutionHandler: func(itx tempest.CommandInteraction) *tempest.ResponseData {
-			command.CommandCounter++
-			log.Printf("%s (%d) uses %s slash command (that's %d executed command since app start)\n", itx.Member.User.Tag(), itx.Member.User.ID, itx.Data.Name, command.CommandCounter)
-			return nil
-		},
-		Cooldowns: &tempest.ClientCooldownOptions{
-			Duration:  time.Second * 3,
-			Ephemeral: true,
-			CooldownResponse: func(user tempest.User, timeLeft time.Duration) tempest.ResponseData {
-				return tempest.ResponseData{
-					Content: fmt.Sprintf("You're still on cooldown! Try again in **%.2fs**.", timeLeft.Seconds()),
-				}
-			},
+		ApplicationID: tempest.StringToSnowflake(os.Getenv("DISCORD_APP_ID")),
+		PublicKey:     os.Getenv("DISCORD_PUBLIC_KEY"),
+		Token:         "Bot " + os.Getenv("DISCORD_BOT_TOKEN"),
+		CommandMiddleware: func(itx tempest.CommandInteraction) *tempest.ResponseMessageData {
+			res := middleware.GuildOnly(itx)
+			if res != nil {
+				return res
+			}
+
+			res = middleware.Cooldown(itx)
+			if res != nil {
+				return res
+			}
+
+			return middleware.Counter(itx)
 		},
 	})
 
-	addr := fmt.Sprintf("0.0.0.0:%s", ensureValue("DISCORD_APP_PORT"))
-	experimentalServerID := tempest.StringToSnowflake(ensureValue("DISCORD_EXPERIMENTAL_SERVER_ID"))
+	addr := os.Getenv("DISCORD_APP_ADDRESS")
+	testServerID := tempest.StringToSnowflake(os.Getenv("DISCORD_TEST_SERVER_ID")) // Register example commands only to this guild.
 
+	logger.Info.Println("Registering commands & static components...")
 	client.RegisterCommand(command.Add)
 	client.RegisterCommand(command.Avatar)
-	client.RegisterCommand(command.Hello)
-	client.RegisterCommand(command.Modal)
-	client.RegisterCommand(command.ButtonMenu)
-	client.RegisterCommand(command.SelectMenu)
+	client.RegisterCommand(command.Dynamic)
+	client.RegisterCommand(command.Static)
 	client.RegisterCommand(command.Statistics)
-	client.SyncCommands([]tempest.Snowflake{experimentalServerID}, nil, false)
+	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 
-	log.Printf("Starting application at %s", addr)
-	log.Printf("Latency: %dms", client.Ping().Milliseconds())
+	err := client.SyncCommands([]tempest.Snowflake{testServerID}, nil, false)
+	if err != nil {
+		logger.Error.Panicln(err)
+	}
 
-	if err := client.ListenAndServe("/", addr); err != nil {
+	logger.Info.Printf("Serving application at: %s/discord", addr)
+	if err := client.ListenAndServe("/discord", addr); err != nil {
 		// Will happen in situation where normal std/http would panic so most likely never.
-		other.FormatError(err)
-		os.Exit(1)
+		logger.Error.Panicln(err)
 	}
 }
