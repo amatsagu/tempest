@@ -101,7 +101,7 @@ func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral b
 		content.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
+	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
@@ -116,7 +116,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 		content.Flags = 64
 	}
 
-	raw, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.Client.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
