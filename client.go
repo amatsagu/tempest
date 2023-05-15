@@ -23,8 +23,8 @@ type Client struct {
 	PublicKey     ed25519.PublicKey
 
 	commands                   map[string]map[string]Command
-	components                 map[string]*(func(ComponentInteraction)) // Cache for registered, "static" components
-	modals                     map[string]func(ModalInteraction)        // Cache for registered, "static" modals
+	components                 map[string]func(ComponentInteraction) // Cache for registered, "static" components
+	modals                     map[string]func(ModalInteraction)     // Cache for registered, "static" modals
 	queuedComponents           map[string]*(chan *ComponentInteraction)
 	queuedModals               map[string]chan *ModalInteraction
 	preCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // From options, called before each slash command.

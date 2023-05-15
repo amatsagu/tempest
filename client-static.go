@@ -4,9 +4,9 @@ import "errors"
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
 // This method doesn't rely on any in-memory state so it's safe to use it for bot single instance applications as well as network of instances.
-func (client Client) RegisterComponent(customIDs []string, fn *(func(ComponentInteraction))) error {
+func (client Client) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
 	if client.components == nil {
-		client.components = make(map[string]*func(ComponentInteraction), len(customIDs))
+		client.components = make(map[string]func(ComponentInteraction), len(customIDs))
 	}
 
 	// Scan
