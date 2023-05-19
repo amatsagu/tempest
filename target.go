@@ -64,7 +64,7 @@ func (user User) BannerURL() string {
 		return ""
 	}
 
-	if strings.HasPrefix(user.AvatarHash, "a_") {
+	if strings.HasPrefix(user.BannerHash, "a_") {
 		return DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
 	}
 
