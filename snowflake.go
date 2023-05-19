@@ -9,9 +9,9 @@ import (
 // Snowflake represents a Discord's id snowflake.
 type Snowflake uint64
 
-func StringToSnowflake(s string) Snowflake {
-	i, _ := strconv.ParseUint(s, 10, 64)
-	return Snowflake(i)
+func StringToSnowflake(s string) (Snowflake, error) {
+	i, err := strconv.ParseUint(s, 10, 64)
+	return Snowflake(i), err
 }
 
 func (s Snowflake) String() string {
