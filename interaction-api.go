@@ -46,7 +46,7 @@ func (itx CommandInteraction) ResolveRole(id Snowflake) *Role {
 
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
-func (itx CommandInteraction) Defer(ephemeral bool) error {
+func (itx *CommandInteraction) Defer(ephemeral bool) error {
 	var flags uint64 = 0
 
 	if ephemeral {
@@ -75,7 +75,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(content ResponseMessageData, ephemeral bool) error {
+func (itx *CommandInteraction) SendReply(content ResponseMessageData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
@@ -105,7 +105,7 @@ func (itx CommandInteraction) SendReply(content ResponseMessageData, ephemeral b
 }
 
 // Use that for simple text messages that won't be modified.
-func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
+func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
 	var flags uint64 = 0
 
 	if ephemeral {
@@ -142,7 +142,7 @@ func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 	return err
 }
 
-func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
+func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
 	if itx.responded {
 		return errors.New("this command interaction already received response")
 	}
