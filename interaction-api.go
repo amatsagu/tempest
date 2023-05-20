@@ -1,9 +1,10 @@
 package tempest
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -56,7 +57,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 		return errors.New("this command interaction already received response")
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Flags: flags,
@@ -88,7 +89,7 @@ func (itx CommandInteraction) SendReply(content ResponseMessageData, ephemeral b
 		return err
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
@@ -123,7 +124,7 @@ func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) er
 		return err
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Content: content,
@@ -146,7 +147,7 @@ func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 		return errors.New("this command interaction already received response")
 	}
 
-	body, err := json.Marshal(ResponseModal{
+	body, err := sonnet.Marshal(ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -198,7 +199,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 	}
 
 	res := Message{}
-	err = json.Unmarshal(raw, &res)
+	err = sonnet.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -231,7 +232,7 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
-	body, err := json.Marshal(ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 
@@ -249,7 +250,7 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 		content.Flags = 64
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
@@ -264,7 +265,7 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 }
 
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	body, err := json.Marshal(ResponseModal{
+	body, err := sonnet.Marshal(ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
