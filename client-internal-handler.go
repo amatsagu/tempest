@@ -2,9 +2,10 @@ package tempest
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var extractor InteractionTypeExtractor
-	err = json.Unmarshal(buf, &extractor)
+	err = sonnet.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
@@ -39,7 +40,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := json.Unmarshal(buf, &interaction)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -68,7 +69,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		// var interaction ComponentInteraction
-		// err := json.Unmarshal(buf, &interaction)
+		// err := sonnet.Unmarshal(buf, &interaction)
 		// if err != nil {
 		// 	http.Error(w, "bad request", http.StatusBadRequest)
 		// 	panic(err) // Should never happen
@@ -91,7 +92,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := json.Unmarshal(buf, &interaction)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -104,7 +105,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(ctx))
-		body, err := json.Marshal(ResponseAutoComplete{
+		body, err := sonnet.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
 				Choices: choices,
