@@ -6,11 +6,11 @@ import (
 )
 
 func (client *Client) RegisterCommand(command Command) error {
-	if client.commands == nil {
-		client.commands = make(map[string]map[string]Command, 1)
+	if client.running {
+		return errors.New("client is already running (cannot modify client's internal cache after it launches)")
 	}
 
-	if _, available := client.commands[command.Name]; available {
+	if _, exists := client.commands[command.Name]; exists {
 		return errors.New("client already has registered \"" + command.Name + "\" slash command (name already in use)")
 	}
 
@@ -25,6 +25,10 @@ func (client *Client) RegisterCommand(command Command) error {
 }
 
 func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
+	if client.running {
+		return errors.New("client is already running (cannot modify client's internal cache after it launches)")
+	}
+
 	if _, available := client.commands[rootCommandName]; !available {
 		return errors.New("missing \"" + rootCommandName + "\" slash command in registry (root command needs to be registered in client before adding subcommands)")
 	}
@@ -39,7 +43,7 @@ func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName str
 
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
 // You can also add second param -> slice with all command names you want to update (whitelist). There's also third, boolean param that when = true will reverse wishlist to work as blacklist.
-func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchMode bool) error {
+func (client *Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchMode bool) error {
 	payload := client.parseCommands(whitelist, switchMode)
 
 	if len(guildIDs) == 0 {
@@ -57,23 +61,31 @@ func (client Client) SyncCommands(guildIDs []Snowflake, whitelist []string, swit
 	return nil
 }
 
-func (client Client) seekCommand(itx CommandInteraction) (Command, CommandInteraction, bool) {
+func (client *Client) seekCommand(itx CommandInteraction) (Command, CommandInteraction, bool) {
 	if len(itx.Data.Options) != 0 && itx.Data.Options[0].Type == SUB_OPTION_TYPE {
 		command, available := client.commands[itx.Data.Name][itx.Data.Options[0].Name]
 		if available {
+			if itx.Member != nil {
+				itx.Member.GuildID = itx.GuildID
+			}
+
 			itx.Data.Name, itx.Data.Options = itx.Data.Options[0].Name, itx.Data.Options[0].Options
-			itx.Client = &client
+			itx.rest = client.Rest
 		}
 		return command, CommandInteraction(itx), available
 	}
 
-	itx.Client = &client
+	if itx.Member != nil {
+		itx.Member.GuildID = itx.GuildID
+	}
+
+	itx.rest = client.Rest
 	command, available := client.commands[itx.Data.Name][ROOT_PLACEHOLDER]
 	return command, CommandInteraction(itx), available
 }
 
 // Parses registered commands into Discord format.
-func (client Client) parseCommands(whitelist []string, reverseMode bool) []Command {
+func (client *Client) parseCommands(whitelist []string, reverseMode bool) []Command {
 	list := make([]Command, len(client.commands))
 	var itx uint32 = 0
 

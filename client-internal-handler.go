@@ -2,12 +2,13 @@ package tempest
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
-func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http.Request) {
+func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -26,7 +27,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 	}
 
 	var extractor InteractionTypeExtractor
-	err = json.Unmarshal(buf, &extractor)
+	err = sonnet.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
@@ -39,7 +40,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := json.Unmarshal(buf, &interaction)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -56,58 +57,42 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 			return
 		}
 
-		if interaction.Member != nil {
-			interaction.Member.GuildID = interaction.GuildID
-		}
-
-		interaction.Client = &client
+		ctx.w = w
 		if client.preCommandExecutionHandler != nil {
-			content := client.preCommandExecutionHandler(ctx)
-			if content != nil {
-				body, err := json.Marshal(ResponseMessage{
-					Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-					Data: content,
-				})
-
-				if err != nil {
-					panic("failed to parse payload received from client's \"pre command execution\" handler (make sure it's in JSON format)")
-				}
-
-				w.Header().Add("Content-Type", "application/json")
-				w.Write(body)
+			forward := client.preCommandExecutionHandler(ctx)
+			if !forward {
 				return
 			}
 		}
 
-		w.WriteHeader(http.StatusNoContent)
 		command.SlashCommandHandler(ctx)
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var interaction ComponentInteraction
-		err := json.Unmarshal(buf, &interaction)
-		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
-		}
+		// var interaction ComponentInteraction
+		// err := sonnet.Unmarshal(buf, &interaction)
+		// if err != nil {
+		// 	http.Error(w, "bad request", http.StatusBadRequest)
+		// 	panic(err) // Should never happen
+		// }
 
-		interaction.Client = &client
-		w.Write([]byte(`{"type":6}`))
+		// interaction.Client = &client
+		// w.Write([]byte(`{"type":6}`))
 
-		fn, available := client.components[interaction.Data.CustomID]
-		if available && fn != nil {
-			fn(interaction)
-			return
-		}
+		// fn, available := client.components[interaction.Data.CustomID]
+		// if available && fn != nil {
+		// 	fn(interaction)
+		// 	return
+		// }
 
-		signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
-		if available && signalChannel != nil {
-			*signalChannel <- &interaction
-		}
+		// signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
+		// if available && signalChannel != nil {
+		// 	*signalChannel <- &interaction
+		// }
 
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := json.Unmarshal(buf, &interaction)
+		err := sonnet.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -120,7 +105,7 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 		}
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(ctx))
-		body, err := json.Marshal(ResponseAutoComplete{
+		body, err := sonnet.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
 				Choices: choices,
@@ -133,29 +118,6 @@ func (client Client) handleDiscordWebhookRequests(w http.ResponseWriter, r *http
 
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(body)
-		return
-	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var interaction ModalInteraction
-		err := json.Unmarshal(buf, &interaction)
-		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
-		}
-
-		interaction.Client = &client
-		w.Write([]byte(`{"type":6}`))
-
-		fn, available := client.modals[interaction.Data.CustomID]
-		if available && fn != nil {
-			fn(interaction)
-			return
-		}
-
-		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
-		if available && signalChannel != nil {
-			*signalChannel <- &interaction
-		}
-
 		return
 	}
 }

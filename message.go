@@ -1,6 +1,36 @@
 package tempest
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
+
+// https://discord.com/developers/docs/resources/channel#channel-object-channel-types
+type ChannelType uint8
+
+const (
+	GUILD_TEXT_CHANNEL_TYPE ChannelType = iota
+	DM_CHANNEL_TYPE
+	GUILD_VOICE_CHANNEL_TYPE
+	GROUP_DM_CHANNEL_TYPE
+	GUILD_CATEGORY_CHANNEL_TYPE
+	GUILD_ANNOUNCEMENT_CHANNEL_TYPE // Formerly news channel.
+	_
+	_
+	_
+	_
+	GUILD_ANNOUNCEMENT_THREAD_CHANNEL_TYPE
+	GUILD_PUBLIC_THREAD_CHANNEL_TYPE
+	GUILD_PRIVATE_THREAD_CHANNEL_TYPE
+	GUILD_STAGE_VOICE_CHANNEL_TYPE
+	GUILD_DIRECTORY_CHANNEL_TYPE
+	GUILD_FORUM_CHANNEL_TYPE
+)
+
+func (ct ChannelType) MarshalJSON() (p []byte, err error) {
+	buf := strconv.FormatUint(uint64(ct), 10)
+	return []byte(buf), nil
+}
 
 // https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types
 type StickerFormatType uint8

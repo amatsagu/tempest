@@ -2,18 +2,22 @@ package tempest
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 type Rest struct {
-	Token    string // Discord App token. Remember to add "Bot" prefix.
-	lockedTo int64  // Timestamp (in ms) to when it's locked, 0 means there's no lock.
-	fails    uint8  // If request failed, try again up to 3 times (delay 250/500/750ms) - after 3rd failed attempt => panic
+	mu         sync.RWMutex
+	token      string
+	httpClient *http.Client
+	lockedTo   time.Time
 }
 
 type rateLimitError struct {
@@ -22,82 +26,101 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
-// Handles communication with Discord API. It automatically handles various return types and controls global rate limit of your discord app.
 func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
-	now := time.Now().UnixMilli()
-	if now < rest.lockedTo {
-		time.Sleep(time.Millisecond * time.Duration(rest.lockedTo-now))
+	rest.mu.RLock()
+	if !rest.lockedTo.IsZero() {
+		timeLeft := time.Until(rest.lockedTo)
+		rest.mu.RUnlock()
+		if timeLeft > 0 {
+			time.Sleep(timeLeft)
+		}
 	}
 
+	for i := 1; i < 3; i++ {
+		raw, err, finished := rest.handleRequest(method, route, jsonPayload)
+		if finished {
+			return raw, err
+		}
+		time.Sleep(time.Microsecond * time.Duration(250*i))
+	}
+
+	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
+}
+
+func (rest *Rest) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
 	var req *http.Request
 	if jsonPayload == nil {
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, nil)
 		if err != nil {
-			return nil, errors.New("failed to initialize new request: " + err.Error())
+			return nil, errors.New("failed to initialize new request: " + err.Error()), false
 		}
 		req = request
 	} else {
-		body, err := json.Marshal(jsonPayload)
+		body, err := sonnet.Marshal(jsonPayload)
 		if err != nil {
-			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
+			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)"), true
 		}
 
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(body))
 		if err != nil {
-			return nil, errors.New("failed to initialize new request: " + err.Error())
+			return nil, errors.New("failed to initialize new request: " + err.Error()), false
 		}
 		req = request
 	}
 
-	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "DiscordApp https://github.com/Amatsagu/tempest")
-	req.Header.Add("Authorization", rest.Token)
+	req.Header.Add("User-Agent", USER_AGENT)
+	req.Header.Add("Authorization", rest.token)
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := rest.httpClient.Do(req)
 	if err != nil {
-		rest.fails++
-		if rest.fails == 3 {
-			panic("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
-		} else {
-			time.Sleep(time.Millisecond * time.Duration(250*rest.fails))
-			return rest.Request(method, route, jsonPayload) // Try again after potential internet connection failure.
-		}
+		return nil, errors.New("failed to process request: " + err.Error()), false
 	}
-	defer res.Body.Close()
-	rest.fails = 0
 
 	if res.StatusCode == 204 {
-		return nil, nil
+		return nil, nil, true
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, errors.New("failed to parse response body (json): " + err.Error())
+		return nil, errors.New("failed to parse response body (json): " + err.Error()), true
 	}
+
+	fmt.Println(res.StatusCode)
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
-		json.Unmarshal(body, &rateErr)
-		rest.lockedTo = int64(rateErr.RetryAfter+3) * 1000
-		time.Sleep(time.Second * time.Duration(rateErr.RetryAfter+3))
-		return rest.Request(method, route, jsonPayload) // Try again after rate limit.
+		sonnet.Unmarshal(body, &rateErr)
+
+		rest.mu.Lock()
+		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
+		rest.lockedTo = timeLeft
+		rest.mu.Unlock()
+
+		time.Sleep(time.Until(timeLeft))
+
+		rest.mu.Lock()
+		rest.lockedTo = time.Time{}
+		rest.mu.Unlock()
+		return nil, errors.New("rate limit"), false
 	} else if res.StatusCode >= 400 {
-		return nil, errors.New(res.Status + " :: " + string(body))
+		return nil, errors.New(res.Status + " :: " + string(body)), true
 	}
 
-	return body, nil
+	return body, nil, true
 }
 
-// Creates standalone REST instance. Use CreateClient function if you want to create regular Discord App.
-func CreateRest(token string) Rest {
+func NewRest(token string) *Rest {
+	return NewCustomRest(token, http.DefaultClient)
+}
+
+func NewCustomRest(token string, client *http.Client) *Rest {
 	if !strings.HasPrefix(token, "Bot ") {
 		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
 	}
 
-	return Rest{
-		Token:    token,
-		lockedTo: 0,
-		fails:    0,
+	return &Rest{
+		token:      token,
+		httpClient: client,
 	}
 }
