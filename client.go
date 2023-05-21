@@ -13,7 +13,7 @@ type ClientOptions struct {
 	ApplicationID     Snowflake // The app's user id. (default: <nil>)
 	PublicKey         string    // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Rest              *Rest
-	CommandMiddleware func(itx CommandInteraction) *ResponseMessageData // Functions that runs before each command. Returning *ResponseMessageData will send your payload (for example error or cooldown message) and stop command execution.
+	CommandMiddleware func(itx CommandInteraction) bool // Functions that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 }
 
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
@@ -30,8 +30,8 @@ type Client struct {
 	queuedComponents map[string]chan *ComponentInteraction
 	queuedModals     map[string]chan *ModalInteraction
 
-	preCommandExecutionHandler func(itx CommandInteraction) *ResponseMessageData // From options, called before each slash command.
-	running                    bool                                              // Whether client's web server is already launched.
+	preCommandExecutionHandler func(itx CommandInteraction) bool // From options, called before each slash command.
+	running                    bool                              // Whether client's web server is already launched.
 }
 
 // Makes client "listen" incoming component type interactions.
