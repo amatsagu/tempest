@@ -2,6 +2,9 @@ package tempest
 
 import "net/http"
 
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+type AutoCompleteInteraction CommandInteraction
+
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
 
@@ -37,22 +40,6 @@ type CommandInteraction struct {
 	responded bool                `json:"-"`
 	w         http.ResponseWriter `json:"-"`
 	rest      *Rest               `json:"-"`
-}
-
-type AutoCompleteInteraction struct {
-	ID              Snowflake              `json:"id"`
-	ApplicationID   Snowflake              `json:"application_id"`
-	Type            InteractionType        `json:"type"`
-	Data            CommandInteractionData `json:"data"`
-	GuildID         Snowflake              `json:"guild_id,omitempty"`
-	ChannelID       Snowflake              `json:"channel_id,omitempty"`
-	Member          *Member                `json:"member,omitempty"`
-	User            *User                  `json:"user,omitempty"`
-	Token           string                 `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot/app token.
-	Version         uint8                  `json:"version"`                // Read-only property, always = 1.
-	PermissionFlags uint64                 `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
-	Locale          string                 `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string                 `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
