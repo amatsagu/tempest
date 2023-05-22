@@ -22,10 +22,12 @@ var Statistics tempest.Command = tempest.Command{
 Current memory usage: **%.2fMB**
 Finished GC cycles: **%d**
 Uptime: **%s**
+Ping (to Discord API): **%dms**
 `,
 			mb(m.Alloc),
 			m.NumGC,
 			time.Since(startedAt).String(),
+			itx.Client.Ping().Milliseconds(),
 		)
 
 		itx.SendLinearReply(reply, false)
