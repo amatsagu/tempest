@@ -46,7 +46,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			panic(err) // Should never happen
 		}
 
-		command, ctx, available := client.seekCommand(interaction)
+		command, itx, available := client.seekCommand(interaction)
 		if !available {
 			terminateCommandInteraction(w)
 			return
@@ -57,34 +57,39 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ctx.w = w
-		if client.commandMiddlewareHandler != nil && !client.commandMiddlewareHandler(ctx) {
+		itx.w = w
+		if client.commandMiddlewareHandler != nil && !client.commandMiddlewareHandler(itx) {
 			return
 		}
 
-		command.SlashCommandHandler(ctx)
+		command.SlashCommandHandler(itx)
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		// var interaction ComponentInteraction
-		// err := sonnet.Unmarshal(buf, &interaction)
-		// if err != nil {
-		// 	http.Error(w, "bad request", http.StatusBadRequest)
-		// 	panic(err) // Should never happen
-		// }
+		var itx ComponentInteraction
+		err := sonnet.Unmarshal(buf, &itx)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
 
-		// interaction.Client = &client
-		// w.Write([]byte(`{"type":6}`))
+		itx.w = w
+		fn, available := client.components[itx.Data.CustomID]
+		if available && fn != nil {
+			fn(itx)
+			return
+		}
 
-		// fn, available := client.components[interaction.Data.CustomID]
-		// if available && fn != nil {
-		// 	fn(interaction)
-		// 	return
-		// }
+		client.qMu.RLock()
+		signalChannel, available := client.queuedComponents[itx.Data.CustomID]
+		client.qMu.RUnlock()
+		if available && signalChannel != nil {
+			signalChannel <- &itx
+			return
+		}
 
-		// signalChannel, available := client.queuedComponents[interaction.Data.CustomID]
-		// if available && signalChannel != nil {
-		// 	*signalChannel <- &interaction
-		// }
+		if client.componentHandler != nil {
+			client.componentHandler(itx)
+		}
 
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
@@ -95,13 +100,13 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			panic(err) // Should never happen
 		}
 
-		command, ctx, available := client.seekCommand(interaction)
+		command, itx, available := client.seekCommand(interaction)
 		if !available || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		choices := command.AutoCompleteHandler(AutoCompleteInteraction(ctx))
+		choices := command.AutoCompleteHandler(AutoCompleteInteraction(itx))
 		body, err := sonnet.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
