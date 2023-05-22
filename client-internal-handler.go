@@ -121,5 +121,31 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(body)
 		return
+	case MODAL_SUBMIT_INTERACTION_TYPE:
+		var interaction ModalInteraction
+		err := sonnet.Unmarshal(buf, &interaction)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			panic(err) // Should never happen
+		}
+
+		fn, available := client.modals[interaction.Data.CustomID]
+		if available && fn != nil {
+			fn(interaction)
+			return
+		}
+
+		client.qMu.RLock()
+		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
+		client.qMu.RUnlock()
+		if available && signalChannel != nil {
+			signalChannel <- &interaction
+		}
+
+		if client.modalHandler != nil {
+			client.modalHandler(interaction)
+		}
+
+		return
 	}
 }
