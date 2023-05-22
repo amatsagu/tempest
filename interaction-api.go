@@ -81,7 +81,7 @@ func (itx *CommandInteraction) SendReply(content ResponseMessageData, ephemeral 
 	}
 
 	if itx.responded {
-		_, err := itx.rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 			Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 			Data: &content,
 		})
@@ -113,7 +113,7 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 	}
 
 	if itx.responded {
-		_, err := itx.rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 			Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 			Data: &ResponseMessageData{
 				Content: content,
@@ -171,7 +171,7 @@ func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral b
 		return errors.New("this command interaction wasn't handled yet so it's response cannot be edited")
 	}
 
-	_, err := itx.rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
+	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
@@ -180,7 +180,7 @@ func (itx CommandInteraction) DeleteReply() error {
 		return errors.New("this command interaction wasn't handled yet so there's no response to delete")
 	}
 
-	_, err := itx.rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
 	return err
 }
 
@@ -193,7 +193,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 		content.Flags = 64
 	}
 
-	raw, err := itx.rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -208,12 +208,12 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 }
 
 func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessage) error {
-	_, err := itx.rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
 func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseMessage) error {
-	_, err := itx.rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
