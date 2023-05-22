@@ -61,6 +61,21 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInt
 	return nil
 }
 
+// Bind function to modal with matching custom id. App will automatically run bound function whenever receiving modal interaction with matching custom id.
+func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
+	if client.running {
+		return errors.New("client is already running (cannot modify client's internal cache after it launches)")
+	}
+
+	_, exists := client.modals[customID]
+	if exists {
+		return errors.New("client already has registered \"" + customID + "\" modal (custom id already in use)")
+	}
+
+	client.modals[customID] = fn
+	return nil
+}
+
 // Sync currently cached slash commands to discord API. By default it'll try to make (bulk) global update (limit 100 updates per day), provide array with guild id snowflakes to update data only for specific guilds.
 // You can also add second param -> slice with all command names you want to update (whitelist). There's also third, boolean param that when = true will reverse wishlist to work as blacklist.
 func (client *Client) SyncCommands(guildIDs []Snowflake, whitelist []string, switchMode bool) error {
