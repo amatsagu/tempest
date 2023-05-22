@@ -58,11 +58,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ctx.w = w
-		if client.preCommandExecutionHandler != nil {
-			forward := client.preCommandExecutionHandler(ctx)
-			if !forward {
-				return
-			}
+		if client.commandMiddlewareHandler != nil && !client.commandMiddlewareHandler(ctx) {
+			return
 		}
 
 		command.SlashCommandHandler(ctx)
