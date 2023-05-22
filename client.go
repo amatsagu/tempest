@@ -13,7 +13,9 @@ type ClientOptions struct {
 	ApplicationID     Snowflake // The app's user id. (default: <nil>)
 	PublicKey         string    // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Rest              *Rest
-	CommandMiddleware func(itx CommandInteraction) bool // Functions that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	CommandMiddleware func(itx CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	ComponentHandler  func(itx ComponentInteraction)    // Function that runs for each unhandled component.
+	ModalHandler      func(itx ModalInteraction)        // Function that runs for each unhandled modal.
 }
 
 // Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
@@ -30,8 +32,10 @@ type Client struct {
 	queuedComponents map[string]chan *ComponentInteraction
 	queuedModals     map[string]chan *ModalInteraction
 
-	preCommandExecutionHandler func(itx CommandInteraction) bool // From options, called before each slash command.
-	running                    bool                              // Whether client's web server is already launched.
+	commandMiddlewareHandler func(itx CommandInteraction) bool // From options, called before each slash command.
+	componentHandler         func(itx ComponentInteraction)
+	modalHandler             func(itx ModalInteraction)
+	running                  bool // Whether client's web server is already launched.
 }
 
 // Makes client "listen" incoming component type interactions.
@@ -156,15 +160,17 @@ func NewClient(options ClientOptions) *Client {
 	}
 
 	return &Client{
-		Rest:                       options.Rest,
-		ApplicationID:              options.ApplicationID,
-		PublicKey:                  ed25519.PublicKey(discordPublicKey),
-		commands:                   make(map[string]map[string]Command),
-		components:                 make(map[string]func(ComponentInteraction)),
-		modals:                     make(map[string]func(ModalInteraction)),
-		queuedComponents:           make(map[string]chan *ComponentInteraction),
-		queuedModals:               make(map[string]chan *ModalInteraction),
-		preCommandExecutionHandler: options.CommandMiddleware,
-		running:                    false,
+		Rest:                     options.Rest,
+		ApplicationID:            options.ApplicationID,
+		PublicKey:                ed25519.PublicKey(discordPublicKey),
+		commands:                 make(map[string]map[string]Command),
+		components:               make(map[string]func(ComponentInteraction)),
+		modals:                   make(map[string]func(ModalInteraction)),
+		queuedComponents:         make(map[string]chan *ComponentInteraction),
+		queuedModals:             make(map[string]chan *ModalInteraction),
+		commandMiddlewareHandler: options.CommandMiddleware,
+		componentHandler:         options.ComponentHandler,
+		modalHandler:             options.ModalHandler,
+		running:                  false,
 	}
 }
