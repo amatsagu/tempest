@@ -105,7 +105,7 @@ func (client *Client) seekCommand(itx CommandInteraction) (Command, CommandInter
 			}
 
 			itx.Data.Name, itx.Data.Options = itx.Data.Options[0].Name, itx.Data.Options[0].Options
-			itx.rest = client.Rest
+			itx.Client = client
 		}
 		return command, CommandInteraction(itx), available
 	}
@@ -114,7 +114,7 @@ func (client *Client) seekCommand(itx CommandInteraction) (Command, CommandInter
 		itx.Member.GuildID = itx.GuildID
 	}
 
-	itx.rest = client.Rest
+	itx.Client = client
 	command, available := client.commands[itx.Data.Name][ROOT_PLACEHOLDER]
 	return command, CommandInteraction(itx), available
 }

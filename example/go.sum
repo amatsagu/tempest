@@ -1,0 +1,6 @@
+github.com/Amatsagu/Tempest v1.0.6-0.20230522092444-f0b2b0f8bebf h1:afLppTJVuQDMhJEZY1mu2xYSTDO46RssxF7SaH2sk8k=
+github.com/Amatsagu/Tempest v1.0.6-0.20230522092444-f0b2b0f8bebf/go.mod h1:BLWKtgy7OSazQdT39I7wPJapBg/3w024k5bfHTM3NEE=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/sugawarayuuta/sonnet v0.0.0-20230429041906-2875531a6c75 h1:OYxYXNpZygVJ591U0O+3Q3Q7DEakQokLjA/KeLY1/Tc=
+github.com/sugawarayuuta/sonnet v0.0.0-20230429041906-2875531a6c75/go.mod h1:+5rEyXJmv3DAa2QdVoltVW2BrLYxbpnxr9nk6Tube/4=
