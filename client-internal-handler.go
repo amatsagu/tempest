@@ -36,7 +36,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
-		w.Write([]byte(`{"type":1}`))
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(PING_RESPONSE_RAW_BODY)
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
@@ -48,7 +49,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		command, itx, available := client.seekCommand(interaction)
 		if !available {
-			terminateCommandInteraction(w)
+			w.Header().Add("Content-Type", "application/json")
+			w.Write(UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
 			return
 		}
 
@@ -73,9 +75,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			panic(err) // Should never happen
 		}
 
-		w.WriteHeader(http.StatusNoContent)
 		itx.Client = client
-
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
 			fn(itx)
@@ -86,6 +86,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		signalChannel, available := client.queuedComponents[itx.Data.CustomID]
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
+			w.Header().Add("Content-Type", "application/json")
+			w.Write(ACKNOWLEDGE_RESPONSE_RAW_BODY)
 			signalChannel <- &itx
 			return
 		}
@@ -142,6 +144,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		signalChannel, available := client.queuedModals[interaction.Data.CustomID]
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
+			w.Header().Add("Content-Type", "application/json")
+			w.Write(ACKNOWLEDGE_RESPONSE_RAW_BODY)
 			signalChannel <- &interaction
 		}
 
@@ -151,21 +155,4 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-}
-
-func terminateCommandInteraction(w http.ResponseWriter) {
-	body, err := sonnet.Marshal(ResponseMessage{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &ResponseMessageData{
-			Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
-			Flags:   64,
-		},
-	})
-
-	if err != nil {
-		panic("failed to parse json payload")
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(body)
 }

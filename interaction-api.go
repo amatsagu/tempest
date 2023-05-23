@@ -151,10 +151,16 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
 	return err
 }
 
@@ -163,25 +169,31 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 		content.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	body, err := sonnet.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
 
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
 	return err
 }
 
-func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
-	return itx.AcknowledgeWithMessage(ResponseMessageData{
-		Content: content,
-	}, ephemeral)
-}
-
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
+	body, err := sonnet.Marshal(ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
 
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
 	return err
 }
