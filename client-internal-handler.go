@@ -52,12 +52,13 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		w.WriteHeader(http.StatusNoContent)
+
 		if !command.AvailableInDM && interaction.GuildID == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		itx.w = w
 		if client.commandMiddlewareHandler != nil && !client.commandMiddlewareHandler(itx) {
 			return
 		}
@@ -72,7 +73,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			panic(err) // Should never happen
 		}
 
-		itx.w = w
+		itx.rest = client.Rest
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
 			fn(itx)
