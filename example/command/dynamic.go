@@ -2,7 +2,6 @@ package command
 
 import (
 	"example-bot/logger"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -13,14 +12,16 @@ var Dynamic tempest.Command = tempest.Command{
 	Name:        "dynamic",
 	Description: "Same as static but awaits button (impurity).",
 	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+		uniqueButtonID := "button-hello-dynamic-" + itx.ID.String()
+
 		msg := tempest.ResponseMessageData{
-			Content: "Click below burtton *(only you can do it)*:",
+			Content: "Click below button *(only you can do it)*:",
 			Components: []*tempest.ComponentRow{
 				{
 					Type: tempest.ROW_COMPONENT_TYPE,
 					Components: []*tempest.Component{
 						{
-							CustomID: "button-hello-dynamic",
+							CustomID: uniqueButtonID,
 							Type:     tempest.BUTTON_COMPONENT_TYPE,
 							Style:    uint8(tempest.SECONDARY_BUTTON_STYLE),
 							Label:    "0",
@@ -31,23 +32,12 @@ var Dynamic tempest.Command = tempest.Command{
 		}
 
 		itx.SendReply(msg, false)
-		signalChannel, stopFunction, err := itx.Client.AwaitComponent([]string{"button-hello-dynamic"}, time.Minute*1)
+		signalChannel, stopFunction, err := itx.Client.AwaitComponent([]string{uniqueButtonID}, time.Minute*1)
 		if err != nil {
 			logger.Error.Println(err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)
 			return
 		}
-
-		interaction := <-signalChannel
-		err = interaction.AcknowledgeWithMessage(tempest.ResponseMessageData{
-			Content: fmt.Sprintf("Hello <@%d>!", interaction.Member.User.ID),
-		}, false)
-
-		if err != nil {
-			panic(err)
-		}
-
-		stopFunction()
 
 		var counter uint64 = 0
 		for {
