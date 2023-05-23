@@ -8,7 +8,6 @@ import (
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
-// Use this method when working with Command-like interactions.
 func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
 	options := itx.Data.Options
 	if len(options) == 0 {
@@ -183,7 +182,88 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 	return err
 }
 
+func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
+	return itx.AcknowledgeWithMessage(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}
+
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
+	body, err := sonnet.Marshal(ResponseModal{
+		Type: MODAL_RESPONSE_TYPE,
+		Data: &modal,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
+	return err
+}
+
+// Returns value of any type. It will return empty string on no value or empty value.
+func (itx ModalInteraction) GetInputValue(customID string) string {
+	rows := itx.Data.Components
+	if len(rows) == 0 {
+		return ""
+	}
+
+	for _, row := range rows {
+		for _, component := range row.Components {
+			if component.CustomID == customID {
+				return component.Value
+			}
+		}
+	}
+
+	return ""
+}
+
+// KNOWN CODE DUPLICATION (IN GOOD FAITH)
+
+// Sends to discord info that this component was handled successfully without sending anything more.
+func (itx ModalInteraction) Acknowledge() error {
+	body, err := sonnet.Marshal(ResponseMessage{
+		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
+	return err
+}
+
+func (itx ModalInteraction) AcknowledgeWithMessage(content ResponseMessageData, ephemeral bool) error {
+	if ephemeral && content.Flags == 0 {
+		content.Flags = 64
+	}
+
+	body, err := sonnet.Marshal(ResponseMessage{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &content,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	itx.w.Header().Add("Content-Type", "application/json")
+	itx.w.Write(body)
+	return err
+}
+
+func (itx ModalInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
+	return itx.AcknowledgeWithMessage(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}
+
+func (itx ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
 	body, err := sonnet.Marshal(ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
