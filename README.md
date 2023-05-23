@@ -32,7 +32,7 @@ There are two ways for bots to recieve events from Discord. Most API wrappers su
 * [Easy component & modal handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitComponent)
     - Works with buttons, select menus, text inputs and modals,
     - Supports timeouts & gives a lot of freedom,
-    - Works for both [static](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterComponentt) and [dynamic](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitModal) ways
+    - Works for both [static](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitModal) ways
 * [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.SyncCommands)
 * Auto panic recovery inherited from `std/http`
 * Request failure auto recovery (3 attempts)
