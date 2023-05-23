@@ -73,7 +73,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			panic(err) // Should never happen
 		}
 
-		itx.rest = client.Rest
+		itx.Client = client
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
 			fn(itx)
