@@ -60,7 +60,18 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)"), true
 		}
 
-		request, err := http.NewRequest(method, DISCORD_API_URL+route, bytes.NewBuffer(body))
+		request, err := http.NewRequest(
+			method,
+			DISCORD_API_URL+route,
+			bytes.NewBuffer(
+				bytes.ReplaceAll(
+					body,
+					private_REST_NULL_SLICE_FIND,
+					private_REST_NULL_SLICE_REPLACE,
+				),
+			),
+		)
+
 		if err != nil {
 			return nil, errors.New("failed to initialize new request: " + err.Error()), false
 		}
