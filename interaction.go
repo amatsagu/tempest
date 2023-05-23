@@ -55,7 +55,7 @@ type ComponentInteraction struct {
 	Locale          string                   `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string                   `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 
-	rest *Rest `json:"-"`
+	Client *Client `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
