@@ -41,6 +41,8 @@ type Client struct {
 // Makes client dynamically "listen" incoming component type interactions.
 // When component custom id matches - it'll send back interaction through channel.
 // On timeout (min 2s -> max 15min) - client will send <nil> through channel and automatically call close function.
+//
+// Warning! Components handled this way will already be acknowledged.
 func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) (<-chan *ComponentInteraction, func(), error) {
 	for _, ID := range customIDs {
 		_, exists := client.components[ID]
@@ -83,6 +85,8 @@ func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) 
 // Makes client dynamically "listen" incoming modal type interactions.
 // When modal custom id matches - it'll send back interaction through channel.
 // On timeout (min 30s -> max 15min) - client will send <nil> through channel and automatically call close function.
+//
+// Warning! Components handled this way will already be acknowledged.
 func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan *ModalInteraction, func(), error) {
 	_, exists := client.components[customID]
 	if exists {
