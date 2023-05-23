@@ -78,6 +78,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		itx.Client = client
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
+			itx.w = w
 			fn(itx)
 			return
 		}
@@ -93,6 +94,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if client.componentHandler != nil {
+			itx.w = w
 			client.componentHandler(itx)
 		}
 
