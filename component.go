@@ -60,6 +60,7 @@ type Component struct {
 	MaxValues    uint64              `json:"max_values,omitempty"`
 	Required     bool                `json:"required,omitempty"`
 	Options      []*SelectMenuOption `json:"options,omitempty"`
+	Value        string              `json:"value,omitempty"`         // Contains menu choice or text input value from user modal submit.
 	ChannelTypes []*ChannelType      `json:"channel_types,omitempty"` // Only available for 8th ComponentType.
 }
 
