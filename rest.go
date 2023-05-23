@@ -3,7 +3,6 @@ package tempest
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -85,8 +84,6 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 	if err != nil {
 		return nil, errors.New("failed to parse response body (json): " + err.Error()), true
 	}
-
-	fmt.Println(res.StatusCode)
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}

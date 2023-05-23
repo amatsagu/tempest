@@ -53,24 +53,13 @@ func (itx *CommandInteraction) Defer(ephemeral bool) error {
 		flags = 64
 	}
 
-	if itx.responded {
-		return errors.New("this command interaction already received response")
-	}
-
-	body, err := sonnet.Marshal(ResponseMessage{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Flags: flags,
 		},
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.responded = true
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }
 
@@ -80,85 +69,27 @@ func (itx *CommandInteraction) SendReply(content ResponseMessageData, ephemeral 
 		content.Flags = 64
 	}
 
-	if itx.responded {
-		_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
-			Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-			Data: &content,
-		})
-
-		return err
-	}
-
-	body, err := sonnet.Marshal(ResponseMessage{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.responded = true
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }
 
 // Use that for simple text messages that won't be modified.
 func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
-	var flags uint64 = 0
-
-	if ephemeral {
-		flags = 64
-	}
-
-	if itx.responded {
-		_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
-			Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-			Data: &ResponseMessageData{
-				Content: content,
-				Flags:   flags,
-			},
-		})
-
-		return err
-	}
-
-	body, err := sonnet.Marshal(ResponseMessage{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &ResponseMessageData{
-			Content: content,
-			Flags:   flags,
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.responded = true
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
-	return err
+	return itx.SendReply(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
-	if itx.responded {
-		return errors.New("this command interaction already received response")
-	}
-
-	body, err := sonnet.Marshal(ResponseModal{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.responded = true
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }
 
@@ -167,28 +98,16 @@ func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral b
 		content.Flags = 64
 	}
 
-	if !itx.responded {
-		return errors.New("this command interaction wasn't handled yet so it's response cannot be edited")
-	}
-
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
 func (itx CommandInteraction) DeleteReply() error {
-	if !itx.responded {
-		return errors.New("this command interaction wasn't handled yet so there's no response to delete")
-	}
-
 	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
 	return err
 }
 
 func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
-	if !itx.responded {
-		return Message{}, errors.New("this command interaction wasn't handled yet so there's no response to follow up")
-	}
-
 	if ephemeral && content.Flags == 0 {
 		content.Flags = 64
 	}
@@ -232,16 +151,10 @@ func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
-	body, err := sonnet.Marshal(ResponseMessage{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }
 
@@ -250,31 +163,25 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 		content.Flags = 64
 	}
 
-	body, err := sonnet.Marshal(ResponseMessage{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &content,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }
 
+func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
+	return itx.AcknowledgeWithMessage(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}
+
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	body, err := sonnet.Marshal(ResponseModal{
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", "application/json")
-	itx.w.Write(body)
 	return err
 }

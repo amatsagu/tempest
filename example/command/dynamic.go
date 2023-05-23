@@ -3,6 +3,7 @@ package command
 import (
 	"example-bot/logger"
 	"fmt"
+	"strconv"
 	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
@@ -44,31 +45,30 @@ var Dynamic tempest.Command = tempest.Command{
 
 		if err != nil {
 			panic(err)
-			return
 		}
 
 		stopFunction()
 
-		// var counter uint64 = 0
-		// for {
-		// 	citx := <-signalChannel
-		// 	if citx == nil {
-		// 		stopFunction()
-		// 		return
-		// 	}
+		var counter uint64 = 0
+		for {
+			citx := <-signalChannel
+			if citx == nil {
+				stopFunction()
+				return
+			}
 
-		// 	if citx.Member.User.ID != itx.Member.User.ID {
-		// 		continue
-		// 	}
+			if citx.Member.User.ID != itx.Member.User.ID {
+				continue
+			}
 
-		// 	counter++
-		// 	msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
-		// 	err = itx.EditReply(msg, false)
-		// 	if err != nil {
-		// 		logger.Error.Println(err)
-		// 		itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
-		// 		return
-		// 	}
-		// }
+			counter++
+			msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
+			err = itx.EditReply(msg, false)
+			if err != nil {
+				logger.Error.Println(err)
+				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+				return
+			}
+		}
 	},
 }

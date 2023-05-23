@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -13,28 +12,28 @@ func TestSnowflake(t *testing.T) {
 
 	s, err := StringToSnowflake(userRawSnowflake)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if s.CreationTimestamp().UnixMilli() != 1498197955629 {
-		panic(fmt.Sprintf("failed to read creation timestamp from %s snowflake", s.String()))
+		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
 	}
 
 	s, err = StringToSnowflake(channelRawSnowflake)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if s.CreationTimestamp().UnixMilli() != 1671740883724 {
-		panic(fmt.Sprintf("failed to read creation timestamp from %s snowflake", s.String()))
+		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
 	}
 
 	s, err = StringToSnowflake(guildRawSnowflake)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if s.CreationTimestamp().UnixMilli() != 1566322471544 {
-		panic(fmt.Sprintf("failed to read creation timestamp from %s snowflake", s.String()))
+		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
 	}
 }

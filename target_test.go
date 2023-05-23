@@ -23,49 +23,49 @@ func TestUser(t *testing.T) {
 
 	var user User
 	if err := sonnet.Unmarshal([]byte(exampleUser), &user); err != nil {
-		panic("failed to parse example user (json) object")
+		t.Error("failed to parse example user (json) object")
 	}
 
 	if user.ID != 80351110224678912 {
-		panic("parsed user has invalid ID")
+		t.Error("parsed user has invalid ID")
 	}
 
 	if user.Username != "Nelly" {
-		panic("parsed user has invalid username")
+		t.Error("parsed user has invalid username")
 	}
 
 	if user.AvatarHash == "" {
-		panic("parsed user avatar hash data is lost")
+		t.Error("parsed user avatar hash data is lost")
 	}
 
 	validAvatarURL := DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
 	if user.AvatarURL() != validAvatarURL {
-		panic("parsed user has invalid avatar url")
+		t.Error("parsed user has invalid avatar url")
 	}
 
 	if user.BannerHash == "" {
-		panic("parsed user banner hash data is lost")
+		t.Error("parsed user banner hash data is lost")
 	}
 
 	validBannerURL := DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
 	if user.BannerURL() != validBannerURL {
-		panic("parsed user has invalid banner url")
+		t.Error("parsed user has invalid banner url")
 	}
 
 	if user.AccentColor != 16711680 {
-		panic("parsed user has invalid accent color")
+		t.Error("parsed user has invalid accent color")
 	}
 
 	if user.PremiumType != CLASSIC_NITRO_TYPE {
-		panic("parsed user has invalid premium (nitro) type")
+		t.Error("parsed user has invalid premium (nitro) type")
 	}
 
 	if user.PublicFlags == 0 {
-		panic("parsed user (public) flags data is lost")
+		t.Error("parsed user (public) flags data is lost")
 	}
 
 	if user.Mention() != "<@"+user.ID.String()+">" {
-		panic("parsed user couldn't be @mentioned")
+		t.Error("parsed user couldn't be @mentioned")
 	}
 }
 
@@ -82,18 +82,18 @@ func TestMember(t *testing.T) {
 
 	var member Member
 	if err := sonnet.Unmarshal([]byte(exampleMember), &member); err != nil {
-		panic("failed to parse example member (json) object")
+		t.Error("failed to parse example member (json) object")
 	}
 
 	if member.Nickname != "Mike" {
-		panic("parsed member has invalid nickname")
+		t.Error("parsed member has invalid nickname")
 	}
 
 	if member.GuildAvatarHash != "" {
-		panic("parsed member guild avatar hash data is invalid")
+		t.Error("parsed member guild avatar hash data is invalid")
 	}
 
 	if member.JoinedAt.IsZero() {
-		panic("parsed member joined at date is invalid")
+		t.Error("parsed member joined at date is invalid")
 	}
 }
