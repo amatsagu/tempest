@@ -37,7 +37,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", "application/json")
-		w.Write(PING_RESPONSE_RAW_BODY)
+		w.Write(private_PING_RESPONSE_RAW_BODY)
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
@@ -50,7 +50,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		command, itx, available := client.seekCommand(interaction)
 		if !available {
 			w.Header().Add("Content-Type", "application/json")
-			w.Write(UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
+			w.Write(private_UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
 			return
 		}
 
@@ -88,7 +88,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
 			w.Header().Add("Content-Type", "application/json")
-			w.Write(ACKNOWLEDGE_RESPONSE_RAW_BODY)
+			w.Write(private_ACKNOWLEDGE_RESPONSE_RAW_BODY)
 			signalChannel <- &itx
 			return
 		}
@@ -148,7 +148,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
 			w.Header().Add("Content-Type", "application/json")
-			w.Write(ACKNOWLEDGE_RESPONSE_RAW_BODY)
+			w.Write(private_ACKNOWLEDGE_RESPONSE_RAW_BODY)
 			signalChannel <- &itx
 		}
 

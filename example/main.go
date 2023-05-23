@@ -54,11 +54,14 @@ func main() {
 
 	logger.Info.Println("Registering commands & static components...")
 	client.RegisterCommand(command.Add)
+	client.RegisterCommand(command.AutoComplete)
 	client.RegisterCommand(command.Avatar)
 	client.RegisterCommand(command.Dynamic)
+	client.RegisterCommand(command.Modal)
 	client.RegisterCommand(command.Static)
 	client.RegisterCommand(command.Statistics)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
+	client.RegisterModal("my-modal", command.HelloModal)
 
 	err = client.SyncCommands([]tempest.Snowflake{testServerID}, nil, false)
 	if err != nil {
