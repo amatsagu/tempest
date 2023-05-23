@@ -20,7 +20,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
 ### HTTP vs Gateway
 **TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
 
-There are two ways for bots to recieve events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interactions events over HTTP. Using HTTP connection lets you easily split your bot into microservices and uses less resources as opposed to gateway but receives far less events. As such, there are some major points to keep in mind before deciding against gateway.
+There are two ways for bots to recieve events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTP. Using http connection lets you easily split your bot into microservices and use far less resources as opposed to gateway but will receive less events. As such, there are some major points to keep in mind before deciding against using gateway.
 
 ### Supported discord features
 **Tempest** since `v1.1.0` supports all discord features (allowed over HTTP) except file transfer. You can accept files but there's currently no support for sending own files. Other elements like command auto complete, components or modals have full support.
