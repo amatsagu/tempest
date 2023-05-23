@@ -150,3 +150,20 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func terminateCommandInteraction(w http.ResponseWriter) {
+	body, err := sonnet.Marshal(ResponseMessage{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &ResponseMessageData{
+			Content: "Oh snap! It looks like you tried to trigger (/) command which is not registered within local cache. Please report this bug to my master.",
+			Flags:   64,
+		},
+	})
+
+	if err != nil {
+		panic("failed to parse json payload")
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(body)
+}
