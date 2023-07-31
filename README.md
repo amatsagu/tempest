@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/Amatsagu/tempest)](https://github.com/Amatsagu/Tempest/blob/master/LICENSE)
 [![Maintenance Status](https://img.shields.io/maintenance/yes/2023)](https://github.com/Amatsagu/Tempest)
 [![CodeQL](https://github.com/Amatsagu/Tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master)](https://github.com/Amatsagu/Tempest/actions/workflows/github-code-scanning/codeql)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAmatsagu%2FTempest.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FAmatsagu%2FTempest?ref=badge_shield)
 
 # Tempest
 Tempest is a [Discord](https://discord.com) API wrapper for Applications, written in [Golang](https://golang.org/). It aims to be fast, use minimal caching and be easier to use than other Discord API wrappers using http.
@@ -57,3 +58,7 @@ Few rules before making a pull request:
     - As we focus on max performance, those elements should be skipped unless required to go forward
 * Add link to document for new structs
     - Since `v1.1.0`, all structs have links to corresponding discord docs
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAmatsagu%2FTempest.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FAmatsagu%2FTempest?ref=badge_large)
