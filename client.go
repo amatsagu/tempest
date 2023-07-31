@@ -149,6 +149,12 @@ func (client *Client) ListenAndServeTLS(route string, address string, certFile, 
 	return http.ListenAndServeTLS(address, certFile, keyFile, nil)
 }
 
+// Let's you take control over client's life cycle. Please avoid using it unless you want to integrate custom http client.
+func (client *Client) Hijack() func(w http.ResponseWriter, r *http.Request) {
+	client.running = true
+	return client.handleRequest
+}
+
 func NewClient(options ClientOptions) *Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
