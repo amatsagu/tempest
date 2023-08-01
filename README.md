@@ -57,3 +57,7 @@ Few rules before making a pull request:
     - As we focus on max performance, those elements should be skipped unless required to go forward
 * Add link to document for new structs
     - Since `v1.1.0`, all structs have links to corresponding discord docs
+
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAmatsagu%2FTempest.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FAmatsagu%2FTempest?ref=badge_large)
