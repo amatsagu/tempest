@@ -50,7 +50,7 @@ There are two ways for bots to recieve events from Discord. Most API wrappers su
 For help feel free to open an issue on github.
 
 ## Contributing
-Contributions are welcomed but for bigger changes I would like first reaching out via Discord (invite `Amatsagu#0001`, id: `390394829789593601`) or create an issue to discuss your problems, intentions and ideas.
+Contributions are welcomed but for bigger changes I would like first reaching out via Discord (invite `amatsagu`, id: `390394829789593601`) or create an issue to discuss your problems, intentions and ideas.
 Few rules before making a pull request:
 * Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 
 * Avoid using interfaces, generics or any/interface{} keywords
