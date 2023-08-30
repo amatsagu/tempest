@@ -3,7 +3,7 @@ package tempest
 import (
 	"testing"
 
-	"github.com/sugawarayuuta/sonnet"
+	fjson "github.com/goccy/go-json"
 )
 
 func TestUser(t *testing.T) {
@@ -22,7 +22,7 @@ func TestUser(t *testing.T) {
 	}`
 
 	var user User
-	if err := sonnet.Unmarshal([]byte(exampleUser), &user); err != nil {
+	if err := fjson.Unmarshal([]byte(exampleUser), &user); err != nil {
 		t.Error("failed to parse example user (json) object")
 	}
 
@@ -81,7 +81,7 @@ func TestMember(t *testing.T) {
 	}`
 
 	var member Member
-	if err := sonnet.Unmarshal([]byte(exampleMember), &member); err != nil {
+	if err := fjson.Unmarshal([]byte(exampleMember), &member); err != nil {
 		t.Error("failed to parse example member (json) object")
 	}
 

@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sugawarayuuta/sonnet"
+	fjson "github.com/goccy/go-json"
 )
 
 func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var extractor InteractionTypeExtractor
-	err = sonnet.Unmarshal(buf, &extractor)
+	err = fjson.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		panic(err) // Should never happen
@@ -41,7 +41,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := fjson.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -69,7 +69,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var itx ComponentInteraction
-		err := sonnet.Unmarshal(buf, &itx)
+		err := fjson.Unmarshal(buf, &itx)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -101,7 +101,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		err := sonnet.Unmarshal(buf, &interaction)
+		err := fjson.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
@@ -114,7 +114,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		choices := command.AutoCompleteHandler(AutoCompleteInteraction(itx))
-		body, err := sonnet.Marshal(ResponseAutoComplete{
+		body, err := fjson.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
 				Choices: choices,
@@ -130,7 +130,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var itx ModalInteraction
-		err := sonnet.Unmarshal(buf, &itx)
+		err := fjson.Unmarshal(buf, &itx)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			panic(err) // Should never happen
