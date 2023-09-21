@@ -36,8 +36,8 @@ const (
 type TextInputStyle uint8
 
 const (
-	SHORT_TEXT_INPUT_STYLE TextInputStyle = iota + 1 // 	A single-line input.
-	PARAGRAPH_TEXT_INPUT_STYLE                       // A multi-line input.
+	SHORT_TEXT_INPUT_STYLE     TextInputStyle = iota + 1 // 	A single-line input.
+	PARAGRAPH_TEXT_INPUT_STYLE                           // A multi-line input.
 )
 
 // Generic Component super struct (because Go doesn't support unions)!
