@@ -6,15 +6,15 @@ import (
 	"github.com/sugawarayuuta/sonnet"
 )
 
-type exyyy struct {
-	Message string `json:"message"`
-}
-
-type exxxx struct {
-	Test map[Snowflake]exyyy `json:"test"`
-}
-
 func TestSonnet(t *testing.T) {
+	type exyyy struct {
+		Message string `json:"message"`
+	}
+
+	type exxxx struct {
+		Test map[Snowflake]exyyy `json:"test"`
+	}
+
 	// Try simple
 	var data1 exxxx
 	body1 := []byte(`{
