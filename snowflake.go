@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	fjson "github.com/goccy/go-json"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 // Snowflake represents a Discord's id snowflake.
@@ -25,7 +25,7 @@ func (s Snowflake) CreationTimestamp() time.Time {
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
 	b := strconv.FormatUint(uint64(s), 10)
-	return fjson.Marshal(b)
+	return sonnet.Marshal(b)
 }
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {

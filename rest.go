@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	fjson "github.com/goccy/go-json"
+	"github.com/sugawarayuuta/sonnet"
 )
 
 type Rest struct {
@@ -55,7 +55,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		}
 		req = request
 	} else {
-		body, err := fjson.Marshal(jsonPayload)
+		body, err := sonnet.Marshal(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)"), true
 		}
@@ -98,7 +98,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
-		fjson.Unmarshal(body, &rateErr)
+		sonnet.Unmarshal(body, &rateErr)
 
 		rest.mu.Lock()
 		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
