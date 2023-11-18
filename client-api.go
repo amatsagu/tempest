@@ -73,17 +73,17 @@ func (client *Client) SendPrivateMessage(userID Snowflake, content Message) (Mes
 }
 
 func (client *Client) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
-	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages"+messageID.String(), content)
+	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content)
 	return err
 }
 
 func (client *Client) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages"+messageID.String(), nil)
+	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil)
 	return err
 }
 
 func (client *Client) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages"+messageID.String()+"/crosspost", nil)
+	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil)
 	return err
 }
 
