@@ -120,7 +120,7 @@ func NewCustomRest(token string, client *http.Client) *Rest {
 	}
 
 	return &Rest{
-		token:      token,
+		token:      "Bot " + token,
 		httpClient: client,
 	}
 }
