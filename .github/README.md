@@ -5,7 +5,7 @@
 [![DisGo Version](https://img.shields.io/github/v/tag/disgoorg/disgo?label=release)](https://github.com/disgoorg/disgo/releases/latest)
 [![DisGo Discord](https://discord.com/api/guilds/817327181659111454/widget.png)](https://discord.gg/TewhTfDpvW)
 
-<img align="right" src="/.github/tempest-logo.png" width=192 alt="discord gopher">
+<img align="left" src="/.github/tempest-logo.png" width=192 alt="discord gopher">
 
 # Test
 Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum
