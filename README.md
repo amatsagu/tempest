@@ -11,3 +11,17 @@
 Tempest is a [Discord](https://discord.com) API wrapper for Applications, written in [Golang](https://golang.org/). It aims to be fast, use minimal caching and be easier to use than other Discord API wrappers using http.
 
 It was created as a better alternative to [discord-interactions-go](https://github.com/bsdlp/discord-interactions-go) which is "low level" and outdated.
+
+## Summary
+1. [HTTP vs Gateway](#http-vs-gateway)
+2. [Supported discord features](#supported-discord-features)
+3. [Special features](#special-features)
+4. [Getting Started](#getting-started)
+5. [Troubleshooting](#troubleshooting)
+6. [Contributing](#contributing)
+
+> [!NOTE]
+> ### HTTP vs Gateway
+> **TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
+> 
+> There are two ways for bots to recieve events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTP. Using http connection lets you easily split your bot into microservices and use far less resources as opposed to gateway but will receive less events. As such, there are some major points to keep in mind before deciding against using gateway.
