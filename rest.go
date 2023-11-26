@@ -114,7 +114,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 }
 
 func NewRest(token string) *Rest {
-	return NewCustomRest(token, 3, http.DefaultClient)
+	return NewCustomRest(token, 3, &http.Client{Timeout: time.Second * 3})
 }
 
 func NewCustomRest(token string, maxReconnectAttempts uint8, client *http.Client) *Rest {
