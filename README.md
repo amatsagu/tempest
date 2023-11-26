@@ -15,14 +15,33 @@ It was created as a better alternative to [discord-interactions-go](https://gith
 
 ## Summary
 1. [HTTP vs Gateway](#http-vs-gateway)
-2. [Getting Started](#getting-started)
-3. [Troubleshooting](#troubleshooting)
-4. [Contributing](#contributing)
+2. [Special features](#special-features)
+3. [Getting Started](#getting-started)
+4. [Troubleshooting](#troubleshooting)
+5. [Contributing](#contributing)
 
 ### HTTP vs Gateway
 **TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
 
 There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTP. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly reduced number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
+
+### Special features
+* [Easy to use & efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterCommand)
+    - Deep control with [command middleware(s)](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions)
+* [Exposed REST](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.Rest)
+* [Easy component & modal handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitComponent)
+    - Works with buttons, select menus, text inputs and modals,
+    - Supports timeouts & gives a lot of freedom,
+    - Works for both [static](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitModal) ways
+* [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.SyncCommands)
+* Auto panic recovery inherited from `std/http`
+* Request failure auto recovery (3 attempts)
+    - On failed attempts *(probably due to internet connection)*, it'll try again up to 3 times before returning error
+* Cache is optional
+    - Applications/Bots work without any state caching if they only prefer to (avoid dynamic handlers to do it).
+
+> [!NOTE]
+> Tempest lib supports all operations available in Discord API through HTTP except sending files. For now, you can only receive files.
 
 ### Getting started
 1. Install with: `go get -u github.com/Amatsagu/Tempest`
@@ -34,11 +53,11 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
 For help feel free to open an issue on github.
 
 ## Contributing
-Contributions are welcomed but for bigger changes I would like first reaching out via Discord (invite `amatsagu`, id: `390394829789593601`) or create an issue to discuss your problems, intentions and ideas.
+Contributions are welcomed but for bigger changes I would like to first discuss your problem(s), intentions and/or ideas.
 Few rules before making a pull request:
 * Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 
 * Avoid using interfaces, generics or any/interface{} keywords
-    - As we focus on max performance, those elements should be skipped unless required to go forward
+    - As we focus on simplicity & performance, those elements should be avoided unless required to advance
 * Add link to document for new structs
     - Since `v1.1.0`, all structs have links to corresponding discord docs
 
