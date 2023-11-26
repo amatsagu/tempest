@@ -1,9 +1,9 @@
 package main
 
 import (
-	"example-bot/command"
-	"example-bot/logger"
-	"example-bot/middleware"
+	"example-bot/internal/command"
+	"example-bot/internal/logger"
+	"example-bot/internal/middleware"
 	_ "net/http/pprof"
 	"os"
 
@@ -19,24 +19,12 @@ func main() {
 		logger.Error.Panicln(err)
 	}
 
-	appID, err := tempest.StringToSnowflake(os.Getenv("DISCORD_APP_ID"))
-	if err != nil {
-		logger.Error.Panicln(err)
-	}
-
 	logger.Info.Println("Creating new Tempest client...")
 	client := tempest.NewClient(tempest.ClientOptions{
-		ApplicationID: appID,
-		PublicKey:     os.Getenv("DISCORD_PUBLIC_KEY"),
-		Rest:          tempest.NewRest("Bot " + os.Getenv("DISCORD_BOT_TOKEN")),
+		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
+		Rest:      tempest.NewRest(os.Getenv("DISCORD_BOT_TOKEN")),
 		CommandMiddleware: func(itx tempest.CommandInteraction) bool {
-			res := middleware.GuildOnly(itx)
-			if res != nil {
-				itx.SendReply(*res, false)
-				return false
-			}
-
-			res = middleware.Cooldown(itx)
+			res := middleware.Cooldown(itx)
 			if res != nil {
 				itx.SendReply(*res, false)
 				return false
@@ -57,9 +45,11 @@ func main() {
 	client.RegisterCommand(command.AutoComplete)
 	client.RegisterCommand(command.Avatar)
 	client.RegisterCommand(command.Dynamic)
+	client.RegisterCommand(command.FetchMember)
+	client.RegisterCommand(command.FetchUser)
 	client.RegisterCommand(command.Modal)
 	client.RegisterCommand(command.Static)
-	client.RegisterCommand(command.Statistics)
+	client.RegisterCommand(command.MemoryUsage)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 	client.RegisterModal("my-modal", command.HelloModal)
 
@@ -68,8 +58,8 @@ func main() {
 		logger.Error.Panicln(err)
 	}
 
-	logger.Info.Printf("Serving application at: %s/discord", addr)
-	if err := client.ListenAndServe("/discord", addr); err != nil {
+	logger.Info.Printf("Serving application at: %s/discord/callback", addr)
+	if err := client.ListenAndServe("/discord/callback", addr); err != nil {
 		// Will happen in situation where normal std/http would panic so most likely never.
 		logger.Error.Panicln(err)
 	}

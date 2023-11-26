@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -9,7 +8,12 @@ import (
 
 // Spams any request to check for Rest race conditions.
 func TestRest(t *testing.T) {
-	rest := NewRest("Bot " + os.Getenv("BOT_TOKEN"))
+	token := os.Getenv("BOT_TOKEN")
+	if token == "" {
+		t.Skip("can't test rest due to no provided token")
+	}
+
+	rest := NewRest(token)
 	go requestGateway(rest, t)
 	go requestGateway(rest, t)
 	go requestGateway(rest, t)
@@ -19,9 +23,8 @@ func TestRest(t *testing.T) {
 }
 
 func requestGateway(rest *Rest, t *testing.T) {
-	body, err := rest.Request(http.MethodGet, "/gateway/bot", nil)
+	_, err := rest.Request(http.MethodGet, "/gateway/bot", nil)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(string(body))
 }

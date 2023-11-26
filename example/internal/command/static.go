@@ -1,7 +1,7 @@
 package command
 
 import (
-	"example-bot/logger"
+	"example-bot/internal/logger"
 	"fmt"
 
 	tempest "github.com/Amatsagu/Tempest"

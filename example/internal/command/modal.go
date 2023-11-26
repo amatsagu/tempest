@@ -1,7 +1,7 @@
 package command
 
 import (
-	"example-bot/logger"
+	"example-bot/internal/logger"
 
 	tempest "github.com/Amatsagu/Tempest"
 )
@@ -20,7 +20,7 @@ var Modal tempest.Command = tempest.Command{
 						{
 							CustomID: "example-text-input",
 							Type:     tempest.TEXT_INPUT_COMPONENT_TYPE,
-							Style:    tempest.SHORT_TEXT_INPUT_STYLE,
+							Style:    uint8(tempest.SHORT_TEXT_INPUT_STYLE),
 							Label:    "Tell me something you like",
 						},
 					},

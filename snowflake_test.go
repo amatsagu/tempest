@@ -4,36 +4,68 @@ import (
 	"testing"
 )
 
-// Tried to encode & decode few example snowflakes
-func TestSnowflake(t *testing.T) {
-	const userRawSnowflake = "327690719085068289"
-	const channelRawSnowflake = "1055582516565782599"
-	const guildRawSnowflake = "613425648685547541"
+func TestUserSnowflake(t *testing.T) {
+	const RawSnowflake = "327690719085068289"
 
-	s, err := StringToSnowflake(userRawSnowflake)
-	if err != nil {
-		t.Error(err)
-	}
+	t.Run("success", func(t *testing.T) {
+		s, err := StringToSnowflake(RawSnowflake)
+		if err != nil {
+			t.Error(err)
+		}
 
-	if s.CreationTimestamp().UnixMilli() != 1498197955629 {
-		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
-	}
+		if s.CreationTimestamp().UnixMilli() != 1498197955629 {
+			t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
+		}
+	})
 
-	s, err = StringToSnowflake(channelRawSnowflake)
-	if err != nil {
-		t.Error(err)
-	}
+	t.Run("failure/creation", func(t *testing.T) {
+		_, err := StringToSnowflake(RawSnowflake + "a")
+		if err == nil {
+			t.Error(err)
+		}
+	})
+}
 
-	if s.CreationTimestamp().UnixMilli() != 1671740883724 {
-		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
-	}
+func TestChannelSnowflake(t *testing.T) {
+	const RawSnowflake = "1055582516565782599"
 
-	s, err = StringToSnowflake(guildRawSnowflake)
-	if err != nil {
-		t.Error(err)
-	}
+	t.Run("success", func(t *testing.T) {
+		s, err := StringToSnowflake(RawSnowflake)
+		if err != nil {
+			t.Error(err)
+		}
 
-	if s.CreationTimestamp().UnixMilli() != 1566322471544 {
-		t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
-	}
+		if s.CreationTimestamp().UnixMilli() != 1671740883724 {
+			t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
+		}
+	})
+
+	t.Run("failure/creation", func(t *testing.T) {
+		_, err := StringToSnowflake(RawSnowflake + "a")
+		if err == nil {
+			t.Error(err)
+		}
+	})
+}
+
+func TestGuildSnowflake(t *testing.T) {
+	const RawSnowflake = "613425648685547541"
+
+	t.Run("success", func(t *testing.T) {
+		s, err := StringToSnowflake(RawSnowflake)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if s.CreationTimestamp().UnixMilli() != 1566322471544 {
+			t.Errorf("failed to read creation timestamp from %s snowflake", s.String())
+		}
+	})
+
+	t.Run("failure/creation", func(t *testing.T) {
+		_, err := StringToSnowflake(RawSnowflake + "a")
+		if err == nil {
+			t.Error(err)
+		}
+	})
 }

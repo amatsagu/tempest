@@ -11,9 +11,9 @@ import (
 
 var startedAt = time.Now()
 
-var Statistics tempest.Command = tempest.Command{
-	Name:        "statistics",
-	Description: "Displays basic runtime statistics.",
+var MemoryUsage tempest.Command = tempest.Command{
+	Name:        "memory-usage",
+	Description: "Displays basic runtime memory usage statistics.",
 	SlashCommandHandler: func(itx tempest.CommandInteraction) {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)

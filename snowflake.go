@@ -1,10 +1,9 @@
 package tempest
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 // Snowflake represents a Discord's id snowflake.
@@ -25,7 +24,7 @@ func (s Snowflake) CreationTimestamp() time.Time {
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
 	b := strconv.FormatUint(uint64(s), 10)
-	return sonnet.Marshal(b)
+	return json.Marshal(b)
 }
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {

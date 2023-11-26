@@ -2,21 +2,20 @@ package tempest
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 type Rest struct {
-	mu         sync.RWMutex
-	token      string
-	httpClient *http.Client
-	lockedTo   time.Time
+	mu                   sync.RWMutex
+	token                string
+	httpClient           *http.Client
+	lockedTo             time.Time
+	maxReconnectAttempts uint8
 }
 
 type rateLimitError struct {
@@ -26,20 +25,22 @@ type rateLimitError struct {
 }
 
 func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
-	rest.mu.RLock()
 	if !rest.lockedTo.IsZero() {
 		timeLeft := time.Until(rest.lockedTo)
-		rest.mu.RUnlock()
 		if timeLeft > 0 {
 			time.Sleep(timeLeft)
 		}
 	}
 
-	for i := 1; i < 3; i++ {
+	var i uint8 = 0
+	for i < rest.maxReconnectAttempts {
+		i++
+		rest.mu.RLock()
 		raw, err, finished := rest.handleRequest(method, route, jsonPayload)
 		if finished {
 			return raw, err
 		}
+		rest.mu.RUnlock()
 		time.Sleep(time.Microsecond * time.Duration(250*i))
 	}
 
@@ -55,7 +56,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		}
 		req = request
 	} else {
-		body, err := sonnet.Marshal(jsonPayload)
+		body, err := json.Marshal(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)"), true
 		}
@@ -63,13 +64,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 		request, err := http.NewRequest(
 			method,
 			DISCORD_API_URL+route,
-			bytes.NewBuffer(
-				bytes.ReplaceAll(
-					body,
-					private_REST_NULL_SLICE_FIND,
-					private_REST_NULL_SLICE_REPLACE,
-				),
-			),
+			bytes.NewBuffer(body),
 		)
 
 		if err != nil {
@@ -98,7 +93,7 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 
 	if res.StatusCode == 429 {
 		rateErr := rateLimitError{}
-		sonnet.Unmarshal(body, &rateErr)
+		json.Unmarshal(body, &rateErr)
 
 		rest.mu.Lock()
 		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
@@ -119,16 +114,17 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 }
 
 func NewRest(token string) *Rest {
-	return NewCustomRest(token, http.DefaultClient)
+	return NewCustomRest(token, 3, &http.Client{Timeout: time.Second * 3})
 }
 
-func NewCustomRest(token string, client *http.Client) *Rest {
-	if !strings.HasPrefix(token, "Bot ") {
-		panic("app token needs to start with \"Bot \" prefix (example: \"Bot XYZABCQEWQ\")")
+func NewCustomRest(token string, maxReconnectAttempts uint8, client *http.Client) *Rest {
+	if _, err := extractUserIDFromToken(token); err != nil {
+		panic(err)
 	}
 
 	return &Rest{
-		token:      token,
-		httpClient: client,
+		token:                "Bot " + token,
+		httpClient:           client,
+		maxReconnectAttempts: maxReconnectAttempts,
 	}
 }

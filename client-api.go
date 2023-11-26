@@ -1,11 +1,10 @@
 package tempest
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
-
-	"github.com/sugawarayuuta/sonnet"
 )
 
 // Pings Discord API and returns time it took to get response.
@@ -22,7 +21,7 @@ func (client *Client) SendMessage(channelID Snowflake, content Message) (Message
 	}
 
 	res := Message{}
-	err = sonnet.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -37,7 +36,7 @@ func (client *Client) SendLinearMessage(channelID Snowflake, content string) (Me
 	}
 
 	res := Message{}
-	err = sonnet.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -56,7 +55,7 @@ func (client *Client) SendPrivateMessage(userID Snowflake, content Message) (Mes
 		return Message{}, err
 	}
 
-	err = sonnet.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
@@ -94,7 +93,7 @@ func (client *Client) FetchUser(id Snowflake) (User, error) {
 	}
 
 	res := User{}
-	sonnet.Unmarshal(raw, &res)
+	json.Unmarshal(raw, &res)
 	if err != nil {
 		return User{}, errors.New("failed to parse received data from discord")
 	}
@@ -109,7 +108,7 @@ func (client *Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member
 	}
 
 	res := Member{}
-	sonnet.Unmarshal(raw, &res)
+	json.Unmarshal(raw, &res)
 	if err != nil {
 		return Member{}, errors.New("failed to parse received data from discord")
 	}
