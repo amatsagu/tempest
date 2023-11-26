@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -160,7 +161,7 @@ func NewClient(options ClientOptions) *Client {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
 	}
 
-	botUserID, err := extractUserIDFromToken(options.Rest.token)
+	botUserID, err := extractUserIDFromToken(strings.TrimPrefix(options.Rest.token, "Bot "))
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
