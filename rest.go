@@ -11,10 +11,11 @@ import (
 )
 
 type Rest struct {
-	mu         sync.RWMutex
-	token      string
-	httpClient *http.Client
-	lockedTo   time.Time
+	mu                   sync.RWMutex
+	token                string
+	httpClient           *http.Client
+	lockedTo             time.Time
+	maxReconnectAttempts uint8
 }
 
 type rateLimitError struct {
@@ -31,7 +32,9 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 		}
 	}
 
-	for i := 1; i < 3; i++ {
+	var i uint8 = 0
+	for i < rest.maxReconnectAttempts {
+		i++
 		rest.mu.RLock()
 		raw, err, finished := rest.handleRequest(method, route, jsonPayload)
 		if finished {
@@ -111,16 +114,17 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 }
 
 func NewRest(token string) *Rest {
-	return NewCustomRest(token, http.DefaultClient)
+	return NewCustomRest(token, 3, http.DefaultClient)
 }
 
-func NewCustomRest(token string, client *http.Client) *Rest {
+func NewCustomRest(token string, maxReconnectAttempts uint8, client *http.Client) *Rest {
 	if _, err := extractUserIDFromToken(token); err != nil {
 		panic(err)
 	}
 
 	return &Rest{
-		token:      "Bot " + token,
-		httpClient: client,
+		token:                "Bot " + token,
+		httpClient:           client,
+		maxReconnectAttempts: maxReconnectAttempts,
 	}
 }
