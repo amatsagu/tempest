@@ -3,7 +3,6 @@ package tempest
 import (
 	"encoding/base64"
 	"errors"
-	"strconv"
 	"strings"
 )
 
@@ -18,6 +17,5 @@ func extractUserIDFromToken(token string) (Snowflake, error) {
 		return 0, err
 	}
 
-	ID, err := strconv.ParseUint(string(byteID), 10, 64)
-	return Snowflake(ID), err
+	return StringToSnowflake(string(byteID))
 }
