@@ -10,8 +10,7 @@ import (
 )
 
 type ClientOptions struct {
-	ApplicationID     Snowflake // The app's user id. (default: <nil>)
-	PublicKey         string    // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
+	PublicKey         string // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Rest              *Rest
 	CommandMiddleware func(itx CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	ComponentHandler  func(itx ComponentInteraction)    // Function that runs for each unhandled component.
@@ -158,12 +157,17 @@ func (client *Client) Hijack() func(w http.ResponseWriter, r *http.Request) {
 func NewClient(options ClientOptions) *Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
-		panic("failed to decode \"%s\" discord's public key (check if it's correct key)")
+		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
+	}
+
+	botUserID, err := extractUserIDFromToken(options.Rest.token)
+	if err != nil {
+		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
 	return &Client{
 		Rest:                     options.Rest,
-		ApplicationID:            options.ApplicationID,
+		ApplicationID:            botUserID,
 		PublicKey:                ed25519.PublicKey(discordPublicKey),
 		commands:                 make(map[string]map[string]Command),
 		components:               make(map[string]func(ComponentInteraction)),
