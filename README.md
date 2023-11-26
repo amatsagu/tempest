@@ -13,9 +13,6 @@ Tempest is a [Discord](https://discord.com) API wrapper for Applications, writte
 
 It was created as a better alternative to [discord-interactions-go](https://github.com/bsdlp/discord-interactions-go) which is "low level" and outdated.
 
-> [!NOTE]
-> Tempest lib supports all operations available in Discord API through HTTP except sending files. For now, you can only receive files.
-
 ## Summary
 1. [HTTP vs Gateway](#http-vs-gateway)
 2. [Special features](#special-features)
@@ -42,6 +39,9 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
     - On failed attempts *(probably due to internet connection)*, it'll try again up to 3 times before returning error
 * Cache is optional
     - Applications/Bots work without any state caching if they only prefer to (avoid dynamic handlers to do it).
+
+> [!NOTE]
+> Tempest lib supports all operations available in Discord API through HTTP except sending files. For now, you can only receive files.
 
 ### Getting started
 1. Install with: `go get -u github.com/Amatsagu/Tempest`
