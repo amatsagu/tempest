@@ -14,8 +14,8 @@ func (client *Client) Ping() time.Duration {
 	return time.Since(start)
 }
 
-func (client *Client) SendMessage(channelID Snowflake, content Message) (Message, error) {
-	raw, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages", content)
+func (client *Client) SendMessage(channelID Snowflake, message Message) (Message, error) {
+	raw, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages", message)
 	if err != nil {
 		return Message{}, err
 	}
@@ -30,18 +30,7 @@ func (client *Client) SendMessage(channelID Snowflake, content Message) (Message
 }
 
 func (client *Client) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
-	raw, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages", Message{Content: content})
-	if err != nil {
-		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
-	}
-
-	return res, nil
+	return client.SendMessage(channelID, Message{Content: content})
 }
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
