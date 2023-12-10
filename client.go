@@ -1,6 +1,7 @@
 package tempest
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
@@ -168,6 +169,48 @@ func (client *Client) ListenAndServeTLS(route string, address string, certFile, 
 	client.httpServeMux.HandleFunc(route, client.handleRequest)
 	client.httpServer.(*http.Server).Handler = client.httpServeMux
 	return http.ListenAndServeTLS(address, certFile, keyFile, nil)
+}
+
+// Tries to gracefully shutdown client. It'll clear all queued actions and shutdown underlying http server.
+func (client *Client) Close(ctx context.Context) error {
+	if client.State() == INIT_STATE {
+		return errors.New("client is still in initiallization phase, there's nothing to shutdown")
+	}
+
+	if client.State() != RUNNING_STATE {
+		return errors.New("client is already either closed or during closing process")
+	}
+
+	client.state.Store(uint32(CLOSING_STATE))
+	client.preCommandHandler = func(cmd *Command, itx *CommandInteraction) bool {
+		return false
+	}
+
+	for key, componentChannel := range client.queuedComponents {
+		if _, open := <-componentChannel; open {
+			close(componentChannel)
+		}
+		delete(client.queuedComponents, key)
+	}
+
+	for key, modalChannel := range client.queuedModals {
+		if _, open := <-modalChannel; open {
+			close(modalChannel)
+		}
+		delete(client.queuedModals, key)
+	}
+
+	err := client.httpServer.Shutdown(ctx)
+	if err != nil {
+		err2 := client.httpServer.Close()
+		if err2 != nil {
+			return errors.Join(err, err2)
+		}
+		return err
+	}
+
+	client.state.Store(uint32(CLOSED_STATE))
+	return nil
 }
 
 func NewDefaultClient(options ClientOptions) *Client {
