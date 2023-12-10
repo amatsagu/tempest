@@ -7,7 +7,7 @@ import (
 var Avatar tempest.Command = tempest.Command{
 	Type: tempest.USER_COMMAND_TYPE,
 	Name: "avatar",
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		user := itx.ResolveUser(itx.Data.TargetID)
 
 		avatar := user.AvatarURL()

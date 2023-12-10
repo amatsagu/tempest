@@ -14,7 +14,7 @@ var startedAt = time.Now()
 var MemoryUsage tempest.Command = tempest.Command{
 	Name:        "memory-usage",
 	Description: "Displays basic runtime memory usage statistics.",
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 

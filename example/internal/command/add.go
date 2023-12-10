@@ -23,7 +23,7 @@ var Add tempest.Command = tempest.Command{
 			Required:    true,
 		},
 	},
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		a, _ := itx.GetOptionValue("first")
 		b, _ := itx.GetOptionValue("second")
 		// ^ There's no need to check second bool value if option exists because we set them as required on lines 15 & 21.

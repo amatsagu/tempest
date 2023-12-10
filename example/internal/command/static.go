@@ -1,8 +1,8 @@
 package command
 
 import (
-	"example-bot/internal/logger"
 	"fmt"
+	"log/slog"
 
 	tempest "github.com/Amatsagu/Tempest"
 )
@@ -10,7 +10,7 @@ import (
 var Static tempest.Command = tempest.Command{
 	Name:        "static",
 	Description: "Sends example message with static component.",
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		itx.SendReply(tempest.ResponseMessageData{
 			Content: "Example message",
 			Components: []*tempest.ComponentRow{
@@ -31,14 +31,13 @@ var Static tempest.Command = tempest.Command{
 }
 
 // This function will be used at every button click, there's no max time limit.
-func HelloStatic(itx tempest.ComponentInteraction) {
+func HelloStatic(itx *tempest.ComponentInteraction) {
 	err := itx.AcknowledgeWithMessage(tempest.ResponseMessageData{
 		Content: fmt.Sprintf("Hello <@%d>!", itx.Member.User.ID),
 	}, false)
 
 	if err != nil {
-		logger.Error.Println(err)
-		logger.Warn.Printf("%+v\n", itx)
+		slog.Error("failed to acknowledge static component", err)
 		return
 	}
 }

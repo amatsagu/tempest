@@ -1,7 +1,7 @@
 package command
 
 import (
-	"example-bot/internal/logger"
+	"log/slog"
 
 	tempest "github.com/Amatsagu/Tempest"
 )
@@ -9,7 +9,7 @@ import (
 var Modal tempest.Command = tempest.Command{
 	Name:        "modal",
 	Description: "Sends example message with static modal.",
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		err := itx.SendModal(tempest.ResponseModalData{
 			CustomID: "my-modal",
 			Title:    "Hello modal!",
@@ -29,12 +29,12 @@ var Modal tempest.Command = tempest.Command{
 		})
 
 		if err != nil {
-			logger.Error.Println(err)
+			slog.Error("failed to send modal", err)
 		}
 	},
 }
 
-func HelloModal(itx tempest.ModalInteraction) {
+func HelloModal(itx *tempest.ModalInteraction) {
 	value := itx.GetInputValue("example-text-input")
 	if value == "" {
 		itx.AcknowledgeWithLinearMessage("Oh, how about trying pizza?", false)

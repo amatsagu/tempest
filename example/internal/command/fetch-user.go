@@ -2,7 +2,7 @@ package command
 
 import (
 	"encoding/json"
-	"example-bot/internal/logger"
+	"log/slog"
 
 	tempest "github.com/Amatsagu/Tempest"
 )
@@ -18,7 +18,7 @@ var FetchUser tempest.Command = tempest.Command{
 		},
 	},
 	AvailableInDM: false,
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		target := *itx.Member.User
 		rawTargetID, available := itx.GetOptionValue("target")
 		if available {
@@ -30,7 +30,7 @@ var FetchUser tempest.Command = tempest.Command{
 
 			target, err = itx.Client.FetchUser(targetID)
 			if err != nil {
-				logger.Warn.Println(err)
+				slog.Error("failed to fetch user data", err)
 				itx.SendLinearReply("Failed to fetch user data.", false)
 				return
 			}
@@ -38,7 +38,7 @@ var FetchUser tempest.Command = tempest.Command{
 
 		res, err := json.MarshalIndent(target, "", "    ")
 		if err != nil {
-			logger.Error.Println(err)
+			slog.Error("failed to parse user data", err)
 			itx.SendLinearReply("Failed to parse received user (json) data.", false)
 			return
 		}

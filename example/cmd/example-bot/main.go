@@ -2,8 +2,8 @@ package main
 
 import (
 	"example-bot/internal/command"
-	"example-bot/internal/logger"
-	"example-bot/internal/middleware"
+	"fmt"
+	"log/slog"
 	_ "net/http/pprof"
 	"os"
 
@@ -12,55 +12,44 @@ import (
 )
 
 func main() {
-	logger.InitLogger()
-
-	logger.Info.Println("Loading environmental variables...")
+	slog.Info("Loading environmental variables...")
 	if err := godotenv.Load(".env"); err != nil {
-		logger.Error.Panicln(err)
+		slog.Error("failed to load env variables", err)
 	}
 
-	logger.Info.Println("Creating new Tempest client...")
+	slog.Info("Creating new Tempest client...")
 	client := tempest.NewClient(tempest.ClientOptions{
 		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
 		Rest:      tempest.NewRest(os.Getenv("DISCORD_BOT_TOKEN")),
-		CommandMiddleware: func(itx tempest.CommandInteraction) bool {
-			res := middleware.Cooldown(itx)
-			if res != nil {
-				itx.SendReply(*res, false)
-				return false
-			}
-
-			return true
-		},
 	})
 
 	addr := os.Getenv("DISCORD_APP_ADDRESS")
 	testServerID, err := tempest.StringToSnowflake(os.Getenv("DISCORD_TEST_SERVER_ID")) // Register example commands only to this guild.
 	if err != nil {
-		logger.Error.Panicln(err)
+		slog.Error("failed to parse env variable to snowflake", err)
 	}
 
-	logger.Info.Println("Registering commands & static components...")
+	slog.Info("Registering commands & static components...")
 	client.RegisterCommand(command.Add)
 	client.RegisterCommand(command.AutoComplete)
 	client.RegisterCommand(command.Avatar)
 	client.RegisterCommand(command.Dynamic)
 	client.RegisterCommand(command.FetchMember)
 	client.RegisterCommand(command.FetchUser)
-	client.RegisterCommand(command.Modal)
-	client.RegisterCommand(command.Static)
 	client.RegisterCommand(command.MemoryUsage)
+	client.RegisterCommand(command.Modal)
+	client.RegisterCommand(command.Shutdown)
+	client.RegisterCommand(command.Static)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 	client.RegisterModal("my-modal", command.HelloModal)
 
 	err = client.SyncCommands([]tempest.Snowflake{testServerID}, nil, false)
 	if err != nil {
-		logger.Error.Panicln(err)
+		slog.Error("failed to sync local commands storage with Discord API", err)
 	}
 
-	logger.Info.Printf("Serving application at: %s/discord/callback", addr)
+	slog.Info(fmt.Sprintf("Serving application at: %s/discord/callback", addr))
 	if err := client.ListenAndServe("/discord/callback", addr); err != nil {
-		// Will happen in situation where normal std/http would panic so most likely never.
-		logger.Error.Panicln(err)
+		slog.Error("something went terribly wrong", err)
 	}
 }

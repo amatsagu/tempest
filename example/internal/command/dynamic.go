@@ -1,7 +1,7 @@
 package command
 
 import (
-	"example-bot/internal/logger"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -11,7 +11,7 @@ import (
 var Dynamic tempest.Command = tempest.Command{
 	Name:        "dynamic",
 	Description: "Same as static but awaits button (impurity).",
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		uniqueButtonID := "button-hello-dynamic-" + itx.ID.String()
 
 		msg := tempest.ResponseMessageData{
@@ -34,7 +34,7 @@ var Dynamic tempest.Command = tempest.Command{
 		itx.SendReply(msg, false)
 		signalChannel, stopFunction, err := itx.Client.AwaitComponent([]string{uniqueButtonID}, time.Minute*1)
 		if err != nil {
-			logger.Error.Println(err)
+			slog.Error("failed to create component listener", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)
 			return
 		}
@@ -55,7 +55,7 @@ var Dynamic tempest.Command = tempest.Command{
 			msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
 			err = itx.EditReply(msg, false)
 			if err != nil {
-				logger.Error.Println(err)
+				slog.Error("failed to edit response", err)
 				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
 				return
 			}

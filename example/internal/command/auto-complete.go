@@ -16,7 +16,7 @@ var AutoComplete tempest.Command = tempest.Command{
 			AutoComplete: true,
 		},
 	},
-	AutoCompleteHandler: func(itx tempest.AutoCompleteInteraction) []tempest.Choice {
+	AutoCompleteHandler: func(itx *tempest.CommandInteraction) []tempest.Choice {
 		examples := []tempest.Choice{
 			{
 				Name:  "Select first option!",
@@ -36,7 +36,7 @@ var AutoComplete tempest.Command = tempest.Command{
 
 		return examples
 	},
-	SlashCommandHandler: func(itx tempest.CommandInteraction) {
+	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		value, _ := itx.GetOptionValue("suggestion")
 		itx.SendLinearReply("Received: "+value.(string), false)
 	},
