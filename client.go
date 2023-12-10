@@ -152,8 +152,9 @@ func (client *Client) ListenAndServe(route string, address string) error {
 
 	client.state.Store(uint32(RUNNING_STATE))
 	client.httpServeMux.HandleFunc(route, client.handleRequest)
+	client.httpServer.(*http.Server).Addr = address
 	client.httpServer.(*http.Server).Handler = client.httpServeMux
-	return http.ListenAndServe(address, nil)
+	return client.httpServer.ListenAndServe()
 }
 
 func (client *Client) ListenAndServeTLS(route string, address string, certFile, keyFile string) error {
@@ -167,8 +168,9 @@ func (client *Client) ListenAndServeTLS(route string, address string, certFile, 
 
 	client.state.Store(uint32(RUNNING_STATE))
 	client.httpServeMux.HandleFunc(route, client.handleRequest)
+	client.httpServer.(*http.Server).Addr = address
 	client.httpServer.(*http.Server).Handler = client.httpServeMux
-	return http.ListenAndServeTLS(address, certFile, keyFile, nil)
+	return client.httpServer.ListenAndServeTLS(certFile, keyFile)
 }
 
 // Tries to gracefully shutdown client. It'll clear all queued actions and shutdown underlying http server.
