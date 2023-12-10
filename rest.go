@@ -129,7 +129,7 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 	return body, nil, true
 }
 
-func NewDefaultRest(token string) Rest {
+func NewRest(token string) Rest {
 	return &iRest{
 		token:                "Bot " + token,
 		httpClient:           &http.Client{Timeout: time.Second * 3},

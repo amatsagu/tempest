@@ -213,7 +213,7 @@ func (client *Client) Close(ctx context.Context) error {
 	return nil
 }
 
-func NewDefaultClient(options ClientOptions) *Client {
+func NewClient(options ClientOptions) *Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
