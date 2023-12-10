@@ -6,8 +6,8 @@ import (
 )
 
 func (client *Client) RegisterCommand(command Command) error {
-	if client.running {
-		return errors.New("client is already running (cannot modify client's internal cache after it launches)")
+	if client.State() != INIT_STATE {
+		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
 	}
 
 	if _, exists := client.commands[command.Name]; exists {
@@ -25,8 +25,8 @@ func (client *Client) RegisterCommand(command Command) error {
 }
 
 func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
-	if client.running {
-		return errors.New("client is already running (cannot modify client's internal cache after it launches)")
+	if client.State() != INIT_STATE {
+		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
 	}
 
 	if _, available := client.commands[rootCommandName]; !available {
