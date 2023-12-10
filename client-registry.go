@@ -72,7 +72,7 @@ func (client *Client) seekCommand(itx CommandInteraction) (CommandInteraction, *
 			itx.Data.Name, itx.Data.Options = itx.Data.Options[0].Name, itx.Data.Options[0].Options
 			itx.Client = client
 		}
-		return CommandInteraction(itx), &command, available
+		return itx, &command, available
 	}
 
 	if itx.Member != nil {
@@ -81,7 +81,7 @@ func (client *Client) seekCommand(itx CommandInteraction) (CommandInteraction, *
 
 	itx.Client = client
 	command, available := client.commands[itx.Data.Name][ROOT_PLACEHOLDER]
-	return CommandInteraction(itx), &command, available
+	return itx, &command, available
 }
 
 // Parses registered commands into Discord format.
