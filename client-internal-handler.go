@@ -22,14 +22,14 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
-		panic(err) // Should never happen
+		return
 	}
 
 	var extractor InteractionTypeExtractor
 	err = json.Unmarshal(buf, &extractor)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
-		panic(err) // Should never happen
+		return
 	}
 	defer r.Body.Close()
 
@@ -43,10 +43,10 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
+			return
 		}
 
-		command, itx, available := client.seekCommand(interaction)
+		itx, command, available := client.seekCommand(&interaction)
 		if !available {
 			w.Header().Add("Content-Type", "application/json")
 			w.Write(private_UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
@@ -60,25 +60,29 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if client.commandMiddlewareHandler != nil && !client.commandMiddlewareHandler(itx) {
+		if client.preCommandHandler != nil && !client.preCommandHandler(command, itx) {
 			return
 		}
 
 		command.SlashCommandHandler(itx)
+
+		if client.postCommandHandler != nil {
+			client.postCommandHandler(command, itx)
+		}
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var itx ComponentInteraction
 		err := json.Unmarshal(buf, &itx)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
+			return
 		}
 
 		itx.Client = client
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
 			itx.w = w
-			fn(itx)
+			fn(&itx)
 			return
 		}
 
@@ -94,7 +98,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		if client.componentHandler != nil {
 			itx.w = w
-			client.componentHandler(itx)
+			client.componentHandler(&itx)
 		}
 
 		return
@@ -103,16 +107,16 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(buf, &interaction)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
+			return
 		}
 
-		command, itx, available := client.seekCommand(interaction)
+		itx, command, available := client.seekCommand(&interaction)
 		if !available || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		choices := command.AutoCompleteHandler(AutoCompleteInteraction(itx))
+		choices := command.AutoCompleteHandler(itx)
 		body, err := json.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
@@ -121,7 +125,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			panic("failed to parse payload received from client's \"auto complete\" handler (make sure it's in JSON format)")
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Add("Content-Type", "application/json")
@@ -132,13 +137,13 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(buf, &itx)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
-			panic(err) // Should never happen
+			return
 		}
 
 		fn, available := client.modals[itx.Data.CustomID]
 		if available && fn != nil {
 			itx.w = w
-			fn(itx)
+			fn(&itx)
 			return
 		}
 
@@ -153,7 +158,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		if client.modalHandler != nil {
 			itx.w = w
-			client.modalHandler(itx)
+			client.modalHandler(&itx)
 		}
 
 		return
