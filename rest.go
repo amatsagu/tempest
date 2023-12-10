@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,6 +15,7 @@ var _ Rest = (*iRest)(nil)
 
 type Rest interface {
 	Request(method string, route string, jsonPayload interface{}) ([]byte, error)
+	Token() string
 }
 
 type iRest struct {
@@ -51,6 +53,10 @@ func (rest *iRest) Request(method string, route string, jsonPayload interface{})
 	}
 
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
+}
+
+func (rest *iRest) Token() string {
+	return strings.TrimPrefix(rest.token, "Bot ")
 }
 
 func (rest *iRest) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
