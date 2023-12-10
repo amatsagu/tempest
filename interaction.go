@@ -2,9 +2,6 @@ package tempest
 
 import "net/http"
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
-type AutoCompleteInteraction CommandInteraction
-
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
 

@@ -123,8 +123,9 @@ func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content Respon
 	return err
 }
 
+// Warning! This method is only for handling auto complete interaction which is a part of command logic.
 // Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
-func (itx AutoCompleteInteraction) GetFocusedValue() (string, any) {
+func (itx CommandInteraction) GetFocusedValue() (string, any) {
 	options := itx.Data.Options
 
 	for _, option := range options {
