@@ -28,15 +28,14 @@ type Client struct {
 	PublicKey     ed25519.PublicKey
 	httpServer    HTTPServer
 
-	preCommandHandler     func(cmd *Command, itx *CommandInteraction) bool
-	postCommandHandler    func(cmd *Command, itx *CommandInteraction)
-	unknownCommandHandler func(itx *CommandInteraction) // Function to call when client receives not registered command. This only happens if there's desync between local Client#commands cache and Discord API.
-	componentHandler      func(itx *ComponentInteraction)
-	modalHandler          func(itx *ModalInteraction)
+	preCommandHandler  func(cmd *Command, itx *CommandInteraction) bool
+	postCommandHandler func(cmd *Command, itx *CommandInteraction)
+	componentHandler   func(itx *ComponentInteraction)
+	modalHandler       func(itx *ModalInteraction)
 
-	commands   map[string]map[string]Command         // Internal cache for commands. Only writeable before starting application!
-	components map[string]func(ComponentInteraction) // Internal cache for "static" components. Only writeable before starting application!
-	modals     map[string]func(ModalInteraction)     // Internal cache for "static" modals. Only writeable before starting application!
+	commands   map[string]map[string]Command          // Internal cache for commands. Only writeable before starting application!
+	components map[string]func(*ComponentInteraction) // Internal cache for "static" components. Only writeable before starting application!
+	modals     map[string]func(*ModalInteraction)     // Internal cache for "static" modals. Only writeable before starting application!
 
 	qMu              sync.RWMutex // Shated mutex for dynamic, components & modals.
 	queuedComponents map[string]chan *ComponentInteraction
@@ -145,11 +144,8 @@ func NewDefaultClient(options ClientOptions) *Client {
 
 		preCommandHandler:  options.PreCommandHook,
 		postCommandHandler: options.PostCommandHook,
-		unknownCommandHandler: func(itx *CommandInteraction) {
-			itx.SendLinearReply("Oh uh.. It looks like you tried to trigger (/) unknown command. Please report this bug to bot owner.", true)
-		},
-		componentHandler: options.ComponentHandler,
-		modalHandler:     options.ModalHandler,
+		componentHandler:   options.ComponentHandler,
+		modalHandler:       options.ModalHandler,
 
 		commands: make(map[string]map[string]Command),
 		running:  false,
