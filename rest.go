@@ -10,10 +10,16 @@ import (
 	"time"
 )
 
-type Rest struct {
+var _ Rest = (*iRest)(nil)
+
+type Rest interface {
+	Request(method string, route string, jsonPayload interface{}) ([]byte, error)
+}
+
+type iRest struct {
 	mu                   sync.RWMutex
 	token                string
-	httpClient           *http.Client
+	httpClient           HTTPClient
 	lockedTo             time.Time
 	maxReconnectAttempts uint8
 }
@@ -24,7 +30,7 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
-func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *iRest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	if !rest.lockedTo.IsZero() {
 		timeLeft := time.Until(rest.lockedTo)
 		if timeLeft > 0 {
@@ -47,7 +53,7 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *Rest) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
+func (rest *iRest) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
 	var req *http.Request
 	if jsonPayload == nil {
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, nil)
@@ -113,18 +119,10 @@ func (rest *Rest) handleRequest(method string, route string, jsonPayload interfa
 	return body, nil, true
 }
 
-func NewRest(token string) *Rest {
-	return NewCustomRest(token, 3, &http.Client{Timeout: time.Second * 3})
-}
-
-func NewCustomRest(token string, maxReconnectAttempts uint8, client *http.Client) *Rest {
-	if _, err := extractUserIDFromToken(token); err != nil {
-		panic(err)
-	}
-
-	return &Rest{
+func NewDefaultRest(token string) Rest {
+	return &iRest{
 		token:                "Bot " + token,
-		httpClient:           client,
-		maxReconnectAttempts: maxReconnectAttempts,
+		httpClient:           &http.Client{Timeout: time.Second * 3},
+		maxReconnectAttempts: 3,
 	}
 }

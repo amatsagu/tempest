@@ -13,7 +13,7 @@ func TestRest(t *testing.T) {
 		t.Skip("can't test rest due to no provided token")
 	}
 
-	rest := NewRest(token)
+	rest := NewDefaultRest(token)
 	go requestGateway(rest, t)
 	go requestGateway(rest, t)
 	go requestGateway(rest, t)
@@ -22,7 +22,7 @@ func TestRest(t *testing.T) {
 	requestGateway(rest, t)
 }
 
-func requestGateway(rest *Rest, t *testing.T) {
+func requestGateway(rest Rest, t *testing.T) {
 	_, err := rest.Request(http.MethodGet, "/gateway/bot", nil)
 	if err != nil {
 		t.Error(err)
