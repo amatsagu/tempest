@@ -5,24 +5,34 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
 
 type ClientOptions struct {
-	PublicKey         string // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
-	Rest              *Rest
-	CommandMiddleware func(itx CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	ComponentHandler  func(itx ComponentInteraction)    // Function that runs for each unhandled component.
-	ModalHandler      func(itx ModalInteraction)        // Function that runs for each unhandled modal.
+	Addr             string
+	CertFile         string
+	KeyFile          string
+	Handler          http.Handler
+	PublicKey        string // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
+	Rest             Rest
+	PreCommandHook   func(cmd *Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook  func(cmd *Command, itx *CommandInteraction)      // Function that runs after each command.
+	ComponentHandler func(itx *ComponentInteraction)                  // Function that runs for each unhandled component.
+	ModalHandler     func(itx *ModalInteraction)                      // Function that runs for each unhandled modal.
 }
 
-// Please avoid creating raw Client struct unless you know what you're doing. Use CreateClient function instead.
 type Client struct {
-	Rest          *Rest
+	Rest          Rest
 	ApplicationID Snowflake
 	PublicKey     ed25519.PublicKey
+	httpServer    HTTPServer
+
+	preCommandHandler     func(cmd *Command, itx *CommandInteraction) bool
+	postCommandHandler    func(cmd *Command, itx *CommandInteraction)
+	unknownCommandHandler func(itx *CommandInteraction) // Function to call when client receives not registered command. This only happens if there's desync between local Client#commands cache and Discord API.
+	componentHandler      func(itx *ComponentInteraction)
+	modalHandler          func(itx *ModalInteraction)
 
 	commands   map[string]map[string]Command         // Internal cache for commands. Only writeable before starting application!
 	components map[string]func(ComponentInteraction) // Internal cache for "static" components. Only writeable before starting application!
@@ -32,10 +42,7 @@ type Client struct {
 	queuedComponents map[string]chan *ComponentInteraction
 	queuedModals     map[string]chan *ModalInteraction
 
-	commandMiddlewareHandler func(itx CommandInteraction) bool // From options, called before each slash command.
-	componentHandler         func(itx ComponentInteraction)
-	modalHandler             func(itx ModalInteraction)
-	running                  bool // Whether client's web server is already launched.
+	running bool // Whether client's web server is already launched.
 }
 
 // Makes client dynamically "listen" incoming component type interactions.
@@ -119,65 +126,32 @@ func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan
 	return signalChannel, closeFunction, nil
 }
 
-// Starts bot on set route aka "endpoint". Setting example route = "/bot" and address = "192.168.0.7:9070" would make bot work under http://192.168.0.7:9070/bot.
-// Set route as "/" or leave empty string to make it work on any URI (default).
-func (client *Client) ListenAndServe(route string, address string) error {
-	if client.running {
-		return errors.New("client is already running")
-	}
-
-	if route == "" {
-		route = "/"
-	}
-
-	client.running = true
-	http.HandleFunc(route, client.handleRequest)
-	return http.ListenAndServe(address, nil)
-}
-
-func (client *Client) ListenAndServeTLS(route string, address string, certFile, keyFile string) error {
-	if client.running {
-		return errors.New("client is already running")
-	}
-
-	if route == "" {
-		route = "/"
-	}
-
-	client.running = true
-	http.HandleFunc(route, client.handleRequest)
-	return http.ListenAndServeTLS(address, certFile, keyFile, nil)
-}
-
-// Let's you take control over client's life cycle. Please avoid using it unless you want to integrate custom http client.
-func (client *Client) Hijack() func(w http.ResponseWriter, r *http.Request) {
-	client.running = true
-	return client.handleRequest
-}
-
-func NewClient(options ClientOptions) *Client {
+func NewDefaultClient(options ClientOptions) *Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
 	}
 
-	botUserID, err := extractUserIDFromToken(strings.TrimPrefix(options.Rest.token, "Bot "))
+	botUserID, err := extractUserIDFromToken(options.Rest.Token())
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
 	return &Client{
-		Rest:                     options.Rest,
-		ApplicationID:            botUserID,
-		PublicKey:                ed25519.PublicKey(discordPublicKey),
-		commands:                 make(map[string]map[string]Command),
-		components:               make(map[string]func(ComponentInteraction)),
-		modals:                   make(map[string]func(ModalInteraction)),
-		queuedComponents:         make(map[string]chan *ComponentInteraction),
-		queuedModals:             make(map[string]chan *ModalInteraction),
-		commandMiddlewareHandler: options.CommandMiddleware,
-		componentHandler:         options.ComponentHandler,
-		modalHandler:             options.ModalHandler,
-		running:                  false,
+		Rest:          options.Rest,
+		ApplicationID: botUserID,
+		PublicKey:     ed25519.PublicKey(discordPublicKey),
+		httpServer:    &http.Server{Addr: options.Addr, Handler: options.Handler},
+
+		preCommandHandler:  options.PreCommandHook,
+		postCommandHandler: options.PostCommandHook,
+		unknownCommandHandler: func(itx *CommandInteraction) {
+			itx.SendLinearReply("Oh uh.. It looks like you tried to trigger (/) unknown command. Please report this bug to bot owner.", true)
+		},
+		componentHandler: options.ComponentHandler,
+		modalHandler:     options.ModalHandler,
+
+		commands: make(map[string]map[string]Command),
+		running:  false,
 	}
 }
