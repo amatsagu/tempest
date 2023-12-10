@@ -18,6 +18,10 @@ type Rest interface {
 	Token() string
 }
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type iRest struct {
 	mu                   sync.RWMutex
 	token                string
