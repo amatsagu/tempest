@@ -2,7 +2,10 @@ package tempest
 
 import (
 	"context"
+	"net/http"
 )
+
+var _ HTTPServer = (*http.Server)(nil)
 
 type HTTPServer interface {
 	Close() error
