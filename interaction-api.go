@@ -44,7 +44,7 @@ func (itx CommandInteraction) ResolveRole(id Snowflake) *Role {
 
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
-func (itx *CommandInteraction) Defer(ephemeral bool) error {
+func (itx CommandInteraction) Defer(ephemeral bool) error {
 	var flags uint64 = 0
 
 	if ephemeral {
@@ -62,22 +62,33 @@ func (itx *CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx *CommandInteraction) SendReply(response ResponseMessageData, ephemeral bool) error {
-	if ephemeral && response.Flags == 0 {
-		response.Flags = 64
+func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool) error {
+	if ephemeral && reply.Flags == 0 {
+		reply.Flags = 64
 	}
 
 	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &response,
+		Data: &reply,
 	})
 
 	return err
 }
 
 // Use that for simple text messages that won't be modified.
-func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
-	return itx.SendReply(ResponseMessageData{Content: content}, ephemeral)
+func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
+	return itx.SendReply(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}
+
+func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
+		Type: MODAL_RESPONSE_TYPE,
+		Data: &modal,
+	})
+
+	return err
 }
 
 func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
@@ -227,14 +238,14 @@ func (itx ModalInteraction) Acknowledge() error {
 	return err
 }
 
-func (itx ModalInteraction) AcknowledgeWithMessage(content ResponseMessageData, ephemeral bool) error {
-	if ephemeral && content.Flags == 0 {
-		content.Flags = 64
+func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData, ephemeral bool) error {
+	if ephemeral && response.Flags == 0 {
+		response.Flags = 64
 	}
 
 	body, err := json.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &content,
+		Data: &response,
 	})
 
 	if err != nil {
