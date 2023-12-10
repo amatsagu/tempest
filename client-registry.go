@@ -61,7 +61,7 @@ func (client *Client) SyncCommands(guildIDs []Snowflake, whitelist []string, swi
 	return nil
 }
 
-func (client *Client) seekCommand(itx CommandInteraction) (CommandInteraction, *Command, bool) {
+func (client *Client) seekCommand(itx *CommandInteraction) (*CommandInteraction, *Command, bool) {
 	if len(itx.Data.Options) != 0 && itx.Data.Options[0].Type == SUB_OPTION_TYPE {
 		command, available := client.commands[itx.Data.Name][itx.Data.Options[0].Name]
 		if available {
