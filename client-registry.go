@@ -42,7 +42,7 @@ func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName str
 }
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
-func (client *Client) RegisterComponent(customIDs []string, fn func(*ComponentInteraction)) error {
+func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
 	if client.State() != INIT_STATE {
 		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
 	}
@@ -62,7 +62,7 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(*ComponentIn
 }
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving modal interaction with matching custom id.
-func (client *Client) RegisterModal(customID string, fn func(*ModalInteraction)) error {
+func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
 	if client.State() != INIT_STATE {
 		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
 	}

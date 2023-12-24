@@ -82,7 +82,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		fn, available := client.components[itx.Data.CustomID]
 		if available && fn != nil {
 			itx.w = w
-			fn(&itx)
+			fn(itx)
 			return
 		}
 
@@ -143,7 +143,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		fn, available := client.modals[itx.Data.CustomID]
 		if available && fn != nil {
 			itx.w = w
-			fn(&itx)
+			fn(itx)
 			return
 		}
 
