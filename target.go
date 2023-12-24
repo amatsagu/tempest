@@ -18,22 +18,16 @@ const (
 
 // https://discord.com/developers/docs/resources/user#user-object-user-structure
 type User struct {
-	ID            Snowflake `json:"id"`
-	Username      string    `json:"username"`
-	Discriminator string    `json:"discriminator"`    // Deprecated: Read more at https://discord.com/blog/usernames.
-	AvatarHash    string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
-	Bot           bool      `json:"bot,omitempty"`
-	MFA           bool      `json:"mfa_enabled,omitempty"`
-	BannerHash    string    `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
-	AccentColor   uint32    `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
-	Locale        string    `json:"locale,omitempty"`
-	PremiumType   NitroType `json:"premium_type,omitempty"`
-	PublicFlags   uint64    `json:"public_flags,omitempty"` // (Same as regular flags)
-}
-
-// Deprecated: Read more at https://discord.com/blog/usernames.
-func (user User) Tag() string {
-	return user.Username + "#" + user.Discriminator
+	ID          Snowflake `json:"id"`
+	Username    string    `json:"username"`
+	AvatarHash  string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
+	Bot         bool      `json:"bot,omitempty"`
+	MFA         bool      `json:"mfa_enabled,omitempty"`
+	BannerHash  string    `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
+	AccentColor uint32    `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
+	Locale      string    `json:"locale,omitempty"`
+	PremiumType NitroType `json:"premium_type,omitempty"`
+	PublicFlags uint64    `json:"public_flags,omitempty"` // (Same as regular flags)
 }
 
 func (user User) Mention() string {
@@ -43,12 +37,7 @@ func (user User) Mention() string {
 // Returns a direct url to user's avatar. It'll return url to default Discord's avatar if targeted user don't use avatar.
 func (user User) AvatarURL() string {
 	if user.AvatarHash == "" {
-		n, err := strconv.Atoi(user.Discriminator)
-		if err != nil {
-			return DISCORD_CDN_URL + "/embed/avatars/0.png"
-		}
-
-		return DISCORD_CDN_URL + "/embed/avatars/" + strconv.Itoa(n%5) + ".png"
+		return DISCORD_CDN_URL + "/embed/avatars/" + strconv.FormatUint(uint64(user.ID>>22)%6, 10) + ".png"
 	}
 
 	if strings.HasPrefix(user.AvatarHash, "a_") {
