@@ -34,9 +34,9 @@ type Client struct {
 	componentHandler   func(itx *ComponentInteraction)
 	modalHandler       func(itx *ModalInteraction)
 
-	commands   map[string]map[string]Command          // Internal cache for commands. Only writeable before starting application!
-	components map[string]func(*ComponentInteraction) // Internal cache for "static" components. Only writeable before starting application!
-	modals     map[string]func(*ModalInteraction)     // Internal cache for "static" modals. Only writeable before starting application!
+	commands   map[string]map[string]Command         // Internal cache for commands. Only writeable before starting application!
+	components map[string]func(ComponentInteraction) // Internal cache for "static" components. Only writeable before starting application!
+	modals     map[string]func(ModalInteraction)     // Internal cache for "static" modals. Only writeable before starting application!
 
 	qMu              sync.RWMutex // Shated mutex for dynamic, components & modals.
 	queuedComponents map[string]chan *ComponentInteraction
@@ -154,7 +154,12 @@ func (client *Client) ListenAndServe(route string, address string) error {
 	client.httpServeMux.HandleFunc(route, client.handleRequest)
 	client.httpServer.(*http.Server).Addr = address
 	client.httpServer.(*http.Server).Handler = client.httpServeMux
-	return client.httpServer.ListenAndServe()
+
+	err := client.httpServer.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func (client *Client) ListenAndServeTLS(route string, address string, certFile, keyFile string) error {
@@ -170,7 +175,12 @@ func (client *Client) ListenAndServeTLS(route string, address string, certFile, 
 	client.httpServeMux.HandleFunc(route, client.handleRequest)
 	client.httpServer.(*http.Server).Addr = address
 	client.httpServer.(*http.Server).Handler = client.httpServeMux
-	return client.httpServer.ListenAndServeTLS(certFile, keyFile)
+
+	err := client.httpServer.ListenAndServeTLS(certFile, keyFile)
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 // Tries to gracefully shutdown client. It'll clear all queued actions and shutdown underlying http server.
@@ -247,8 +257,8 @@ func NewClient(options ClientOptions) *Client {
 		modalHandler:       options.ModalHandler,
 
 		commands:         make(map[string]map[string]Command),
-		components:       make(map[string]func(*ComponentInteraction)),
-		modals:           make(map[string]func(*ModalInteraction)),
+		components:       make(map[string]func(ComponentInteraction)),
+		modals:           make(map[string]func(ModalInteraction)),
 		queuedComponents: make(map[string]chan *ComponentInteraction),
 		queuedModals:     make(map[string]chan *ModalInteraction),
 	}
