@@ -29,16 +29,14 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
 * [Easy to use & efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterCommand)
     - Deep control with [command middleware(s)](https://pkg.go.dev/github.com/Amatsagu/Tempest#ClientOptions)
 * [Exposed REST](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.Rest)
-* [Easy component & modal handler](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitComponent)
+* [Easy component & modal handling](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitComponent)
     - Works with buttons, select menus, text inputs and modals,
     - Supports timeouts & gives a lot of freedom,
     - Works for both [static](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitModal) ways
 * [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.SyncCommands)
-* Auto panic recovery inherited from `std/http`
 * Request failure auto recovery (3 attempts)
     - On failed attempts *(probably due to internet connection)*, it'll try again up to 3 times before returning error
-* Cache is optional
-    - Applications/Bots work without any state caching if they only prefer to (avoid dynamic handlers to do it).
+* No Discord data caching by default
 
 > [!NOTE]
 > Tempest lib supports all operations available in Discord API through HTTP except sending files. For now, you can only receive files.
@@ -51,13 +49,12 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
 
 ## Troubleshooting
 For help feel free to open an issue on github.
+You can also inivite to contact me on [discord](https://discord.com/users/390394829789593601).
 
 ## Contributing
-Contributions are welcomed but for bigger changes I would like to first discuss your problem(s), intentions and/or ideas.
+All contributions are welcomed.
 Few rules before making a pull request:
 * Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 
-* Avoid using interfaces, generics or any/interface{} keywords
-    - As we focus on simplicity & performance, those elements should be avoided unless required to advance
 * Add link to document for new structs
     - Since `v1.1.0`, all structs have links to corresponding discord docs
 
