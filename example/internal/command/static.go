@@ -31,7 +31,7 @@ var Static tempest.Command = tempest.Command{
 }
 
 // This function will be used at every button click, there's no max time limit.
-func HelloStatic(itx *tempest.ComponentInteraction) {
+func HelloStatic(itx tempest.ComponentInteraction) {
 	err := itx.AcknowledgeWithMessage(tempest.ResponseMessageData{
 		Content: fmt.Sprintf("Hello <@%d>!", itx.Member.User.ID),
 	}, false)

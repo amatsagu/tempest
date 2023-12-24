@@ -16,7 +16,7 @@ var AutoComplete tempest.Command = tempest.Command{
 			AutoComplete: true,
 		},
 	},
-	AutoCompleteHandler: func(itx *tempest.CommandInteraction) []tempest.Choice {
+	AutoCompleteHandler: func(itx tempest.CommandInteraction) []tempest.Choice {
 		examples := []tempest.Choice{
 			{
 				Name:  "Select first option!",

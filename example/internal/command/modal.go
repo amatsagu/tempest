@@ -34,7 +34,7 @@ var Modal tempest.Command = tempest.Command{
 	},
 }
 
-func HelloModal(itx *tempest.ModalInteraction) {
+func HelloModal(itx tempest.ModalInteraction) {
 	value := itx.GetInputValue("example-text-input")
 	if value == "" {
 		itx.AcknowledgeWithLinearMessage("Oh, how about trying pizza?", false)
