@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 	"time"
 )
@@ -12,6 +13,11 @@ type Snowflake uint64
 func StringToSnowflake(s string) (Snowflake, error) {
 	i, err := strconv.ParseUint(s, 10, 64)
 	return Snowflake(i), err
+}
+
+// Shortcut to calling os.Getenv method and casting to Snowflake.
+func EnvToSnowflake(key string) (Snowflake, error) {
+	return StringToSnowflake(os.Getenv(key))
 }
 
 func (s Snowflake) String() string {
