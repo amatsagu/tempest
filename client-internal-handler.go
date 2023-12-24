@@ -46,7 +46,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		itx, command, available := client.seekCommand(&interaction)
+		itx, command, available := client.seekCommand(interaction)
 		if !available {
 			w.Header().Add("Content-Type", "application/json")
 			w.Write(private_UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
@@ -60,14 +60,14 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if client.preCommandHandler != nil && !client.preCommandHandler(command, itx) {
+		if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
 			return
 		}
 
-		command.SlashCommandHandler(itx)
+		command.SlashCommandHandler(&itx)
 
 		if client.postCommandHandler != nil {
-			client.postCommandHandler(command, itx)
+			client.postCommandHandler(command, &itx)
 		}
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
@@ -110,7 +110,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		itx, command, available := client.seekCommand(&interaction)
+		itx, command, available := client.seekCommand(interaction)
 		if !available || command.AutoCompleteHandler == nil || len(command.Options) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
