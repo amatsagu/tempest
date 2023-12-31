@@ -80,7 +80,11 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 		request, err := http.NewRequest(
 			method,
 			DISCORD_API_URL+route,
-			bytes.NewBuffer(body),
+			bytes.ReplaceAll(
+				body,
+				private_REST_NULL_SLICE_FIND,
+				private_REST_NULL_SLICE_REPLACE,
+			),
 		)
 
 		if err != nil {

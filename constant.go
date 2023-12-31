@@ -16,3 +16,9 @@ var (
 	private_ACKNOWLEDGE_RESPONSE_RAW_BODY     = []byte(fmt.Sprintf(`{"type":%d}`, DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE))
 	private_UNKNOWN_COMMAND_RESPONSE_RAW_BODY = []byte(fmt.Sprintf(`{"type":%d,"data":{"content":"Oh uh.. It looks like you tried to trigger (/) unknown command. Please report this bug to bot owner.","flags":64}}`, CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE))
 )
+
+// Those are used to replace seemingly empty slice into empty array after marsalling struct to json string.
+var (
+	private_REST_NULL_SLICE_FIND    []byte = []byte("[null]")
+	private_REST_NULL_SLICE_REPLACE []byte = []byte("[]")
+)
