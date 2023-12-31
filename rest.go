@@ -80,13 +80,11 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 		request, err := http.NewRequest(
 			method,
 			DISCORD_API_URL+route,
-			// It's ugly, "temporary" fix.
-			// So far nobody had much better idea how to make std/json marshal turn []*AnyStruct into [] (not no value or [null]).
-			bytes.NewBuffer(bytes.ReplaceAll(
+			bytes.ReplaceAll(
 				body,
 				private_REST_NULL_SLICE_FIND,
 				private_REST_NULL_SLICE_REPLACE,
-			)),
+			),
 		)
 
 		if err != nil {
