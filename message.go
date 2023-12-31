@@ -107,7 +107,7 @@ type Embed struct {
 	Color       uint32          `json:"color,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
 	Description string          `json:"description,omitempty"`
-	Fields      []EmbedField    `json:"fields"`
+	Fields      []*EmbedField   `json:"fields,omitempty"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Video       *EmbedVideo     `json:"video,omitempty"`
@@ -174,11 +174,11 @@ type Message struct {
 	EditedTimestamp   *time.Time          `json:"edited_timestamp,omitempty"`
 	TTS               bool                `json:"tts"`
 	MentionEveryone   bool                `json:"mention_everyone"`
-	Mentions          []User              `json:"mentions"`
-	MentionRoles      []Snowflake         `json:"mention_roles"`
-	MentionChannels   []ChannelMention    `json:"mention_channels"`
-	Embeds            []Embed             `json:"embeds"`
-	Reactions         []Reaction          `json:"reactions"`
+	Mentions          []*User             `json:"mentions"`
+	MentionRoles      []*Snowflake        `json:"mention_roles"`
+	MentionChannels   []*ChannelMention   `json:"mention_channels,omitempty"`
+	Embeds            []*Embed            `json:"embeds"`
+	Reactions         []*Reaction         `json:"reactions,omitempty"`
 	Pinned            bool                `json:"pinned"`
 	WebhookID         Snowflake           `json:"webhook_id,omitempty"`
 	Type              uint                `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
@@ -187,8 +187,8 @@ type Message struct {
 	Flags             uint64              `json:"flags,omitempty"`
 	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
 	Interaction       *MessageInteraction `json:"interaction,omitempty"`
-	Components        []ComponentRow      `json:"components"`
-	StickerItems      []StickerItem       `json:"sticker_items"`
+	Components        []*ComponentRow     `json:"components,omitempty"`
+	StickerItems      []*StickerItem      `json:"sticker_items,omitempty"`
 }
 
 // https://discord.com/developers/docs/resources/channel#message-reference-object-message-reference-structure
