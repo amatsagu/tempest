@@ -115,9 +115,10 @@ type Choice struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
-	CustomID string              `json:"custom_id"`
-	Type     ComponentType       `json:"component_type"`
-	Values   []*SelectMenuOption `json:"values,omitempty"`
+	CustomID string                   `json:"custom_id"`
+	Type     ComponentType            `json:"component_type"`
+	Values   []string                 `json:"values,omitempty"`
+	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 }
 
 type ModalInteractionData struct {
