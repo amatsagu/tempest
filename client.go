@@ -183,6 +183,16 @@ func (client *Client) ListenAndServeTLS(route string, address string, certFile, 
 	return nil
 }
 
+// Let's you take control over client's life cycle. Please avoid using it unless you want to integrate custom http client.
+func (client *Client) Hijack() (func(w http.ResponseWriter, r *http.Request), error) {
+	if client.State() != INIT_STATE {
+		return nil, errors.New("client is no longer in initialization state")
+	}
+
+	client.state.Store(uint32(RUNNING_STATE))
+	return client.handleRequest, nil
+}
+
 // Tries to gracefully shutdown client. It'll clear all queued actions and shutdown underlying http server.
 func (client *Client) Close(ctx context.Context) error {
 	if client.State() == INIT_STATE {
