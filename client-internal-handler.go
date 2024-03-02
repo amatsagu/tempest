@@ -24,6 +24,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	var extractor InteractionTypeExtractor
 	err = json.Unmarshal(buf, &extractor)
@@ -31,7 +32,6 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
