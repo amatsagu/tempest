@@ -25,7 +25,7 @@ func (s Snowflake) String() string {
 }
 
 func (s Snowflake) CreationTimestamp() time.Time {
-	return time.UnixMilli(int64(s>>22 + EPOCH))
+	return time.UnixMilli(int64(s>>22 + DiscordEpoch))
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {

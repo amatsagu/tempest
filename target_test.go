@@ -37,7 +37,7 @@ func TestUser(t *testing.T) {
 		t.Error("parsed user avatar hash data is lost")
 	}
 
-	validAvatarURL := DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
+	validAvatarURL := DiscordCDNURL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
 	if user.AvatarURL() != validAvatarURL {
 		t.Error("parsed user has invalid avatar url")
 	}
@@ -46,7 +46,7 @@ func TestUser(t *testing.T) {
 		t.Error("parsed user banner hash data is lost")
 	}
 
-	validBannerURL := DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
+	validBannerURL := DiscordCDNURL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
 	if user.BannerURL() != validBannerURL {
 		t.Error("parsed user has invalid banner url")
 	}

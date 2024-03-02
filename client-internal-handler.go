@@ -35,8 +35,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
-		w.Header().Add("Content-Type", "application/json")
-		w.Write(private_PING_RESPONSE_RAW_BODY)
+		w.Header().Add("Content-Type", ContentTypeJSON)
+		w.Write(bodyPingResponse)
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
@@ -48,8 +48,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		itx, command, available := client.seekCommand(interaction)
 		if !available {
-			w.Header().Add("Content-Type", "application/json")
-			w.Write(private_UNKNOWN_COMMAND_RESPONSE_RAW_BODY)
+			w.Header().Add("Content-Type", ContentTypeJSON)
+			w.Write(bodyUnknownCommandResponse)
 			return
 		}
 
@@ -90,8 +90,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		signalChannel, available := client.queuedComponents[itx.Data.CustomID]
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
-			w.Header().Add("Content-Type", "application/json")
-			w.Write(private_ACKNOWLEDGE_RESPONSE_RAW_BODY)
+			w.Header().Add("Content-Type", ContentTypeJSON)
+			w.Write(bodyAcknowledgeResponse)
 			signalChannel <- &itx
 			return
 		}
@@ -129,7 +129,7 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Add("Content-Type", "application/json")
+		w.Header().Add("Content-Type", ContentTypeJSON)
 		w.Write(body)
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
@@ -151,8 +151,8 @@ func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
 		signalChannel, available := client.queuedModals[itx.Data.CustomID]
 		client.qMu.RUnlock()
 		if available && signalChannel != nil {
-			w.Header().Add("Content-Type", "application/json")
-			w.Write(private_ACKNOWLEDGE_RESPONSE_RAW_BODY)
+			w.Header().Add("Content-Type", ContentTypeJSON)
+			w.Write(bodyAcknowledgeResponse)
 			signalChannel <- &itx
 		}
 

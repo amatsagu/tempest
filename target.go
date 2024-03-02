@@ -37,14 +37,14 @@ func (user User) Mention() string {
 // Returns a direct url to user's avatar. It'll return url to default Discord's avatar if targeted user don't use avatar.
 func (user User) AvatarURL() string {
 	if user.AvatarHash == "" {
-		return DISCORD_CDN_URL + "/embed/avatars/" + strconv.FormatUint(uint64(user.ID>>22)%6, 10) + ".png"
+		return DiscordCDNURL + "/embed/avatars/" + strconv.FormatUint(uint64(user.ID>>22)%6, 10) + ".png"
 	}
 
 	if strings.HasPrefix(user.AvatarHash, "a_") {
-		return DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash + ".gif"
+		return DiscordCDNURL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
+	return DiscordCDNURL + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
 }
 
 // Returns a direct url to user's banner. It'll return empty string if targeted user don't use avatar.
@@ -54,10 +54,10 @@ func (user User) BannerURL() string {
 	}
 
 	if strings.HasPrefix(user.BannerHash, "a_") {
-		return DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
+		return DiscordCDNURL + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash
+	return DiscordCDNURL + "/banners/" + user.ID.String() + "/" + user.BannerHash
 }
 
 // https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-structure
@@ -84,10 +84,10 @@ func (member Member) GuildAvatarURL() string {
 	}
 
 	if strings.HasPrefix(member.GuildAvatarHash, "a_") {
-		return DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash + ".gif"
+		return DiscordCDNURL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash
+	return DiscordCDNURL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash
 }
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-structure
@@ -117,5 +117,5 @@ func (role Role) IconURL() string {
 		return ""
 	}
 
-	return DISCORD_CDN_URL + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"
+	return DiscordCDNURL + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"
 }
