@@ -82,7 +82,7 @@ func (client *Client) FetchUser(id Snowflake) (User, error) {
 	}
 
 	res := User{}
-	json.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return User{}, errors.New("failed to parse received data from discord")
 	}
@@ -97,7 +97,7 @@ func (client *Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member
 	}
 
 	res := Member{}
-	json.Unmarshal(raw, &res)
+	err = json.Unmarshal(raw, &res)
 	if err != nil {
 		return Member{}, errors.New("failed to parse received data from discord")
 	}
