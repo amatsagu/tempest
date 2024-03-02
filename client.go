@@ -13,7 +13,7 @@ import (
 
 type ClientOptions struct {
 	PublicKey        string // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
-	Rest             Rest
+	Rest             *RestClient
 	HTTPServer       HTTPServer
 	HTTPServeMux     HTTPServeMux
 	PreCommandHook   func(cmd *Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
@@ -23,7 +23,7 @@ type ClientOptions struct {
 }
 
 type Client struct {
-	Rest          Rest
+	Rest          *RestClient
 	ApplicationID Snowflake
 	PublicKey     ed25519.PublicKey
 	httpServer    HTTPServer
@@ -241,7 +241,7 @@ func NewClient(options ClientOptions) *Client {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
 	}
 
-	botUserID, err := extractUserIDFromToken(options.Rest.Token())
+	botUserID, err := extractUserIDFromToken(options.Rest.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}

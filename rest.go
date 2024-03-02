@@ -11,23 +11,12 @@ import (
 	"time"
 )
 
-var _ Rest = (*iRest)(nil)
-
-type Rest interface {
-	Request(method string, route string, jsonPayload interface{}) ([]byte, error)
-	Token() string
-}
-
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-type iRest struct {
-	mu                   sync.RWMutex
-	token                string
-	httpClient           HTTPClient
-	lockedTo             time.Time
-	maxReconnectAttempts uint8
+type RestClient struct {
+	HTTPClient *http.Client
+	Token      string
+	MaxRetries uint8
+	mu         sync.RWMutex
+	lockedTo   time.Time
 }
 
 type rateLimitError struct {
@@ -36,7 +25,7 @@ type rateLimitError struct {
 	RetryAfter float32 `json:"retry_after"`
 }
 
-func (rest *iRest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *RestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	if !rest.lockedTo.IsZero() {
 		timeLeft := time.Until(rest.lockedTo)
 		if timeLeft > 0 {
@@ -45,25 +34,19 @@ func (rest *iRest) Request(method string, route string, jsonPayload interface{})
 	}
 
 	var i uint8 = 0
-	for i < rest.maxReconnectAttempts {
+	for i < rest.MaxRetries {
 		i++
-		rest.mu.RLock()
 		raw, err, finished := rest.handleRequest(method, route, jsonPayload)
 		if finished {
 			return raw, err
 		}
-		rest.mu.RUnlock()
 		time.Sleep(time.Microsecond * time.Duration(250*i))
 	}
 
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *iRest) Token() string {
-	return strings.TrimPrefix(rest.token, "Bot ")
-}
-
-func (rest *iRest) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
+func (rest *RestClient) handleRequest(method string, route string, jsonPayload interface{}) ([]byte, error, bool) {
 	var req *http.Request
 	if jsonPayload == nil {
 		request, err := http.NewRequest(method, DISCORD_API_URL+route, nil)
@@ -95,9 +78,9 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", USER_AGENT)
-	req.Header.Add("Authorization", rest.token)
+	req.Header.Add("Authorization", rest.Token)
 
-	res, err := rest.httpClient.Do(req)
+	res, err := rest.HTTPClient.Do(req)
 	if err != nil {
 		return nil, errors.New("failed to process request: " + err.Error()), false
 	}
@@ -115,8 +98,9 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 		rateErr := rateLimitError{}
 		json.Unmarshal(body, &rateErr)
 
-		rest.mu.Lock()
 		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
+
+		rest.mu.Lock()
 		rest.lockedTo = timeLeft
 		rest.mu.Unlock()
 
@@ -133,10 +117,21 @@ func (rest *iRest) handleRequest(method string, route string, jsonPayload interf
 	return body, nil, true
 }
 
-func NewRest(token string) Rest {
-	return &iRest{
-		token:                "Bot " + token,
-		httpClient:           &http.Client{Timeout: time.Second * 3},
-		maxReconnectAttempts: 3,
+func NewRestClient(token string) *RestClient {
+	t := token
+	if !strings.HasPrefix(t, "Bot ") {
+		t = "Bot " + t
+	}
+
+	return &RestClient{
+		HTTPClient: &http.Client{
+			Transport: &http.Transport{
+				TLSHandshakeTimeout: time.Second * 3,
+			},
+			Timeout: time.Second * 3,
+		},
+		Token:      t,
+		MaxRetries: 3,
+		lockedTo:   time.Time{},
 	}
 }
