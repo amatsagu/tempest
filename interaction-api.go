@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -62,15 +63,15 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool) error {
+func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []*os.File) error {
 	if ephemeral && reply.Flags == 0 {
 		reply.Flags = 64
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	_, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
-	})
+	}, files)
 
 	return err
 }
@@ -79,7 +80,7 @@ func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral boo
 func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
 	return itx.SendReply(ResponseMessageData{
 		Content: content,
-	}, ephemeral)
+	}, ephemeral, nil)
 }
 
 func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
