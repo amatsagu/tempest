@@ -1,21 +1,16 @@
 package tempest
 
 import (
-	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
-	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 type ClientOptions struct {
 	PublicKey        string // Hash like key used to verify incoming payloads from Discord. (default: <nil>)
 	Rest             *RestClient
-	HTTPServer       HTTPServer
-	HTTPServeMux     HTTPServeMux
 	PreCommandHook   func(cmd *Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	PostCommandHook  func(cmd *Command, itx *CommandInteraction)      // Function that runs after each command.
 	ComponentHandler func(itx *ComponentInteraction)                  // Function that runs for each unhandled component.
@@ -26,8 +21,6 @@ type Client struct {
 	Rest          *RestClient
 	ApplicationID Snowflake
 	PublicKey     ed25519.PublicKey
-	httpServer    HTTPServer
-	httpServeMux  HTTPServeMux
 
 	preCommandHandler  func(cmd *Command, itx *CommandInteraction) bool
 	postCommandHandler func(cmd *Command, itx *CommandInteraction)
@@ -41,21 +34,6 @@ type Client struct {
 	qMu              sync.RWMutex // Shated mutex for dynamic, components & modals.
 	queuedComponents map[string]chan *ComponentInteraction
 	queuedModals     map[string]chan *ModalInteraction
-
-	state atomic.Uint32
-}
-
-type ClientState uint8
-
-const (
-	INIT_STATE ClientState = iota
-	RUNNING_STATE
-	CLOSING_STATE
-	CLOSED_STATE
-)
-
-func (client *Client) State() ClientState {
-	return ClientState(client.state.Load())
 }
 
 // Makes client dynamically "listen" incoming component type interactions.
@@ -139,102 +117,6 @@ func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan
 	return signalChannel, closeFunction, nil
 }
 
-// Starts bot on set route aka "endpoint". Setting example route = "/bot" and address = "192.168.0.7:9070" would make bot work under http://192.168.0.7:9070/bot.
-// Set route as "/" or leave empty string to make it work on any URI (default).
-func (client *Client) ListenAndServe(route string, address string) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state")
-	}
-
-	if route == "" {
-		route = "/"
-	}
-
-	client.state.Store(uint32(RUNNING_STATE))
-	client.httpServeMux.HandleFunc(route, client.handleRequest)
-	client.httpServer.(*http.Server).Addr = address
-	client.httpServer.(*http.Server).Handler = client.httpServeMux
-
-	err := client.httpServer.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		return err
-	}
-	return nil
-}
-
-func (client *Client) ListenAndServeTLS(route string, address string, certFile, keyFile string) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state")
-	}
-
-	if route == "" {
-		route = "/"
-	}
-
-	client.state.Store(uint32(RUNNING_STATE))
-	client.httpServeMux.HandleFunc(route, client.handleRequest)
-	client.httpServer.(*http.Server).Addr = address
-	client.httpServer.(*http.Server).Handler = client.httpServeMux
-
-	err := client.httpServer.ListenAndServeTLS(certFile, keyFile)
-	if err != nil && err != http.ErrServerClosed {
-		return err
-	}
-	return nil
-}
-
-// Let's you take control over client's life cycle. Please avoid using it unless you want to integrate custom http client.
-func (client *Client) Hijack() (func(w http.ResponseWriter, r *http.Request), error) {
-	if client.State() != INIT_STATE {
-		return nil, errors.New("client is no longer in initialization state")
-	}
-
-	client.state.Store(uint32(RUNNING_STATE))
-	return client.handleRequest, nil
-}
-
-// Tries to gracefully shutdown client. It'll clear all queued actions and shutdown underlying http server.
-func (client *Client) Close(ctx context.Context) error {
-	if client.State() == INIT_STATE {
-		return errors.New("client is still in initiallization phase, there's nothing to shutdown")
-	}
-
-	if client.State() != RUNNING_STATE {
-		return errors.New("client is already either closed or during closing process")
-	}
-
-	client.state.Store(uint32(CLOSING_STATE))
-	client.preCommandHandler = func(cmd *Command, itx *CommandInteraction) bool {
-		return false
-	}
-
-	for key, componentChannel := range client.queuedComponents {
-		if _, open := <-componentChannel; open {
-			close(componentChannel)
-		}
-		delete(client.queuedComponents, key)
-	}
-
-	for key, modalChannel := range client.queuedModals {
-		if _, open := <-modalChannel; open {
-			close(modalChannel)
-		}
-		delete(client.queuedModals, key)
-	}
-
-	err := client.httpServer.Shutdown(ctx)
-	if err != nil {
-		err2 := client.httpServer.Close()
-		if err2 != nil {
-			return errors.Join(err, err2)
-		}
-		return err
-	}
-
-	client.state.Store(uint32(CLOSED_STATE))
-	return nil
-}
-
 func NewClient(options ClientOptions) *Client {
 	discordPublicKey, err := hex.DecodeString(options.PublicKey)
 	if err != nil {
@@ -246,20 +128,10 @@ func NewClient(options ClientOptions) *Client {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
-	if options.HTTPServer == nil {
-		options.HTTPServer = &http.Server{}
-	}
-
-	if options.HTTPServeMux == nil {
-		options.HTTPServeMux = http.NewServeMux()
-	}
-
 	return &Client{
 		Rest:          options.Rest,
 		ApplicationID: botUserID,
 		PublicKey:     ed25519.PublicKey(discordPublicKey),
-		httpServer:    options.HTTPServer,
-		httpServeMux:  options.HTTPServeMux,
 
 		preCommandHandler:  options.PreCommandHook,
 		postCommandHandler: options.PostCommandHook,

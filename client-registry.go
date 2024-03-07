@@ -6,9 +6,6 @@ import (
 )
 
 func (client *Client) RegisterCommand(command Command) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
-	}
 
 	if _, exists := client.commands[command.Name]; exists {
 		return errors.New("client already has registered \"" + command.Name + "\" slash command (name already in use)")
@@ -25,9 +22,6 @@ func (client *Client) RegisterCommand(command Command) error {
 }
 
 func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName string) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
-	}
 
 	if _, available := client.commands[rootCommandName]; !available {
 		return errors.New("missing \"" + rootCommandName + "\" slash command in registry (root command needs to be registered in client before adding subcommands)")
@@ -43,9 +37,6 @@ func (client *Client) RegisterSubCommand(subCommand Command, rootCommandName str
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
 func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
-	}
 
 	for _, ID := range customIDs {
 		_, exists := client.components[ID]
@@ -63,9 +54,6 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInt
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving modal interaction with matching custom id.
 func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
-	if client.State() != INIT_STATE {
-		return errors.New("client is no longer in initialization state (avoid editing client's internals after it launches)")
-	}
 
 	_, exists := client.modals[customID]
 	if exists {
