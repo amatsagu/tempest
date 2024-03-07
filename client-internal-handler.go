@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func (client *Client) handleRequest(w http.ResponseWriter, r *http.Request) {
+func (client *Client) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
