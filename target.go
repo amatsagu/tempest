@@ -20,6 +20,7 @@ const (
 type User struct {
 	ID          Snowflake `json:"id"`
 	Username    string    `json:"username"`
+	GlobalName  *string   `json:"global_name"`      // User's display name, if it is set. For bots, this is the application name
 	AvatarHash  string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
 	Bot         bool      `json:"bot,omitempty"`
 	MFA         bool      `json:"mfa_enabled,omitempty"`
