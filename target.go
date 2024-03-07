@@ -20,8 +20,8 @@ const (
 type User struct {
 	ID          Snowflake `json:"id"`
 	Username    string    `json:"username"`
-	GlobalName  *string   `json:"global_name"`      // User's display name, if it is set. For bots, this is the application name
-	AvatarHash  string    `json:"avatar,omitempty"` // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
+	GlobalName  string    `json:"global_name,omitempty"` // User's display name, if it is set. For bots, this is the application name.
+	AvatarHash  string    `json:"avatar,omitempty"`      // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
 	Bot         bool      `json:"bot,omitempty"`
 	MFA         bool      `json:"mfa_enabled,omitempty"`
 	BannerHash  string    `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
@@ -104,6 +104,10 @@ type Role struct {
 	Managed         bool       `json:"managed"`     // Whether this role is managed by an integration.
 	Mentionable     bool       `json:"mentionable"` // Whether this role is mentionable.
 	Tags            []*RoleTag `json:"tags,omitempty"`
+}
+
+func (role Role) Mention() string {
+	return "<@&" + role.ID.String() + ">"
 }
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
