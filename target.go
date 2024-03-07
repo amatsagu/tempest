@@ -110,6 +110,19 @@ func (role Role) Mention() string {
 	return "<@&" + role.ID.String() + ">"
 }
 
+// Returns a direct url to role icon. It'll return empty string if there's no custom icon.
+func (role Role) IconURL() string {
+	if role.IconHash == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(role.IconHash, "a_") {
+		return DiscordCDNURL + "/avatars/" + role.ID.String() + "/" + role.IconHash + ".gif"
+	}
+
+	return DiscordCDNURL + "/avatars/" + role.ID.String() + "/" + role.IconHash
+}
+
 // https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
 type RoleTag struct {
 	BotID                 Snowflake `json:"bot_id,omitempty"`
@@ -118,12 +131,4 @@ type RoleTag struct {
 	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitempty"` // The id of this role's subscription sku and listing.
 	AvailableForPurchase  bool      `json:"available_for_purchase,omitempty"`
 	GuildConnections      bool      `json:"guild_connections,omitempty"` // Whether this role is a guild's linked role.
-}
-
-func (role Role) IconURL() string {
-	if role.IconHash == "" {
-		return ""
-	}
-
-	return DiscordCDNURL + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"
 }
