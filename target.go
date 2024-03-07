@@ -93,17 +93,17 @@ func (member Member) GuildAvatarURL() string {
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-structure
 type Role struct {
-	ID              Snowflake  `json:"id"`
-	Name            string     `json:"name"`
-	Color           uint32     `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
-	Hoist           bool       `json:"hoist"` // Whether this role is pinned in the user listing.
-	IconHash        string     `json:"icon,omitempty"`
-	UnicodeEmoji    string     `json:"unicode_emoji,omitempty"`
-	Position        uint8      `json:"position"`
-	PermissionFlags uint64     `json:"permissions,string"`
-	Managed         bool       `json:"managed"`     // Whether this role is managed by an integration.
-	Mentionable     bool       `json:"mentionable"` // Whether this role is mentionable.
-	Tags            []*RoleTag `json:"tags,omitempty"`
+	ID              Snowflake `json:"id"`
+	Name            string    `json:"name"`
+	Color           uint32    `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
+	Hoist           bool      `json:"hoist"` // Whether this role is pinned in the user listing.
+	IconHash        string    `json:"icon,omitempty"`
+	UnicodeEmoji    string    `json:"unicode_emoji,omitempty"`
+	Position        uint8     `json:"position"`
+	PermissionFlags uint64    `json:"permissions,string"`
+	Managed         bool      `json:"managed"`     // Whether this role is managed by an integration.
+	Mentionable     bool      `json:"mentionable"` // Whether this role is mentionable.
+	Tags            *RoleTag  `json:"tags,omitempty"`
 }
 
 func (role Role) Mention() string {
@@ -112,9 +112,12 @@ func (role Role) Mention() string {
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
 type RoleTag struct {
-	BotID         Snowflake `json:"bot_id,omitempty"`
-	IntegrationID Snowflake `json:"integration_id,omitempty"`
-	// PremiumSubscriber bool <== UNKNOWN DOCUMENTATION
+	BotID                 Snowflake `json:"bot_id,omitempty"`
+	IntegrationID         Snowflake `json:"integration_id,omitempty"`          // The id of the integration this role belongs to.
+	PremiumSubscriber     bool      `json:"premium_subscriber,omitempty"`      // Whether this is the guild's Booster role.
+	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitempty"` // The id of this role's subscription sku and listing.
+	AvailableForPurchase  bool      `json:"available_for_purchase,omitempty"`
+	GuildConnections      bool      `json:"guild_connections,omitempty"` // Whether this role is a guild's linked role.
 }
 
 func (role Role) IconURL() string {
