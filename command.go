@@ -43,7 +43,7 @@ const (
 	DUTCH_LANGUAGE          Language = "nl"
 	NORWEGIAN_LANGUAGE      Language = "no"
 	POLISH_LANGUAGE         Language = "pl"
-	PORTUGESE_BR_LANGUAGE   Language = "pt-BR"
+	PORTUGUESE_BR_LANGUAGE  Language = "pt-BR"
 	ROMANIAN_LANGUAGE       Language = "ro"
 	FINNISH_LANGUAGE        Language = "fi"
 	SWEDISH_LANGUAGE        Language = "sv-SE"
