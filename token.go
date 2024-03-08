@@ -12,7 +12,9 @@ func extractUserIDFromToken(token string) (Snowflake, error) {
 		return 0, errors.New("token is not in a valid format")
 	}
 
-	byteID, err := base64.RawStdEncoding.DecodeString(strs[0])
+	hexID := strings.Replace(strs[0], "Bot ", "", 1)
+
+	byteID, err := base64.RawStdEncoding.DecodeString(hexID)
 	if err != nil {
 		return 0, err
 	}
