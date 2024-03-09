@@ -52,11 +52,12 @@ func NewRestClient(token string) *RestClient {
 func (rest *RestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	var body io.Reader
 	if jsonPayload != nil {
-		body := &bytes.Buffer{}
-		err := json.NewEncoder(body).Encode(jsonPayload)
+		buffer := &bytes.Buffer{}
+		err := json.NewEncoder(buffer).Encode(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
+		body = buffer
 	}
 
 	if !rest.lockedTo.IsZero() {
