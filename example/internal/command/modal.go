@@ -13,10 +13,10 @@ var Modal tempest.Command = tempest.Command{
 		err := itx.SendModal(tempest.ResponseModalData{
 			CustomID: "my-modal",
 			Title:    "Hello modal!",
-			Components: []*tempest.ComponentRow{
+			Components: []tempest.ComponentRow{
 				{
 					Type: tempest.ROW_COMPONENT_TYPE,
-					Components: []*tempest.Component{
+					Components: []tempest.Component{
 						{
 							CustomID: "example-text-input",
 							Type:     tempest.TEXT_INPUT_COMPONENT_TYPE,

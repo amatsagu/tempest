@@ -1,6 +1,7 @@
 module example-bot
 
-go 1.21.5
+go 1.22
 
 require github.com/joho/godotenv v1.5.1
-require github.com/Amatsagu/Tempest v1.1.36-0.20231224135111-b64d29eedf86
+
+require github.com/Amatsagu/Tempest v1.1.7-0.20240308113740-e700f1b1f864

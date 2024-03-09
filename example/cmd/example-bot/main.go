@@ -4,6 +4,7 @@ import (
 	"example-bot/internal/command"
 	"fmt"
 	"log/slog"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 
@@ -20,7 +21,7 @@ func main() {
 	slog.Info("Creating new Tempest client...")
 	client := tempest.NewClient(tempest.ClientOptions{
 		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
-		Rest:      tempest.NewRest(os.Getenv("DISCORD_BOT_TOKEN")),
+		Rest:      tempest.NewRestClient(os.Getenv("DISCORD_BOT_TOKEN")),
 	})
 
 	addr := os.Getenv("DISCORD_APP_ADDRESS")
@@ -38,8 +39,8 @@ func main() {
 	client.RegisterCommand(command.FetchUser)
 	client.RegisterCommand(command.MemoryUsage)
 	client.RegisterCommand(command.Modal)
-	client.RegisterCommand(command.Shutdown)
 	client.RegisterCommand(command.Static)
+	client.RegisterCommand(command.Swap)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 	client.RegisterModal("my-modal", command.HelloModal)
 
@@ -48,8 +49,10 @@ func main() {
 		slog.Error("failed to sync local commands storage with Discord API", err)
 	}
 
+	http.HandleFunc("POST /discord/callback", client.HandleRequest)
+
 	slog.Info(fmt.Sprintf("Serving application at: %s/discord/callback", addr))
-	if err := client.ListenAndServe("/discord/callback", addr); err != nil {
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		slog.Error("something went terribly wrong", err)
 	}
 }
