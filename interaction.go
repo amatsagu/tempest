@@ -80,22 +80,22 @@ type ModalInteraction struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-application-command-data-structure
 type CommandInteractionData struct {
-	ID       Snowflake                  `json:"id,omitempty"`
-	Name     string                     `json:"name"`
-	Type     CommandType                `json:"type"`
-	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`
-	Options  []CommandInteractionOption `json:"options,omitempty"`
-	GuildID  Snowflake                  `json:"guild_id,omitempty"`
-	TargetID Snowflake                  `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
+	ID       Snowflake                   `json:"id,omitempty"`
+	Name     string                      `json:"name"`
+	Type     CommandType                 `json:"type"`
+	Resolved *InteractionDataResolved    `json:"resolved,omitempty"`
+	Options  []*CommandInteractionOption `json:"options,omitempty"`
+	GuildID  Snowflake                   `json:"guild_id,omitempty"`
+	TargetID Snowflake                   `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
 type CommandInteractionOption struct {
-	Name    string                     `json:"name"`
-	Type    OptionType                 `json:"type"`
-	Value   any                        `json:"value,omitempty"` // string, float64 (double or integer) or bool
-	Options []CommandInteractionOption `json:"options,omitempty"`
-	Focused bool                       `json:"focused,omitempty"`
+	Name    string                      `json:"name"`
+	Type    OptionType                  `json:"type"`
+	Value   any                         `json:"value,omitempty"` // string, float64 (double or integer) or bool
+	Options []*CommandInteractionOption `json:"options,omitempty"`
+	Focused bool                        `json:"focused,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
