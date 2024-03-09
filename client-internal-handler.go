@@ -7,11 +7,13 @@ import (
 	"net/http"
 )
 
-func (client *Client) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+func (client *Client) HandleDiscordRequest(w http.ResponseWriter, r *http.Request) {
+	// Deprecated since Go v1.22 - Please specify http method when registering handler.
+	//
+	// if r.Method != http.MethodPost {
+	// 	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
