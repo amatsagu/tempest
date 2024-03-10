@@ -52,12 +52,12 @@ func NewRestClient(token string) *RestClient {
 func (rest *RestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	var body io.Reader
 	if jsonPayload != nil {
-		buffer := &bytes.Buffer{}
-		err := json.NewEncoder(buffer).Encode(jsonPayload)
+		raw, err := json.Marshal(jsonPayload)
 		if err != nil {
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
-		body = buffer
+
+		body = bytes.NewReader(bytes.Replace(raw, requestSwapNullArray, requestSwapEmptyArray, -1))
 	}
 
 	if !rest.lockedTo.IsZero() {
@@ -94,8 +94,18 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 		}
 	}
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+	var body *bytes.Buffer
+	var writer *multipart.Writer
+	if jsonPayload != nil {
+		raw, err := json.Marshal(jsonPayload)
+		if err != nil {
+			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
+		}
+
+		body = bytes.NewBuffer(bytes.Replace(raw, requestSwapNullArray, requestSwapEmptyArray, -1))
+		writer = multipart.NewWriter(body)
+	}
+
 	jsonPart, err := writer.CreatePart(partHeader(`form-data; name="payload_json"`, ContentTypeJSON))
 	if err != nil {
 		return nil, errors.New("failed to create json body part in multipart payload: " + err.Error())
@@ -195,6 +205,15 @@ func partHeader(contentDisposition string, contentType string) textproto.MIMEHea
 		"Content-Disposition": []string{contentDisposition},
 		"Content-Type":        []string{contentType},
 	}
+}
+
+func replaceEmptyObjectsInJSONArrays(reader io.Reader) io.Reader {
+	var buffer bytes.Buffer
+
+	io.Copy(&buffer, reader)
+	contents := strings.Replace(buffer.String(), "[{}]", "[]", -1)
+
+	return strings.NewReader(contents)
 }
 
 // bytes.NewBuffer(bytes.ReplaceAll(
