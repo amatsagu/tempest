@@ -79,7 +79,7 @@ func (rest *RestClient) Request(method string, route string, jsonPayload interfa
 		time.Sleep(time.Microsecond * time.Duration(250*i))
 	}
 
-	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
+	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
 func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayload interface{}, files []*os.File) ([]byte, error) {
