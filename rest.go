@@ -206,18 +206,3 @@ func partHeader(contentDisposition string, contentType string) textproto.MIMEHea
 		"Content-Type":        []string{contentType},
 	}
 }
-
-func replaceEmptyObjectsInJSONArrays(reader io.Reader) io.Reader {
-	var buffer bytes.Buffer
-
-	io.Copy(&buffer, reader)
-	contents := strings.Replace(buffer.String(), "[{}]", "[]", -1)
-
-	return strings.NewReader(contents)
-}
-
-// bytes.NewBuffer(bytes.ReplaceAll(
-// 	body,
-// 	private_REST_NULL_SLICE_FIND,
-// 	private_REST_NULL_SLICE_REPLACE,
-// ))
