@@ -17,3 +17,8 @@ var (
 	bodyAcknowledgeResponse    = []byte(fmt.Sprintf(`{"type":%d}`, DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE))
 	bodyUnknownCommandResponse = []byte(fmt.Sprintf(`{"type":%d,"data":{"content":"Oh uh.. It looks like you tried to trigger (/) unknown command. Please report this bug to bot owner.","flags":64}}`, CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE))
 )
+
+var (
+	requestSwapNullArray  = []byte("[null]")
+	requestSwapEmptyArray = []byte("[]")
+)
