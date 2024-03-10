@@ -15,6 +15,10 @@ func (client *Client) RegisterCommand(command Command) error {
 		command.Type = CHAT_INPUT_COMMAND_TYPE
 	}
 
+	if command.ApplicationID == 0 {
+		command.ApplicationID = client.ApplicationID
+	}
+
 	tree := make(map[string]Command)
 	tree[ROOT_PLACEHOLDER] = command
 	client.commands[command.Name] = tree
