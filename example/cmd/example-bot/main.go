@@ -30,6 +30,10 @@ func main() {
 		slog.Error("failed to parse env variable to snowflake", err)
 	}
 
+	// Warning!
+	// Please make sure you've registered all slash commands & static components before starting http server.
+	// Client's registry after starting is used as readonly cache so it skips using mutex for performance reasons.
+	// You shouldn't update registry after http server launches.
 	slog.Info("Registering commands & static components...")
 	client.RegisterCommand(command.Add)
 	client.RegisterCommand(command.AutoComplete)
