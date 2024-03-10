@@ -12,7 +12,7 @@ var Avatar tempest.Command = tempest.Command{
 
 		avatar := user.AvatarURL()
 		itx.SendReply(tempest.ResponseMessageData{
-			Embeds: []tempest.Embed{
+			Embeds: []*tempest.Embed{
 				{
 					Title: user.Username + "'s avatar",
 					URL:   avatar,

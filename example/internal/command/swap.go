@@ -1,8 +1,6 @@
 package command
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	tempest "github.com/Amatsagu/Tempest"
@@ -14,7 +12,7 @@ var Swap tempest.Command = tempest.Command{
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		itx.SendReply(tempest.ResponseMessageData{
 			Content: "Example message",
-			Embeds: []tempest.Embed{
+			Embeds: []*tempest.Embed{
 				{
 					Title:       "Example embed title",
 					Description: "Example embed description",
@@ -24,16 +22,9 @@ var Swap tempest.Command = tempest.Command{
 
 		time.Sleep(time.Second * 2)
 
-		x := tempest.ResponseMessageData{
+		itx.EditReply(tempest.ResponseMessageData{
 			Content: "Modified hello message!",
-			Embeds:  []tempest.Embed{},
-		}
-
-		raw, err := json.Marshal(x)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(string(raw))
+			Embeds:  []*tempest.Embed{nil},
+		}, false)
 	},
 }

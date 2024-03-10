@@ -16,10 +16,10 @@ var Dynamic tempest.Command = tempest.Command{
 
 		msg := tempest.ResponseMessageData{
 			Content: "Click below button *(only you can do it)*:",
-			Components: []tempest.ComponentRow{
+			Components: []*tempest.ComponentRow{
 				{
 					Type: tempest.ROW_COMPONENT_TYPE,
-					Components: []tempest.Component{
+					Components: []*tempest.Component{
 						{
 							CustomID: uniqueButtonID,
 							Type:     tempest.BUTTON_COMPONENT_TYPE,

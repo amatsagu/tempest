@@ -1,8 +1,6 @@
-github.com/Amatsagu/Tempest v1.1.7-0.20240307130348-58948f188664 h1:Sjua/EUekQMWHQQVNZ8/vWstRdqFbcGjMrI8weTqvdA=
-github.com/Amatsagu/Tempest v1.1.7-0.20240307130348-58948f188664/go.mod h1:nKYECgmXvrjmlTMpG6YM++MTjQHpPlkPXzKzQ/Wn5B0=
-github.com/Amatsagu/Tempest v1.1.7-0.20240308113740-e700f1b1f864 h1:rkI6ti4Qyom6GIhAo3xjzKoI5ddjqcc34QwFLUpYhKY=
-github.com/Amatsagu/Tempest v1.1.7-0.20240308113740-e700f1b1f864/go.mod h1:nKYECgmXvrjmlTMpG6YM++MTjQHpPlkPXzKzQ/Wn5B0=
-github.com/Amatsagu/Tempest v1.1.36-0.20231224135111-b64d29eedf86 h1:BIcNeFsva7vC39PKPr7zrEWjBKnBrwyn1rr7IIN5M9A=
-github.com/Amatsagu/Tempest v1.1.36-0.20231224135111-b64d29eedf86/go.mod h1:nKYECgmXvrjmlTMpG6YM++MTjQHpPlkPXzKzQ/Wn5B0=
+github.com/Amatsagu/Tempest v1.1.7-0.20240309110700-da99bbed97db h1:ztyfq7rt+sjfNAlhwmUsxvte+ALyEIGSG59pTSpV1Ic=
+github.com/Amatsagu/Tempest v1.1.7-0.20240309110700-da99bbed97db/go.mod h1:6pJb/I5+sg0g0bc78zRPVh7G5s1pL7FxCzGDoHlVugE=
+github.com/Amatsagu/Tempest v1.1.7-0.20240310145558-c48446d33797 h1:QIAHr00H1UbOGLL76NRZM3L5qUJOX5HfbK661TdGwMs=
+github.com/Amatsagu/Tempest v1.1.7-0.20240310145558-c48446d33797/go.mod h1:6pJb/I5+sg0g0bc78zRPVh7G5s1pL7FxCzGDoHlVugE=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=

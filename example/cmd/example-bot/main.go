@@ -49,7 +49,7 @@ func main() {
 		slog.Error("failed to sync local commands storage with Discord API", err)
 	}
 
-	http.HandleFunc("POST /discord/callback", client.HandleRequest)
+	http.HandleFunc("POST /discord/callback", client.HandleDiscordRequest)
 
 	slog.Info(fmt.Sprintf("Serving application at: %s/discord/callback", addr))
 	if err := http.ListenAndServe(addr, nil); err != nil {
