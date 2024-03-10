@@ -34,12 +34,9 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
     - Supports timeouts & gives a lot of freedom,
     - Works for both [static](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.AwaitModal) ways
 * [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/Amatsagu/Tempest#Client.SyncCommands)
-* Request failure auto recovery (3 attempts)
-    - On failed attempts *(probably due to internet connection)*, it'll try again up to 3 times before returning error
+* Request failure auto recovery (3 attempts by default)
+    - On failed attempts *(probably due to internet connection)*, it'll try again set number of times before returning error
 * No Discord data caching by default
-
-> [!NOTE]
-> Tempest lib supports all operations available in Discord API through HTTP except sending files. For now, you can only receive files.
 
 ### Getting started
 1. Install with: `go get -u github.com/Amatsagu/Tempest`
@@ -56,7 +53,7 @@ All contributions are welcomed.
 Few rules before making a pull request:
 * Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 
 * Add link to document for new structs
-    - Since `v1.1.0`, all structs have links to corresponding discord docs
+    - Since `v1.1.0`, all structs should have links to corresponding discord docs
 
 
 
