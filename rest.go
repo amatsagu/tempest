@@ -193,7 +193,7 @@ func (rest *RestClient) handleRequest(method string, route string, payload io.Re
 		rest.lockedTo = time.Time{}
 		rest.mu.Unlock()
 		return nil, errors.New("rate limit"), false
-	} else if res.StatusCode < 200 && res.StatusCode > 299 {
+	} else if res.StatusCode < 200 || res.StatusCode > 299 {
 		return nil, errors.New(res.Status + " :: " + string(body)), true
 	}
 
