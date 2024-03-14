@@ -51,7 +51,7 @@ You can also inivite to contact me on [discord](https://discord.com/users/390394
 ## Contributing
 All contributions are welcomed.
 Few rules before making a pull request:
-* Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) 
+* Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/)
 * Add link to document for new structs
     - Since `v1.1.0`, all structs should have links to corresponding discord docs
 
