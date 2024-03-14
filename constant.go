@@ -3,12 +3,12 @@ package tempest
 import "fmt"
 
 const (
-	DiscordAPIURL    = "https://discord.com/api/v10"
-	DiscordCDNURL    = "https://cdn.discordapp.com"
-	DiscordEpoch     = 1420070400000 // Discord epoch in milliseconds
-	UserAgent        = "DiscordApp https://github.com/Amatsagu/tempest"
-	ContentTypeJSON  = "application/json"
-	ROOT_PLACEHOLDER = "-"
+	DISCORD_API_URL   = "https://discord.com/api/v10"
+	DISCORD_CDN_URL   = "https://cdn.discordapp.com"
+	DISCORD_EPOCH     = 1420070400000 // Discord epoch in milliseconds
+	USER_AGENT        = "DiscordApp https://github.com/Amatsagu/tempest"
+	CONTENT_TYPE_JSON = "application/json"
+	ROOT_PLACEHOLDER  = "-"
 )
 
 // Prepare those replies as they never change so there's no point in re-creating them each time.

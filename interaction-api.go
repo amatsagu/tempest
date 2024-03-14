@@ -159,7 +159,7 @@ func (itx ComponentInteraction) Acknowledge() error {
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }
@@ -178,7 +178,7 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageDa
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }
@@ -199,7 +199,7 @@ func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) er
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }
@@ -234,7 +234,7 @@ func (itx ModalInteraction) Acknowledge() error {
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }
@@ -253,7 +253,7 @@ func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData,
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }
@@ -274,7 +274,7 @@ func (itx ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error 
 		return err
 	}
 
-	itx.w.Header().Add("Content-Type", ContentTypeJSON)
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
 	return err
 }

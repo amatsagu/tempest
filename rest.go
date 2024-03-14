@@ -71,7 +71,7 @@ func (rest *RestClient) Request(method string, route string, jsonPayload interfa
 	for i < rest.MaxRetries {
 		i++
 		rest.mu.RLock()
-		raw, err, finished := rest.handleRequest(method, route, body, ContentTypeJSON)
+		raw, err, finished := rest.handleRequest(method, route, body, CONTENT_TYPE_JSON)
 		if finished {
 			return raw, err
 		}
@@ -106,7 +106,7 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 		writer = multipart.NewWriter(body)
 	}
 
-	jsonPart, err := writer.CreatePart(partHeader(`form-data; name="payload_json"`, ContentTypeJSON))
+	jsonPart, err := writer.CreatePart(partHeader(`form-data; name="payload_json"`, CONTENT_TYPE_JSON))
 	if err != nil {
 		return nil, errors.New("failed to create json body part in multipart payload: " + err.Error())
 	}
@@ -155,13 +155,13 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 }
 
 func (rest *RestClient) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
-	request, err := http.NewRequest(method, DiscordAPIURL+route, payload)
+	request, err := http.NewRequest(method, DISCORD_API_URL+route, payload)
 	if err != nil {
 		return nil, errors.New("failed to initialize new request: " + err.Error()), false
 	}
 
 	request.Header.Add("Content-Type", contentType)
-	request.Header.Add("User-Agent", UserAgent)
+	request.Header.Add("User-Agent", USER_AGENT)
 	request.Header.Add("Authorization", rest.Token)
 
 	res, err := rest.HTTPClient.Do(request)
