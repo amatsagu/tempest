@@ -207,3 +207,21 @@ type MessageInteraction struct {
 	User   User            `json:"user"`
 	Member *Member         `json:"member,omitempty"`
 }
+
+// https://discord.com/developers/docs/resources/channel#attachment-object
+type Attachment struct {
+	ID           Snowflake `json:"id"`
+	FileName     string    `json:"filename"`
+	Title        string    `json:"title,omitempty"`
+	Description  string    `json:"description,omitempty"`
+	ContentType  string    `json:"content_type,omitempty"`
+	Size         uint64    `json:"size"`
+	URL          string    `json:"url"`
+	ProxyURL     string    `json:"proxy_url"`
+	Height       uint      `json:"height,omitempty"`
+	Width        uint      `json:"width,omitempty"`
+	Ephemeral    bool      `json:"ephemeral,omitempty"`
+	DurationSecs float64   `json:"duration_secs,omitempty"`
+	Waveform     string    `json:"waveform,omitempty"`
+	Flags        uint64    `json:"flags,omitempty"`
+}
