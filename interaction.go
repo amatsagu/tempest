@@ -100,10 +100,12 @@ type CommandInteractionOption struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type InteractionDataResolved struct {
-	Users    map[Snowflake]*User           `json:"users,omitempty"`
-	Members  map[Snowflake]*Member         `json:"members,omitempty"`
-	Roles    map[Snowflake]*Role           `json:"roles,omitempty"`
-	Channels map[Snowflake]*PartialChannel `json:"channels,omitempty"`
+	Users       map[Snowflake]*User           `json:"users,omitempty"`
+	Members     map[Snowflake]*Member         `json:"members,omitempty"`
+	Roles       map[Snowflake]*Role           `json:"roles,omitempty"`
+	Channels    map[Snowflake]*PartialChannel `json:"channels,omitempty"`
+	Messages    map[Snowflake]*Message        `json:"messages,omitempty"`
+	Attachments map[Snowflake]*Attachment     `json:"attachments,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
