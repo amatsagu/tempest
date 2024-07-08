@@ -43,6 +43,21 @@ func (itx CommandInteraction) ResolveRole(id Snowflake) *Role {
 	return itx.Data.Resolved.Roles[id]
 }
 
+// Returns pointer to partial channel if present in interaction.data.resolved.  It'll return <nil> if there's no resolved partial channel.
+func (itx CommandInteraction) ResolveChannel(id Snowflake) *PartialChannel {
+	return itx.Data.Resolved.Channels[id]
+}
+
+// Returns pointer to message if present in interaction.data.resolved.  It'll return <nil> if there's no resolved message.
+func (itx CommandInteraction) ResolveMessage(id Snowflake) *Message {
+	return itx.Data.Resolved.Messages[id]
+}
+
+// Returns pointer to attachment if present in interaction.data.resolved.  It'll return <nil> if there's no resolved attachment.
+func (itx CommandInteraction) ResolveAttachment(id Snowflake) *Attachment {
+	return itx.Data.Resolved.Attachments[id]
+}
+
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
 func (itx CommandInteraction) Defer(ephemeral bool) error {
