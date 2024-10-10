@@ -13,6 +13,9 @@ const (
 	UPDATE_MESSAGE_RESPONSE_TYPE          // Only valid for component-based interactions.
 	AUTOCOMPLETE_RESPONSE_TYPE
 	MODAL_RESPONSE_TYPE // Not available for MODAL_SUBMIT and PING interactions.
+	_
+	_
+	LAUNCH_ACTIVITY_RESPONSE_TYPE // Launch the Activity associated with the app. Only available for apps with Activities enabled.
 )
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
