@@ -55,6 +55,8 @@ func (client *Client) HandleDiscordRequest(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
+		itx.Client = client
+
 		w.WriteHeader(http.StatusNoContent)
 
 		if !command.AvailableInDM && interaction.GuildID == 0 {
