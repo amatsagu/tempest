@@ -55,6 +55,8 @@ func (client *Client) HandleDiscordRequest(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
+		itx.Client = client
+
 		w.WriteHeader(http.StatusNoContent)
 
 		if !command.AvailableInDM && interaction.GuildID == 0 {
@@ -142,6 +144,7 @@ func (client *Client) HandleDiscordRequest(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
+		itx.Client = client
 		fn, available := client.modals[itx.Data.CustomID]
 		if available && fn != nil {
 			itx.w = w
