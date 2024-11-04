@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Add tempest.Command = tempest.Command{

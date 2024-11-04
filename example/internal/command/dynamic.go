@@ -1,11 +1,11 @@
 package command
 
 import (
-	"log/slog"
+	"log"
 	"strconv"
 	"time"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Dynamic tempest.Command = tempest.Command{
@@ -34,7 +34,7 @@ var Dynamic tempest.Command = tempest.Command{
 		itx.SendReply(msg, false, nil)
 		signalChannel, stopFunction, err := itx.Client.AwaitComponent([]string{uniqueButtonID}, time.Minute*1)
 		if err != nil {
-			slog.Error("failed to create component listener", err)
+			log.Println("failed to create component listener", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)
 			return
 		}
@@ -55,7 +55,7 @@ var Dynamic tempest.Command = tempest.Command{
 			msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
 			err = itx.EditReply(msg, false)
 			if err != nil {
-				slog.Error("failed to edit response", err)
+				log.Println("failed to edit response", err)
 				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
 				return
 			}

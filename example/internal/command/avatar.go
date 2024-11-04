@@ -1,7 +1,7 @@
 package command
 
 import (
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Avatar tempest.Command = tempest.Command{

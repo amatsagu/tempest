@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 	_ "github.com/joho/godotenv"
 )
 

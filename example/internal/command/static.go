@@ -2,9 +2,9 @@ package command
 
 import (
 	"fmt"
-	"log/slog"
+	"log"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Static tempest.Command = tempest.Command{
@@ -37,7 +37,7 @@ func HelloStatic(itx tempest.ComponentInteraction) {
 	}, false)
 
 	if err != nil {
-		slog.Error("failed to acknowledge static component", err)
+		log.Println("failed to acknowledge static component", err)
 		return
 	}
 }

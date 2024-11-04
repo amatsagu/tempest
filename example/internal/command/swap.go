@@ -3,7 +3,7 @@ package command
 import (
 	"time"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Swap tempest.Command = tempest.Command{

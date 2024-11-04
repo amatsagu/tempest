@@ -2,9 +2,9 @@ package command
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var FetchUser tempest.Command = tempest.Command{
@@ -30,7 +30,7 @@ var FetchUser tempest.Command = tempest.Command{
 
 			target, err = itx.Client.FetchUser(targetID)
 			if err != nil {
-				slog.Error("failed to fetch user data", err)
+				log.Println("failed to fetch user data", err)
 				itx.SendLinearReply("Failed to fetch user data.", false)
 				return
 			}
@@ -38,7 +38,7 @@ var FetchUser tempest.Command = tempest.Command{
 
 		res, err := json.MarshalIndent(target, "", "    ")
 		if err != nil {
-			slog.Error("failed to parse user data", err)
+			log.Println("failed to parse user data", err)
 			itx.SendLinearReply("Failed to parse received user (json) data.", false)
 			return
 		}

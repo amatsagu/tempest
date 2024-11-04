@@ -1,4 +1,4 @@
-github.com/Amatsagu/Tempest v1.2.0 h1:beLRJNona64e1putLBpbd7PrVZnBSeBTG8GD/uyjPak=
-github.com/Amatsagu/Tempest v1.2.0/go.mod h1:6pJb/I5+sg0g0bc78zRPVh7G5s1pL7FxCzGDoHlVugE=
+github.com/amatsagu/tempest v1.2.2-0.20241104095719-351b0424d26b h1:PljTcTafff2hZTCVFt2ccvw8QVn3BxcaXLvDcb9i9E4=
+github.com/amatsagu/tempest v1.2.2-0.20241104095719-351b0424d26b/go.mod h1:tsi+MJCmY/R4Mc6M0u4WWnUe7estPB0G6AeGbU+r/Xc=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=

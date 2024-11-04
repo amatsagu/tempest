@@ -1,9 +1,9 @@
 package command
 
 import (
-	"log/slog"
+	"log"
 
-	tempest "github.com/Amatsagu/Tempest"
+	tempest "github.com/amatsagu/tempest"
 )
 
 var Modal tempest.Command = tempest.Command{
@@ -29,7 +29,7 @@ var Modal tempest.Command = tempest.Command{
 		})
 
 		if err != nil {
-			slog.Error("failed to send modal", err)
+			log.Println("failed to send modal", err)
 		}
 	},
 }
