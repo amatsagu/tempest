@@ -164,27 +164,6 @@ func (itx CommandInteraction) GetFocusedValue() (string, any) {
 	panic("auto complete interaction had no option with \"focused\" field. This error should never happen with correctly defined slash command")
 }
 
-// Use to let user/member know that bot is processing command.
-// Make ephemeral = true to make notification visible only to target.
-func (itx ComponentInteraction) AcknowledgeWithDefer(ephemeral bool) error {
-	var flags uint64 = 0
-
-	if ephemeral {
-		flags = 64
-	}
-
-	body, err := json.Marshal(ResponseMessage{
-		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &ResponseMessageData{
-			Flags: flags,
-		},
-	})
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
-}
-
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
 	body, err := json.Marshal(ResponseMessage{
@@ -237,35 +216,6 @@ func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) er
 
 	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 	itx.w.Write(body)
-	return err
-}
-
-func (itx ComponentInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
-	if ephemeral && content.Flags == 0 {
-		content.Flags = 64
-	}
-
-	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
-	if err != nil {
-		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
-	}
-
-	return res, nil
-}
-
-func (itx ComponentInteraction) EditFollowUp(messageID Snowflake, content ResponseMessage) error {
-	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
-	return err
-}
-
-func (itx ComponentInteraction) DeleteFollowUp(messageID Snowflake, content ResponseMessage) error {
-	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
