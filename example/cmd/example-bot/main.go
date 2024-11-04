@@ -37,6 +37,7 @@ func main() {
 	client.RegisterCommand(command.Add)
 	client.RegisterCommand(command.AutoComplete)
 	client.RegisterCommand(command.Avatar)
+	client.RegisterCommand(command.Defer)
 	client.RegisterCommand(command.Dynamic)
 	client.RegisterCommand(command.FetchMember)
 	client.RegisterCommand(command.FetchUser)
