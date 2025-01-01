@@ -2,7 +2,7 @@
 [![Go Report](https://goreportcard.com/badge/github.com/amatsagu/tempest)](https://goreportcard.com/report/github.com/amatsagu/tempest)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/amatsagu/tempest)](https://golang.org/doc/devel/release.html)
 [![License](https://img.shields.io/github/license/Amatsagu/tempest)](https://github.com/amatsagu/tempest/blob/development/LICENSE)
-[![Maintenance Status](https://img.shields.io/maintenance/yes/2024)](https://github.com/amatsagu/tempest)
+[![Maintenance Status](https://img.shields.io/maintenance/yes/2025)](https://github.com/amatsagu/tempest)
 [![CodeQL](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=development)](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
