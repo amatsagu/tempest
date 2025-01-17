@@ -5,7 +5,6 @@
 [![Maintenance Status](https://img.shields.io/maintenance/yes/2025)](https://github.com/amatsagu/tempest)
 [![CodeQL](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=development)](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
-[<img src="https://api.gitsponsors.com/api/badge/img?id=498871614" height="20">](https://api.gitsponsors.com/api/badge/link?p=UMQ9/v3VZGQXNA6QSZ1USr4BWzgP12sP9GmC6mtKFZb+Nbnhlbd7OY+wmwqBq1aGD47MFrTf72tQFs/10gvF2J+wKvOO2rfYRvNpBZla9pc=)
 
 <img align="left" src="/.github/tempest-logo.png" width=192 alt="Tempest library logo">
 
