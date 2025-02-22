@@ -1,4 +1,4 @@
-package tempest
+package ashara
 
 import (
 	"bytes"
@@ -16,7 +16,12 @@ import (
 	"time"
 )
 
-type RestClient struct {
+type Rest interface {
+	Request(method string, route string, jsonPayload any) ([]byte, error)
+	RequestWithFiles(method string, route string, jsonPayload any, files []*os.File) ([]byte, error)
+}
+
+type BaseRestClient struct {
 	HTTPClient *http.Client
 	Token      string
 	MaxRetries uint8
@@ -25,18 +30,18 @@ type RestClient struct {
 }
 
 type rateLimitError struct {
-	Global     bool    `json:"global"`
 	Message    string  `json:"message"`
 	RetryAfter float32 `json:"retry_after"`
+	Global     bool    `json:"global"`
 }
 
-func NewRestClient(token string) *RestClient {
+func NewBaseRestClient(token string) Rest {
 	t := token
 	if !strings.HasPrefix(t, "Bot ") {
 		t = "Bot " + t
 	}
 
-	return &RestClient{
+	return &BaseRestClient{
 		HTTPClient: &http.Client{
 			Transport: &http.Transport{
 				TLSHandshakeTimeout: time.Second * 3,
@@ -49,7 +54,7 @@ func NewRestClient(token string) *RestClient {
 	}
 }
 
-func (rest *RestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *BaseRestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	var body io.Reader
 	if jsonPayload != nil {
 		raw, err := json.Marshal(jsonPayload)
@@ -82,7 +87,7 @@ func (rest *RestClient) Request(method string, route string, jsonPayload interfa
 	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayload interface{}, files []*os.File) ([]byte, error) {
+func (rest *BaseRestClient) RequestWithFiles(method string, route string, jsonPayload interface{}, files []*os.File) ([]byte, error) {
 	if len(files) == 0 {
 		return rest.Request(method, route, jsonPayload)
 	}
@@ -154,7 +159,7 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *RestClient) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
+func (rest *BaseRestClient) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
 	request, err := http.NewRequest(method, DISCORD_API_URL+route, payload)
 	if err != nil {
 		return nil, errors.New("failed to initialize new request: " + err.Error()), false
