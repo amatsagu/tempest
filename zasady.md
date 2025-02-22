@@ -6,3 +6,4 @@
 6. Każda funkcja/metoda powinna idealnie być wystarczająco prosta, żeby uzyskać "inline optimization" z llvm kompilacji. To się łączy z pierwszym punktem (wymagania gocyclo). Te funkcje gdzie jest to niemożlwe - powinny mieć dołączony komentarz wspominający o tym.
 7. Każde miejsce gdzie może wystąpić problem powinno zostać poprawnie rozwiązane. Zakazane jest ignorowanie potencjalnych error value.
 8. W nawiązaniu do punktu 2 -> Każdy kluczowy komponent powinien dodatkowo zawierać "interface implementation assertion".
+9. Staramy się korzystać z "modern Go ideologies" - np. korzystamy z std/context.
