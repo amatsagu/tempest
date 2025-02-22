@@ -17,19 +17,41 @@ const (
 	BASIC_NITRO_TYPE
 )
 
+// https://discord.com/developers/docs/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
+type AvatarDecoration struct {
+	AssetHash string    `json:"avatar"` // Hash code used to access user's avatar decoration.
+	SkuID     Snowflake `json:"sku_id"`
+}
+
+// Returns a direct url to targets's avatar decoration. It'll return empty string if target doesn't use avatar decoration.
+func (adc AvatarDecoration) DecorationURL() string {
+	if adc.AssetHash == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(adc.AssetHash, "a_") {
+		return ashara.DISCORD_CDN_URL + "/avatar-decoration-presets/" + adc.AssetHash + ".gif"
+	}
+
+	return ashara.DISCORD_CDN_URL + "/avatar-decoration-presets/" + adc.AssetHash
+}
+
 // https://discord.com/developers/docs/resources/user#user-object-user-structure
+//
+// We skip unreasonable fields like MFA or email.
 type User struct {
-	ID          Snowflake `json:"id"`
-	Username    string    `json:"username"`
-	GlobalName  string    `json:"global_name,omitempty"` // User's display name, if it is set. For bots, this is the application name.
-	AvatarHash  string    `json:"avatar,omitempty"`      // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
-	Bot         bool      `json:"bot,omitempty"`
-	MFA         bool      `json:"mfa_enabled,omitempty"`
-	BannerHash  string    `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
-	AccentColor uint32    `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
-	Locale      string    `json:"locale,omitempty"`
-	PremiumType NitroType `json:"premium_type,omitempty"`
-	PublicFlags uint64    `json:"public_flags,omitempty"` // (Same as regular flags)
+	ID                   Snowflake         `json:"id"`
+	Username             string            `json:"username"`
+	GlobalName           string            `json:"global_name,omitempty"`  // User's display name, if it is set. For bots, this is the application name.
+	AvatarHash           string            `json:"avatar,omitempty"`       // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
+	Bot                  bool              `json:"bot,omitempty"`          // Whether it's bot/app account.
+	System               bool              `json:"bool,omitempty"`         // Whether user is Discord System Message account.
+	BannerHash           string            `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
+	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
+	Locale               string            `json:"locale,omitempty"`
+	PremiumType          NitroType         `json:"premium_type,omitempty"`
+	PublicFlags          ashara.BitSet     `json:"public_flags,omitempty"` // (Same as regular, user flags)
+	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 }
 
 func (user User) Mention() string {
@@ -62,27 +84,51 @@ func (user User) BannerURL() string {
 	return ashara.DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash
 }
 
+type MemberFlag ashara.BitSet
+
+const (
+	DID_REJOIN_MEMBER_FLAG MemberFlag = 1 << iota
+	COMPLETED_ONBOARDING_MEMBER_FLAG
+	BYPASSES_VERIFICATION_MEMBER_FLAG
+	STARTED_ONBOARDING_MEMBER_FLAG
+	IS_GUEST_MEMBER_FLAG
+	STARTED_HOME_ACTIONS_MEMBER_FLAG
+	COMPLETED_HOME_ACTIONS_MEMBER_FLAG
+	AUTOMOD_QUARANTINED_USERNAME_MEMBER_FLAG
+	_
+	DM_SETTINGS_UPSELL_ACKNOWLEDGED_MEMBER_FLAG
+)
+
 // https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-structure
 type Member struct {
-	User                       *User       `json:"user,omitempty"`
-	Nickname                   string      `json:"nick,omitempty"`
-	GuildAvatarHash            string      `json:"avatar,omitempty"` // Hash code used to access member's custom, guild profile. Call Member.GuildAvatarURL to get direct url.
-	RoleIDs                    []Snowflake `json:"roles"`
-	JoinedAt                   *time.Time  `json:"joined_at,omitempty"`
-	PremiumSince               *time.Time  `json:"premium_since,omitempty"`
-	Dead                       bool        `json:"deaf"`
-	Mute                       bool        `json:"mute"`
-	Flags                      uint64      `json:"flags"`
-	Pending                    bool        `json:"pending,omitempty"`
-	PermissionFlags            uint64      `json:"permissions,string"`
-	CommunicationDisabledUntil *time.Time  `json:"communication_disabled_until,omitempty"`
-	GuildID                    Snowflake   `json:"-"`
+	User                       *User             `json:"user,omitempty"`
+	Nickname                   string            `json:"nick,omitempty"`
+	GuildAvatarHash            string            `json:"avatar,omitempty"` // Hash code used to access member's custom, guild avatar. Call Member.GuildAvatarURL to get direct url.
+	GuildBannerHash            string            `json:"banner,omitempty"` // Hash code used to access member's custom, guild banner. Call Member.GuildBannerURL to get direct url.
+	RoleIDs                    []Snowflake       `json:"roles"`
+	JoinedAt                   *time.Time        `json:"joined_at"`
+	PremiumSince               *time.Time        `json:"premium_since,omitempty"`
+	Deaf                       bool              `json:"deaf"`
+	Mute                       bool              `json:"mute"`
+	Flags                      MemberFlag        `json:"flags"`
+	Pending                    bool              `json:"pending,omitempty"`
+	PermissionFlags            ashara.BitSet     `json:"permissions,string"`
+	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
+	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
+
+	// It's not part of Member API data struct but Ashara Client should always attach it for conveniency.
+	GuildID Snowflake `json:"-"`
 }
 
-// Returns a direct url to members's guild specific avatar. It'll return empty string if targeted member don't use custom avatar for that server.
+// Returns a direct url to members's guild specific avatar.
+// It'll return empty string if targeted member don't use custom avatar for that server.
 func (member Member) GuildAvatarURL() string {
 	if member.GuildAvatarHash == "" {
 		return ""
+	}
+
+	if member.GuildID == 0 {
+		panic("member struct is missing guild ID which is required in avatar url method - it appears to be problem of your custom ashara client implementation")
 	}
 
 	if strings.HasPrefix(member.GuildAvatarHash, "a_") {
@@ -90,6 +136,24 @@ func (member Member) GuildAvatarURL() string {
 	}
 
 	return ashara.DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash
+}
+
+// Returns a direct url to members's guild specific banner.
+// It'll return empty string if targeted member don't use custom banner for that server.
+func (member Member) GuildBannerURL() string {
+	if member.GuildBannerHash == "" {
+		return ""
+	}
+
+	if member.GuildID == 0 {
+		panic("member struct is missing guild ID which is required in banner url method - it appears to be problem of your custom ashara client implementation")
+	}
+
+	if strings.HasPrefix(member.GuildBannerHash, "a_") {
+		return ashara.DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash + ".gif"
+	}
+
+	return ashara.DISCORD_CDN_URL + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash
 }
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-structure
