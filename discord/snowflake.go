@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Snowflake represents a Discord's id snowflake.
+// Represents a Discord's ID snowflake.
 type Snowflake uint64
 
 func StringToSnowflake(s string) (Snowflake, error) {
