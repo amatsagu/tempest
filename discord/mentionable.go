@@ -57,7 +57,7 @@ const (
 	BUG_HUNTER_LEVEL_2_USER_FLAG
 	_
 	VERIFIED_BOT_USER_FLAG
-	VERIFIED_DEVELOPER_USER_FLAG    // 	Early Verified Bot Developer
+	VERIFIED_DEVELOPER_USER_FLAG    // Early Verified Bot Developer
 	CERTIFIED_MODERATOR_USER_FLAG   // Moderator Programs Alumni
 	BOT_HTTP_INTERACTIONS_USER_FLAG // Bot/App uses only HTTP interactions and is shown in the online member list.
 	_
@@ -142,7 +142,7 @@ type Member struct {
 	Mute                       bool              `json:"mute"`
 	Flags                      MemberFlags       `json:"flags"`
 	Pending                    bool              `json:"pending,omitempty"`
-	PermissionFlags            ashara.BitSet     `json:"permissions,string"`
+	PermissionFlags            PermissionFlags   `json:"permissions,string"`
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 
@@ -188,17 +188,17 @@ func (member Member) GuildBannerURL() string {
 
 // https://discord.com/developers/docs/topics/permissions#role-object-role-structure
 type Role struct {
-	ID              Snowflake `json:"id"`
-	Name            string    `json:"name"`
-	Color           uint32    `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
-	Hoist           bool      `json:"hoist"` // Whether this role is pinned in the user listing.
-	IconHash        string    `json:"icon,omitempty"`
-	UnicodeEmoji    string    `json:"unicode_emoji,omitempty"`
-	Position        uint8     `json:"position"`
-	PermissionFlags uint64    `json:"permissions,string"`
-	Managed         bool      `json:"managed"`     // Whether this role is managed by an integration.
-	Mentionable     bool      `json:"mentionable"` // Whether this role is mentionable.
-	Tags            *RoleTag  `json:"tags,omitempty"`
+	ID              Snowflake       `json:"id"`
+	Name            string          `json:"name"`
+	Color           uint32          `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
+	Hoist           bool            `json:"hoist"` // Whether this role is pinned in the user listing.
+	IconHash        string          `json:"icon,omitempty"`
+	UnicodeEmoji    string          `json:"unicode_emoji,omitempty"`
+	Position        uint8           `json:"position"`
+	PermissionFlags PermissionFlags `json:"permissions,string"`
+	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
+	Mentionable     bool            `json:"mentionable"` // Whether this role is mentionable.
+	Tags            *RoleTag        `json:"tags,omitempty"`
 }
 
 func (role Role) Mention() string {
