@@ -83,8 +83,8 @@ func (rest *BaseRestClient) Request(method string, route string, jsonPayload int
 		if finished {
 			return raw, err
 		}
-		rest.mu.RUnlock()
-		time.Sleep(time.Microsecond * time.Duration(250*i))
+		defer rest.mu.RUnlock()
+		time.Sleep(time.Millisecond * time.Duration(250*i))
 	}
 
 	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
@@ -155,8 +155,8 @@ func (rest *BaseRestClient) RequestWithFiles(method string, route string, jsonPa
 		if finished {
 			return raw, err
 		}
-		rest.mu.RUnlock()
-		time.Sleep(time.Microsecond * time.Duration(250*i))
+		defer rest.mu.RUnlock()
+		time.Sleep(time.Millisecond * time.Duration(250*i))
 	}
 
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
