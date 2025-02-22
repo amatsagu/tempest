@@ -20,3 +20,6 @@ This module contains all required by Ashara lib struct data types used by Discor
 - Represents different types of responses that a bot can send to Discord
 - Includes **immediate responses** (via interaction callbacks), **delayed responses** (via follow-ups), and **message updates** (modifying existing messages).
 - Supports rich content such as **embeds**, **attachments**, and **interactive components**.
+
+## Warning
+We'll try keeping all structs up to date but nobody can promose that. Be especially careful with `./permission.go` as discord commonly makes minor changes to permission names/positions.
