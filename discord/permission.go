@@ -1,8 +1,6 @@
 package discord
 
-import "ashara"
-
-type PermissionFlags ashara.BitSet
+type PermissionFlags BitSet
 
 const (
 	CREATE_INSTANT_INVITE_PERMISSION PermissionFlags = 1 << iota

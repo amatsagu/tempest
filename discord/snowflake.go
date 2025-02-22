@@ -1,7 +1,6 @@
 package discord
 
 import (
-	"ashara"
 	"encoding/json"
 	"os"
 	"strconv"
@@ -26,7 +25,7 @@ func (s Snowflake) String() string {
 }
 
 func (s Snowflake) CreationTimestamp() time.Time {
-	return time.UnixMilli(int64(s>>22 + ashara.DISCORD_EPOCH))
+	return time.UnixMilli(int64(s>>22 + DISCORD_EPOCH))
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
