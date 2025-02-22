@@ -36,6 +36,35 @@ func (adc AvatarDecoration) DecorationURL() string {
 	return ashara.DISCORD_CDN_URL + "/avatar-decoration-presets/" + adc.AssetHash
 }
 
+// https://discord.com/developers/docs/resources/user#user-object-user-flags
+type UserFlags ashara.BitSet
+
+const (
+	DISCORD_EMPLOYEE_USER_FLAG       UserFlags = 1 << iota // Discord Employee, Staff
+	PARTNERED_SERVER_OWNER_USER_FLAG                       // Partner
+	HYPESQUAD_USER_FLAG
+	BUG_HUNTER_LEVEL_1_USER_FLAG
+	_
+	_
+	HYPESQUAD_ONLINE_HOUSE_1_USER_FLAG
+	HYPESQUAD_ONLINE_HOUSE_2_USER_FLAG
+	HYPESQUAD_ONLINE_HOUSE_3_USER_FLAG
+	PREMIUM_EARLY_SUPPORTER_USER_FLAG
+	TEAM_USER_USER_FLAG // Discord docs mentions "pseudo user" and that user is a team...
+	_
+	_
+	_
+	BUG_HUNTER_LEVEL_2_USER_FLAG
+	_
+	VERIFIED_BOT_USER_FLAG
+	VERIFIED_DEVELOPER_USER_FLAG    // 	Early Verified Bot Developer
+	CERTIFIED_MODERATOR_USER_FLAG   // Moderator Programs Alumni
+	BOT_HTTP_INTERACTIONS_USER_FLAG // Bot/App uses only HTTP interactions and is shown in the online member list.
+	_
+	_
+	ACTIVE_DEVELOPER_USER_FLAG // User has regular discord developer badge
+)
+
 // https://discord.com/developers/docs/resources/user#user-object-user-structure
 //
 // We skip unreasonable fields like MFA or email.
@@ -50,7 +79,7 @@ type User struct {
 	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
 	Locale               string            `json:"locale,omitempty"`
 	PremiumType          NitroType         `json:"premium_type,omitempty"`
-	PublicFlags          ashara.BitSet     `json:"public_flags,omitempty"` // (Same as regular, user flags)
+	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
 	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 }
 
@@ -84,10 +113,11 @@ func (user User) BannerURL() string {
 	return ashara.DISCORD_CDN_URL + "/banners/" + user.ID.String() + "/" + user.BannerHash
 }
 
-type MemberFlag ashara.BitSet
+// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
+type MemberFlags ashara.BitSet
 
 const (
-	DID_REJOIN_MEMBER_FLAG MemberFlag = 1 << iota
+	DID_REJOIN_MEMBER_FLAG MemberFlags = 1 << iota
 	COMPLETED_ONBOARDING_MEMBER_FLAG
 	BYPASSES_VERIFICATION_MEMBER_FLAG
 	STARTED_ONBOARDING_MEMBER_FLAG
@@ -110,7 +140,7 @@ type Member struct {
 	PremiumSince               *time.Time        `json:"premium_since,omitempty"`
 	Deaf                       bool              `json:"deaf"`
 	Mute                       bool              `json:"mute"`
-	Flags                      MemberFlag        `json:"flags"`
+	Flags                      MemberFlags       `json:"flags"`
 	Pending                    bool              `json:"pending,omitempty"`
 	PermissionFlags            ashara.BitSet     `json:"permissions,string"`
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
