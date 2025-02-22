@@ -16,7 +16,10 @@ import (
 	"time"
 )
 
-type Rest interface {
+// compile-time interface assertion
+var _ RestClient = (*BaseRestClient)(nil)
+
+type RestClient interface {
 	Request(method string, route string, jsonPayload any) ([]byte, error)
 	RequestWithFiles(method string, route string, jsonPayload any, files []*os.File) ([]byte, error)
 }
@@ -35,7 +38,7 @@ type rateLimitError struct {
 	Global     bool    `json:"global"`
 }
 
-func NewBaseRestClient(token string) Rest {
+func NewBaseRestClient(token string) RestClient {
 	t := token
 	if !strings.HasPrefix(t, "Bot ") {
 		t = "Bot " + t
