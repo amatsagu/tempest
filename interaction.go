@@ -1,5 +1,7 @@
 package ashara
 
+import "net/http"
+
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
 
@@ -31,6 +33,8 @@ type CommandInteraction struct {
 	PermissionFlags PermissionFlags        `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
 	Locale          string                 `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string                 `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+
+	Client *Client `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
@@ -49,6 +53,9 @@ type ComponentInteraction struct {
 	PermissionFlags PermissionFlags          `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
 	Locale          string                   `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string                   `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+
+	Client *Client             `json:"-"`
+	w      http.ResponseWriter `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
@@ -66,6 +73,9 @@ type ModalInteraction struct {
 	PermissionFlags PermissionFlags      `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
 	Locale          string               `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale     string               `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+
+	Client *Client             `json:"-"`
+	w      http.ResponseWriter `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-application-command-data-structure
