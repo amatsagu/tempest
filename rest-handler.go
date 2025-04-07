@@ -21,7 +21,7 @@ var _ RestHandler = (*BaseRestHandler)(nil)
 
 type RestHandler interface {
 	Request(method string, route string, jsonPayload any) ([]byte, error)
-	RequestWithFiles(method string, route string, jsonPayload any, files []*os.File) ([]byte, error)
+	RequestWithFiles(method string, route string, jsonPayload any, files []os.File) ([]byte, error)
 	Token() string
 }
 
@@ -91,7 +91,7 @@ func (rest *BaseRestHandler) Request(method string, route string, jsonPayload in
 	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *BaseRestHandler) RequestWithFiles(method string, route string, jsonPayload interface{}, files []*os.File) ([]byte, error) {
+func (rest *BaseRestHandler) RequestWithFiles(method string, route string, jsonPayload interface{}, files []os.File) ([]byte, error) {
 	if len(files) == 0 {
 		return rest.Request(method, route, jsonPayload)
 	}
@@ -138,7 +138,7 @@ func (rest *BaseRestHandler) RequestWithFiles(method string, route string, jsonP
 			return nil, fmt.Errorf("failed to create body part in multipart for file[%s]: %s", num, err)
 		}
 
-		if _, err := io.Copy(filePart, file); err != nil {
+		if _, err := io.Copy(filePart, &file); err != nil {
 			return nil, fmt.Errorf("failed to encode your \"%s\" file data into multipart payload: %s", file.Name(), err)
 		}
 	}

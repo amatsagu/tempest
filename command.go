@@ -27,14 +27,6 @@ const (
 	ATTACHMENT_OPTION_TYPE
 )
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
-type CommandHandlerType uint8
-
-const (
-	APP_COMMAND_HANDLER CommandHandlerType = iota + 1
-	DISCORD_LAUNCH_ACTIVITY_COMMAND_HANDLER
-)
-
 // https://discord.com/developers/docs/resources/application#application-object-application-integration-types
 type ApplicationIntegrationType uint8
 
@@ -81,20 +73,20 @@ const (
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	ID                       Snowflake                `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
-	Type                     CommandType              `json:"type,omitempty"`
-	ApplicationID            Snowflake                `json:"application_id"`
-	GuildID                  Snowflake                `json:"guild_id,omitempty"`
-	Name                     string                   `json:"name"`
-	NameLocalizations        map[Language]string      `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
-	Description              string                   `json:"description"`
-	DescriptionLocalizations map[Language]string      `json:"description_localizations,omitempty"`
-	Options                  []CommandOption          `json:"options,omitempty"`
-	DefaultMemberPermissions PermissionFlags          `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
-	Contexts                 []InteractionContextType `json:"contexts,omitempty"`                          // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	NSFW                     bool                     `json:"nsfw,omitempty"`                              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
-	Version                  Snowflake                `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes.
-	Handler                  CommandHandlerType       `json:"handler,omitempty"`                           // can only be set for application commands of type PRIMARY_ENTRY_POINT for applications with the EMBEDDED flag (i.e. applications that have an Activity).
+	ID                       Snowflake                    `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
+	Type                     CommandType                  `json:"type,omitempty"`
+	ApplicationID            Snowflake                    `json:"application_id"`
+	GuildID                  Snowflake                    `json:"guild_id,omitempty"`
+	Name                     string                       `json:"name"`
+	NameLocalizations        map[Language]string          `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	Description              string                       `json:"description"`
+	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitempty"`
+	Options                  []CommandOption              `json:"options,omitempty"`
+	DefaultMemberPermissions PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
+	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitempty"`
+	Contexts                 []InteractionContextType     `json:"contexts,omitempty"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
+	NSFW                     bool                         `json:"nsfw,omitempty"`     // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	Version                  Snowflake                    `json:"version,omitempty"`  // Autoincrementing version identifier updated during substantial record changes.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
