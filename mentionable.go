@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 import (
 	"strconv"
@@ -145,7 +145,7 @@ type Member struct {
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 
-	// It's not part of Member API data struct but Ashara Client should always attach it for conveniency.
+	// It's not part of Member API data struct but tempest Client should always attach it for conveniency.
 	GuildID Snowflake `json:"-"`
 }
 
@@ -157,7 +157,7 @@ func (member Member) GuildAvatarURL() string {
 	}
 
 	if member.GuildID == 0 {
-		panic("member struct is missing guild ID which is required in avatar url method - it appears to be problem of your custom ashara client implementation")
+		panic("member struct is missing guild ID which is required in avatar url method - it appears to be problem of your custom tempest client implementation")
 	}
 
 	if strings.HasPrefix(member.GuildAvatarHash, "a_") {
@@ -175,7 +175,7 @@ func (member Member) GuildBannerURL() string {
 	}
 
 	if member.GuildID == 0 {
-		panic("member struct is missing guild ID which is required in banner url method - it appears to be problem of your custom ashara client implementation")
+		panic("member struct is missing guild ID which is required in banner url method - it appears to be problem of your custom tempest client implementation")
 	}
 
 	if strings.HasPrefix(member.GuildBannerHash, "a_") {

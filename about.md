@@ -1,5 +1,5 @@
 # Discord Module  
-This module contains all required by Ashara lib struct data types used by Discord API. Here are the main groups:
+This module contains all required by tempest lib struct data types used by Discord API. Here are the main groups:
 
 ### Interaction
 - Represents all types of interactions between user/member and bot.

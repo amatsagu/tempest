@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
 type ResponseType uint8

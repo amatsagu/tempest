@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 // Represents combination of discord bit settings, flags, permissions, etc.
 // For example all the user badges or member permissions.

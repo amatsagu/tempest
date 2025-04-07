@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 // https://discord.com/developers/docs/interactions/message-components#button-object-button-styles
 type ButtonStyle uint8

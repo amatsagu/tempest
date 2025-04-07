@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 import "net/http"
 
@@ -11,6 +11,15 @@ const (
 	MESSAGE_COMPONENT_INTERACTION_TYPE
 	APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE
 	MODAL_SUBMIT_INTERACTION_TYPE
+)
+
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
+type InteractionContextType uint8
+
+const (
+	GUILD_CONTEXT_TYPE InteractionContextType = iota
+	BOT_DM_CONTEXT_TYPE
+	PRIVATE_CHANNEL_CONTEXT_TYPE
 )
 
 // Used only for partial JSON parsing.

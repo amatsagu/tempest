@@ -1,12 +1,13 @@
-package ashara
+package tempest
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
 type CommandType uint8
 
 const (
-	CHAT_INPUT_COMMAND_TYPE CommandType = iota + 1 // Default option, a slash command.
-	USER_COMMAND_TYPE                              // Mounted to user/member profile.
-	MESSAGE_COMMAND_TYPE                           // Mounted to text message.
+	CHAT_INPUT_COMMAND_TYPE          CommandType = iota + 1 // Default option, a slash command.
+	USER_COMMAND_TYPE                                       // Mounted to user/member profile.
+	MESSAGE_COMMAND_TYPE                                    // Mounted to text message.
+	PRIMARY_ENTRY_POINT_COMMAND_TYPE                        // A UI-based command that represents the primary way to invoke an app's Activity.
 )
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
@@ -24,6 +25,22 @@ const (
 	MENTIONABLE_OPTION_TYPE
 	NUMBER_OPTION_TYPE
 	ATTACHMENT_OPTION_TYPE
+)
+
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
+type CommandHandlerType uint8
+
+const (
+	APP_COMMAND_HANDLER CommandHandlerType = iota + 1
+	DISCORD_LAUNCH_ACTIVITY_COMMAND_HANDLER
+)
+
+// https://discord.com/developers/docs/resources/application#application-object-application-integration-types
+type ApplicationIntegrationType uint8
+
+const (
+	GUILD_INSTALL ApplicationIntegrationType = iota
+	USER_INSTALL
 )
 
 // https://discord.com/developers/docs/reference#locales
@@ -64,22 +81,20 @@ const (
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	ID                       Snowflake           `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
-	Type                     CommandType         `json:"type,omitempty"`
-	ApplicationID            Snowflake           `json:"application_id"`
-	GuildID                  Snowflake           `json:"guild_id,omitempty"`
-	Name                     string              `json:"name"`
-	NameLocalizations        map[Language]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
-	Description              string              `json:"description"`
-	DescriptionLocalizations map[Language]string `json:"description_localizations,omitempty"`
-	Options                  []CommandOption     `json:"options,omitempty"`
-	DefaultMemberPermissions uint64              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
-	AvailableInDM            bool                `json:"dm_permission,omitempty"`                     // Whether command should be visible (usable) from private, dm channels. Works only for global commands!
-	NSFW                     bool                `json:"nsfw,omitempty"`                              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
-	Version                  Snowflake           `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes
-
-	AutoCompleteHandler func(itx CommandInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	SlashCommandHandler func(itx *CommandInteraction)         `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
+	ID                       Snowflake                `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
+	Type                     CommandType              `json:"type,omitempty"`
+	ApplicationID            Snowflake                `json:"application_id"`
+	GuildID                  Snowflake                `json:"guild_id,omitempty"`
+	Name                     string                   `json:"name"`
+	NameLocalizations        map[Language]string      `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	Description              string                   `json:"description"`
+	DescriptionLocalizations map[Language]string      `json:"description_localizations,omitempty"`
+	Options                  []CommandOption          `json:"options,omitempty"`
+	DefaultMemberPermissions PermissionFlags          `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
+	Contexts                 []InteractionContextType `json:"contexts,omitempty"`                          // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
+	NSFW                     bool                     `json:"nsfw,omitempty"`                              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	Version                  Snowflake                `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes.
+	Handler                  CommandHandlerType       `json:"handler,omitempty"`                           // can only be set for application commands of type PRIMARY_ENTRY_POINT for applications with the EMBEDDED flag (i.e. applications that have an Activity).
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure

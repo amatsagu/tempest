@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 import (
 	"crypto/ed25519"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Client is the core Ashara entrypoint
+// Client is the core tempest entrypoint
 type Client struct {
 	ApplicationID   Snowflake
 	PublicKey       ed25519.PublicKey
@@ -22,9 +22,10 @@ type Client struct {
 }
 
 type ClientOptions struct {
-	Token          string
-	PublicKey      string
-	JSONBufferSize uint
+	Token                      string
+	PublicKey                  string
+	JSONBufferSize             uint
+	DefaultInteractionContexts []InteractionContextType
 }
 
 func NewClient(opt ClientOptions) Client {
@@ -43,11 +44,16 @@ func NewClient(opt ClientOptions) Client {
 		poolSize = opt.JSONBufferSize
 	}
 
+	contexts := []InteractionContextType{0}
+	if opt.DefaultInteractionContexts != nil || len(opt.DefaultInteractionContexts) > 0 {
+		contexts = opt.DefaultInteractionContexts
+	}
+
 	return Client{
 		ApplicationID:   botUserID,
 		PublicKey:       discordPublicKey,
 		Rest:            NewBaseRestHandler(opt.Token),
-		CommandRegistry: NewBaseSlashCommandRegistry(botUserID),
+		CommandRegistry: NewBaseSlashCommandRegistry(botUserID, contexts),
 		jsonBufferPool: &sync.Pool{
 			New: func() any {
 				buf := make([]byte, poolSize) // start with a decent buffer

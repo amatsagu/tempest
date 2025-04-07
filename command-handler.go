@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 import (
 	"errors"
@@ -22,15 +22,18 @@ type SlashCommandRegistry interface {
 	Find(cmdName string, subCmdName string) (SlashCommandHandler, bool)
 	HandleInteraction(itx CommandInteraction) (CommandInteraction, SlashCommandHandler, bool)
 	SyncWithDiscord(rest RestHandler, guildIDs []Snowflake, whitelist []string, reverseMode bool) error
+	PreCommandHook(itx CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook(itx CommandInteraction)     // Function that runs after each command.
 }
 
 type BaseSlashCommandRegistry struct {
-	mu            sync.RWMutex
-	applicationID Snowflake
-	commands      map[string]map[string]SlashCommandHandler
+	mu                         sync.RWMutex
+	applicationID              Snowflake
+	commands                   map[string]map[string]SlashCommandHandler
+	defaultInteractionContexts []InteractionContextType
 }
 
-func NewBaseSlashCommandRegistry(applicationID Snowflake) SlashCommandRegistry {
+func NewBaseSlashCommandRegistry(applicationID Snowflake, defaultInteractionContexts []InteractionContextType) SlashCommandRegistry {
 	return &BaseSlashCommandRegistry{
 		applicationID: applicationID,
 		commands:      make(map[string]map[string]SlashCommandHandler),
@@ -58,6 +61,10 @@ func (reg *BaseSlashCommandRegistry) Register(handler SlashCommandHandler) error
 		data.ApplicationID = reg.applicationID
 	}
 
+	if len(data.Contexts) == 0 {
+		data.Contexts = reg.defaultInteractionContexts
+	}
+
 	tree := make(map[string]SlashCommandHandler)
 	tree[ROOT_PLACEHOLDER] = handler // ROOT_PLACEHOLDER = "-"
 	reg.commands[data.Name] = tree
@@ -75,6 +82,18 @@ func (reg *BaseSlashCommandRegistry) RegisterSub(subHandler SlashCommandHandler,
 	data := subHandler.Data()
 	if _, available := reg.commands[rootCommandName][data.Name]; available {
 		return errors.New("client already has registered \"" + rootCommandName + "@" + data.Name + "\" slash subcommand")
+	}
+
+	if data.Type == 0 {
+		data.Type = CHAT_INPUT_COMMAND_TYPE
+	}
+
+	if data.ApplicationID == 0 {
+		data.ApplicationID = reg.applicationID
+	}
+
+	if len(data.Contexts) == 0 {
+		data.Contexts = reg.defaultInteractionContexts
 	}
 
 	reg.commands[rootCommandName][data.Name] = subHandler
@@ -197,4 +216,11 @@ func (reg *BaseSlashCommandRegistry) parseCommandsForDiscordAPI(whitelist []stri
 	}
 
 	return filtered
+}
+
+func (reg *BaseSlashCommandRegistry) PreCommandHook(itx CommandInteraction) bool {
+	return true
+}
+
+func (reg *BaseSlashCommandRegistry) PostCommandHook(itx CommandInteraction) {
 }

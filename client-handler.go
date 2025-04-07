@@ -1,4 +1,4 @@
-package ashara
+package tempest
 
 import (
 	"crypto/ed25519"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (client Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
+func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -39,12 +39,10 @@ func (client Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reques
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		if err := decodeInteraction((*buf)[:n], &interaction); err != nil {
+		if err := json.Unmarshal((*buf)[:n], &interaction); err != nil {
 			http.Error(w, "bad request - failed to decode CommandInteraction", http.StatusBadRequest)
 			return
 		}
-
-		fmt.Printf("%+v\n", interaction)
 
 		itx, cmd, available := client.CommandRegistry.HandleInteraction(interaction)
 		if !available {
@@ -54,11 +52,13 @@ func (client Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reques
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-		cmd.CommandHandler(itx)
+		itx.Client = client
+
+		if client.CommandRegistry.PreCommandHook(itx) {
+			cmd.CommandHandler(itx)
+		}
+
+		client.CommandRegistry.PostCommandHook(itx)
 		return
 	}
-}
-
-func decodeInteraction[T any](data []byte, target *T) error {
-	return json.Unmarshal(data, target)
 }
