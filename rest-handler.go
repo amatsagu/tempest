@@ -66,6 +66,7 @@ func (rest *BaseRestHandler) Request(method string, route string, jsonPayload in
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
+		fmt.Println("[DEBUG] Stringified json payload: ", string(raw))
 		body = bytes.NewReader(bytes.Replace(raw, requestSwapNullArray, requestSwapEmptyArray, -1))
 	}
 
@@ -82,6 +83,7 @@ func (rest *BaseRestHandler) Request(method string, route string, jsonPayload in
 		rest.mu.RLock()
 		raw, err, finished := rest.handleRequest(method, route, body, CONTENT_TYPE_JSON)
 		if finished {
+			fmt.Println("[DEBUG] Received response payload: ", string(raw))
 			return raw, err
 		}
 		defer rest.mu.RUnlock()
