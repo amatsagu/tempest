@@ -30,7 +30,7 @@ type ResponseMessageData struct {
 	Content         string           `json:"content,omitempty"`
 	Embeds          []*Embed         `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-	Flags           uint64           `json:"flags,omitempty"`
+	Flags           MessageFlags     `json:"flags,omitempty"`
 	Components      []*ComponentRow  `json:"components,omitempty"`
 }
 

@@ -22,4 +22,4 @@ This module contains all required by Ashara lib struct data types used by Discor
 - Supports rich content such as **embeds**, **attachments**, and **interactive components**.
 
 ## Warning
-We'll try keeping all structs up to date but nobody can promose that. Be especially careful with `./permission.go` as discord commonly makes minor changes to permission names/positions.
+We'll try keeping all structs up to date but nobody can promise that. Be especially careful with `./permission.go` as discord commonly makes minor changes to permission names/positions.

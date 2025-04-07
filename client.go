@@ -44,7 +44,7 @@ func NewClient(opt ClientOptions) Client {
 		Rest:            NewBaseRestHandler(opt.Token),
 		CommandRegistry: NewBaseSlashCommandRegistry(botUserID),
 		jsonBufferPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				buf := make([]byte, poolSize) // start with a decent buffer
 				return &buf
 			},

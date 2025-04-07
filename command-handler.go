@@ -9,13 +9,9 @@ import (
 // compile-time interface assertion
 var _ SlashCommandRegistry = (*BaseSlashCommandRegistry)(nil)
 
-type SlashCommandHandlerWithCompletion interface {
-	AutoCompleteHandler(itx *CommandInteraction) []Choice
-}
-
 type SlashCommandHandler interface {
 	Data() Command // Command definition metadata (name, description, options, etc.)
-	// AutoCompleteHandler(itx *CommandInteraction) []Choice
+	AutoCompleteHandler(itx *CommandInteraction) []Choice
 	CommandHandler(itx CommandInteraction)
 }
 
