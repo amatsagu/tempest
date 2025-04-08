@@ -21,6 +21,6 @@ var (
 )
 
 var (
-	requestSwapNullArray  = []byte("[null]")
+	requestSwapNullArray  = []byte("[{}]")
 	requestSwapEmptyArray = []byte("[]")
 )

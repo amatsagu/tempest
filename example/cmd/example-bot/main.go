@@ -19,8 +19,12 @@ func main() {
 
 	log.Println("Creating new Tempest client...")
 	client := tempest.NewClient(tempest.ClientOptions{
-		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
-		Rest:      tempest.NewRestClient(os.Getenv("DISCORD_BOT_TOKEN")),
+		Token:          os.Getenv("DISCORD_BOT_TOKEN"),
+		PublicKey:      os.Getenv("DISCORD_PUBLIC_KEY"),
+		JSONBufferSize: 4096,
+		DefaultInteractionContexts: []tempest.InteractionContextType{
+			tempest.GUILD_CONTEXT_TYPE,
+		},
 	})
 
 	addr := os.Getenv("DISCORD_APP_ADDRESS")
@@ -34,29 +38,20 @@ func main() {
 	// Client's registry after starting is used as readonly cache so it skips using mutex for performance reasons.
 	// You shouldn't update registry after http server launches.
 	log.Println("Registering commands & static components...")
-	client.RegisterCommand(command.Add)
-	client.RegisterCommand(command.AutoComplete)
-	client.RegisterCommand(command.Avatar)
-	client.RegisterCommand(command.Defer)
-	client.RegisterCommand(command.Dynamic)
-	client.RegisterCommand(command.FetchMember)
-	client.RegisterCommand(command.FetchUser)
-	client.RegisterCommand(command.MemoryUsage)
-	client.RegisterCommand(command.Modal)
-	client.RegisterCommand(command.Static)
-	client.RegisterCommand(command.Swap)
-	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
-	client.RegisterModal("my-modal", command.HelloModal)
+	client.CommandRegistry.Register(command.AddSlashCommand{})
+	client.CommandRegistry.Register(command.AutoCompleteSlashCommand{})
+	client.CommandRegistry.Register(command.AvatarSlashCommand{})
+	client.CommandRegistry.Register(command.SwapSlashCommand{})
 
-	err = client.SyncCommands([]tempest.Snowflake{testServerID}, nil, false)
+	err = client.CommandRegistry.SyncWithDiscord(client.Rest, []tempest.Snowflake{testServerID}, nil, false)
 	if err != nil {
 		log.Fatalln("failed to sync local commands storage with Discord API", err)
 	}
 
-	http.HandleFunc("POST /discord/callback", client.HandleDiscordRequest)
+	http.HandleFunc("POST /discord/callback", client.DiscordRequestHandler)
 
 	log.Printf("Serving application at: %s/discord/callback\n", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalln("something went terribly wrong", err)
+		log.Fatalln("something went terribly wrong ", err)
 	}
 }
