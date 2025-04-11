@@ -14,7 +14,7 @@ const (
 )
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
-type InteractionContextType uint8
+type InteractionContextType uint16 // use uint16 instead uint8 to avoid Go's json marshal logic that thinks of it as symbols.
 
 const (
 	GUILD_CONTEXT_TYPE InteractionContextType = iota
