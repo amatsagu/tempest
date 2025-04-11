@@ -17,7 +17,6 @@ var FetchMember tempest.Command = tempest.Command{
 			Type:        tempest.USER_OPTION_TYPE,
 		},
 	},
-	AvailableInDM: false,
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		target := *itx.Member
 		rawTargetID, available := itx.GetOptionValue("target")

@@ -16,10 +16,10 @@ var Dynamic tempest.Command = tempest.Command{
 
 		msg := tempest.ResponseMessageData{
 			Content: "Click below button *(only you can do it)*:",
-			Components: []*tempest.ComponentRow{
+			Components: []tempest.ComponentRow{
 				{
 					Type: tempest.ROW_COMPONENT_TYPE,
-					Components: []*tempest.Component{
+					Components: []tempest.Component{
 						{
 							CustomID: uniqueButtonID,
 							Type:     tempest.BUTTON_COMPONENT_TYPE,
@@ -42,7 +42,10 @@ var Dynamic tempest.Command = tempest.Command{
 		var counter uint64 = 0
 		for {
 			citx := <-signalChannel
-			if citx == nil {
+			// Default, "0 value" struct is returned when something fails or it gets timed out.
+			// It's ineffcient and annoying to compare whole structs so instead just check for string Token that is always defined for any valid interaction.
+			if citx.Token == "" {
+				log.Println("component listener channel closed")
 				stopFunction()
 				return
 			}

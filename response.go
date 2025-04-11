@@ -28,10 +28,12 @@ type ResponseMessage struct {
 type ResponseMessageData struct {
 	TTS             bool             `json:"tts,omitempty"`
 	Content         string           `json:"content,omitempty"`
-	Embeds          []*Embed         `json:"embeds,omitempty"`
+	Embeds          []Embed          `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-	Flags           uint64           `json:"flags,omitempty"`
-	Components      []*ComponentRow  `json:"components,omitempty"`
+	Flags           MessageFlags     `json:"flags,omitempty"`
+	Components      []ComponentRow   `json:"components,omitempty"`
+	Attachments     []Attachment     `json:"attachments,omitempty"`
+	Poll            *Poll            `json:"poll,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
@@ -53,7 +55,7 @@ type ResponseModal struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
-	CustomID   string          `json:"custom_id"`
-	Title      string          `json:"title"`
-	Components []*ComponentRow `json:"components,omitempty"`
+	CustomID   string         `json:"custom_id"`
+	Title      string         `json:"title"`
+	Components []ComponentRow `json:"components,omitempty"`
 }

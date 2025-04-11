@@ -16,40 +16,40 @@ import (
 	"time"
 )
 
-type RestClient struct {
-	HTTPClient *http.Client
-	Token      string
+type Rest struct {
+	HTTPClient http.Client
 	MaxRetries uint8
+	token      string
 	mu         sync.RWMutex
 	lockedTo   time.Time
 }
 
 type rateLimitError struct {
-	Global     bool    `json:"global"`
 	Message    string  `json:"message"`
 	RetryAfter float32 `json:"retry_after"`
+	Global     bool    `json:"global"`
 }
 
-func NewRestClient(token string) *RestClient {
+func NewRest(token string) *Rest {
 	t := token
 	if !strings.HasPrefix(t, "Bot ") {
 		t = "Bot " + t
 	}
 
-	return &RestClient{
-		HTTPClient: &http.Client{
+	return &Rest{
+		HTTPClient: http.Client{
 			Transport: &http.Transport{
 				TLSHandshakeTimeout: time.Second * 3,
 			},
 			Timeout: time.Second * 3,
 		},
-		Token:      t,
+		token:      t,
 		MaxRetries: 3,
 		lockedTo:   time.Time{},
 	}
 }
 
-func (rest *RestClient) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
 	var body io.Reader
 	if jsonPayload != nil {
 		raw, err := json.Marshal(jsonPayload)
@@ -75,14 +75,14 @@ func (rest *RestClient) Request(method string, route string, jsonPayload interfa
 		if finished {
 			return raw, err
 		}
-		rest.mu.RUnlock()
-		time.Sleep(time.Microsecond * time.Duration(250*i))
+		defer rest.mu.RUnlock()
+		time.Sleep(time.Millisecond * time.Duration(250*i))
 	}
 
 	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayload interface{}, files []*os.File) ([]byte, error) {
+func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload interface{}, files []os.File) ([]byte, error) {
 	if len(files) == 0 {
 		return rest.Request(method, route, jsonPayload)
 	}
@@ -129,7 +129,7 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 			return nil, fmt.Errorf("failed to create body part in multipart for file[%s]: %s", num, err)
 		}
 
-		if _, err := io.Copy(filePart, file); err != nil {
+		if _, err := io.Copy(filePart, &file); err != nil {
 			return nil, fmt.Errorf("failed to encode your \"%s\" file data into multipart payload: %s", file.Name(), err)
 		}
 	}
@@ -147,14 +147,14 @@ func (rest *RestClient) RequestWithFiles(method string, route string, jsonPayloa
 		if finished {
 			return raw, err
 		}
-		rest.mu.RUnlock()
-		time.Sleep(time.Microsecond * time.Duration(250*i))
+		defer rest.mu.RUnlock()
+		time.Sleep(time.Millisecond * time.Duration(250*i))
 	}
 
 	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
 }
 
-func (rest *RestClient) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
+func (rest *Rest) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
 	request, err := http.NewRequest(method, DISCORD_API_URL+route, payload)
 	if err != nil {
 		return nil, errors.New("failed to initialize new request: " + err.Error()), false
@@ -162,7 +162,7 @@ func (rest *RestClient) handleRequest(method string, route string, payload io.Re
 
 	request.Header.Add("Content-Type", contentType)
 	request.Header.Add("User-Agent", USER_AGENT)
-	request.Header.Add("Authorization", rest.Token)
+	request.Header.Add("Authorization", rest.token)
 
 	res, err := rest.HTTPClient.Do(request)
 	if err != nil {

@@ -3,7 +3,10 @@ package tempest
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/hex"
+	"errors"
+	"strings"
 
 	"io"
 	"net/http"
@@ -49,4 +52,20 @@ func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	}
 
 	return ed25519.Verify(key, msg.Bytes(), sig)
+}
+
+func extractUserIDFromToken(token string) (Snowflake, error) {
+	strs := strings.Split(token, ".")
+	if len(strs) == 0 {
+		return 0, errors.New("token is not in a valid format")
+	}
+
+	hexID := strings.Replace(strs[0], "Bot ", "", 1)
+
+	byteID, err := base64.RawStdEncoding.DecodeString(hexID)
+	if err != nil {
+		return 0, err
+	}
+
+	return StringToSnowflake(string(byteID))
 }

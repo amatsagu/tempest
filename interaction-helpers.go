@@ -61,10 +61,10 @@ func (itx CommandInteraction) ResolveAttachment(id Snowflake) *Attachment {
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
 func (itx CommandInteraction) Defer(ephemeral bool) error {
-	var flags uint64 = 0
+	var flags MessageFlags = 0
 
 	if ephemeral {
-		flags = 64
+		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
@@ -78,9 +78,9 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []*os.File) error {
+func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []os.File) error {
 	if ephemeral && reply.Flags == 0 {
-		reply.Flags = 64
+		reply.Flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	_, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
@@ -109,7 +109,7 @@ func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 
 func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
-		content.Flags = 64
+		content.Flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
@@ -123,7 +123,7 @@ func (itx CommandInteraction) DeleteReply() error {
 
 func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
 	if ephemeral && content.Flags == 0 {
-		content.Flags = 64
+		content.Flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
@@ -181,7 +181,7 @@ func (itx ComponentInteraction) Acknowledge() error {
 
 func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageData, ephemeral bool) error {
 	if ephemeral && content.Flags == 0 {
-		content.Flags = 64
+		content.Flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	body, err := json.Marshal(ResponseMessage{
@@ -254,7 +254,7 @@ func (itx ModalInteraction) Acknowledge() error {
 
 func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData, ephemeral bool) error {
 	if ephemeral && response.Flags == 0 {
-		response.Flags = 64
+		response.Flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
 	body, err := json.Marshal(ResponseMessage{

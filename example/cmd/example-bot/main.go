@@ -19,8 +19,8 @@ func main() {
 
 	log.Println("Creating new Tempest client...")
 	client := tempest.NewClient(tempest.ClientOptions{
+		Token:     os.Getenv("DISCORD_BOT_TOKEN"),
 		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
-		Rest:      tempest.NewRestClient(os.Getenv("DISCORD_BOT_TOKEN")),
 	})
 
 	addr := os.Getenv("DISCORD_APP_ADDRESS")
@@ -48,12 +48,12 @@ func main() {
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 	client.RegisterModal("my-modal", command.HelloModal)
 
-	err = client.SyncCommands([]tempest.Snowflake{testServerID}, nil, false)
+	err = client.SyncCommandsWithDiscord([]tempest.Snowflake{testServerID}, nil, false)
 	if err != nil {
 		log.Fatalln("failed to sync local commands storage with Discord API", err)
 	}
 
-	http.HandleFunc("POST /discord/callback", client.HandleDiscordRequest)
+	http.HandleFunc("POST /discord/callback", client.DiscordRequestHandler)
 
 	log.Printf("Serving application at: %s/discord/callback\n", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {

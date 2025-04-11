@@ -6,11 +6,11 @@ import (
 
 var AutoComplete tempest.Command = tempest.Command{
 	Name:        "auto-complete",
-	Description: "Adds 2 numbers.",
+	Description: "Shows example of auto-complete.",
 	Options: []tempest.CommandOption{
 		{
 			Name:         "suggestion",
-			Description:  "First number to add.",
+			Description:  "Selector for one of the options.",
 			Type:         tempest.STRING_OPTION_TYPE,
 			Required:     true,
 			AutoComplete: true,
