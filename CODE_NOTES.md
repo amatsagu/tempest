@@ -1,6 +1,6 @@
 ## Quick list
 1. [Fields with nested structs vs pointers](#fields-with-nested-structs-vs-pointers)
-2. [Why some Discord API structs feels incomplete?](#why-some-Discord-api-structs-feels-incomplete?)
+2. [Why some Discord API structs feels incomplete?](#why-some-discord-api-structs-feels-incomplete)
 
 ### Fields with nested structs vs pointers
 **TL;DR**: there's no single best solution to whether you should define nested structs by their pointer or not. Most people will agree to use pointer when said struct is large, but otherwise it's mostly down to preference. Sometimes people think that using pointers should be faster as no data is being copied but it's not always true - especially in languages with GC like Golang. Depending how Go's compiler decides, your data may be swapped between stack and heap memories based on how it thinks will be more efficient.
