@@ -65,8 +65,6 @@ const (
 )
 
 // https://discord.com/developers/docs/resources/user#user-object-user-structure
-//
-// We skip unreasonable fields like MFA or email.
 type User struct {
 	ID                   Snowflake         `json:"id"`
 	Username             string            `json:"username"`
@@ -197,7 +195,8 @@ type Role struct {
 	PermissionFlags PermissionFlags `json:"permissions,string"`
 	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
 	Mentionable     bool            `json:"mentionable"` // Whether this role is mentionable.
-	Tags            *RoleTag        `json:"tags,omitempty"`
+	Tags            RoleTag         `json:"tags"`
+	Flags           BitSet          `json:"flags"` // https://discord.com/developers/docs/topics/permissions#role-object-role-flags
 }
 
 func (role Role) Mention() string {

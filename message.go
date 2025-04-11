@@ -70,6 +70,13 @@ const (
 	ALLOWED_EVERYONE_MENTION_TYPE AllowedMentionsType = "everyone"
 )
 
+// https://discord.com/developers/docs/resources/poll#layout-type
+type PoolLayoutType uint8
+
+const (
+	DEFAULT_POOL_LAYOUT_TYPE PoolLayoutType = iota + 1
+)
+
 // https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
 type AllowedMentions struct {
 	Parse       []AllowedMentionsType `json:"parse,omitempty"`
@@ -102,12 +109,12 @@ type ReactionCountDetails struct {
 
 // https://discord.com/developers/docs/resources/message#reaction-object
 type Reaction struct {
-	Count        uint32                `json:"count"`
-	CountDetails *ReactionCountDetails `json:"count_details"`
-	Me           bool                  `json:"me"`
-	MeBurst      bool                  `json:"me_burst"`
-	Emoji        *Emoji                `json:"emoji"`
-	BurstColors  []string              `json:"burst_colors"` // HEX colors used for super reaction
+	Count        uint32               `json:"count"`
+	CountDetails ReactionCountDetails `json:"count_details"`
+	Me           bool                 `json:"me"`
+	MeBurst      bool                 `json:"me_burst"`
+	Emoji        Emoji                `json:"emoji"`
+	BurstColors  []string             `json:"burst_colors"` // HEX colors used for super reaction
 }
 
 // https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
@@ -210,11 +217,12 @@ type Message struct {
 	Mentions          []User              `json:"mentions"`
 	MentionRoles      []Snowflake         `json:"mention_roles"`
 	MentionChannels   []ChannelMention    `json:"mention_channels,omitempty"`
+	Attachments       []Attachment        `json:"attachments"`
 	Embeds            []Embed             `json:"embeds"`
 	Reactions         []Reaction          `json:"reactions,omitempty"`
 	Pinned            bool                `json:"pinned"`
 	WebhookID         Snowflake           `json:"webhook_id,omitempty"`
-	Type              uint32              `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
+	Type              BitSet              `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
 	ApplicationID     Snowflake           `json:"application_id,omitempty"`
 	MessageReference  *MessageReference   `json:"message_reference,omitempty"`
 	Flags             uint64              `json:"flags,omitempty"`
@@ -257,4 +265,39 @@ type Attachment struct {
 	DurationSecs float64   `json:"duration_secs,omitempty"`
 	Waveform     string    `json:"waveform,omitempty"`
 	Flags        uint64    `json:"flags,omitempty"`
+}
+
+// https://discord.com/developers/docs/resources/poll#poll-create-request-object
+type Poll struct {
+	Question    PollMedia      `json:"question"`
+	Answers     []PollAnswer   `json:"answers"`
+	Expiry      *time.Time     `json:"expiry,omitempty"`
+	Multiselect bool           `json:"allow_multiselect"`
+	LayoutType  PoolLayoutType `json:"layout_type"`
+	Results     *PoolResult    `json:"results,omitempty"`
+}
+
+// https://discord.com/developers/docs/resources/poll#poll-media-object-poll-media-object-structure
+type PollMedia struct {
+	Text  string `json:"text,omitempty"`
+	Emoji *Emoji `json:"emoji,omitempty"`
+}
+
+// https://discord.com/developers/docs/resources/poll#poll-answer-object
+type PollAnswer struct {
+	AnswerID  uint32    `json:"answer_id,omitempty"`
+	PollMedia PollMedia `json:"poll_media"`
+}
+
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-results-object-structure
+type PoolResult struct {
+	Finalized    bool               `json:"is_finalized"`
+	AnswerCounts []PoolAnswerCounts `json:"answer_counts"`
+}
+
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-answer-count-object-structure
+type PoolAnswerCounts struct {
+	ID      uint32 `json:"id"` // The answer_id
+	Count   uint32 `json:"count"`
+	MeVoted bool   `json:"me_voted"`
 }

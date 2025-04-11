@@ -32,6 +32,8 @@ type ResponseMessageData struct {
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Flags           MessageFlags     `json:"flags,omitempty"`
 	Components      []ComponentRow   `json:"components,omitempty"`
+	Attachments     []Attachment     `json:"attachments,omitempty"`
+	Poll            *Poll            `json:"poll,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object

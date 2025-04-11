@@ -73,7 +73,7 @@ const (
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	ID                       Snowflake                    `json:"-"` // Omit in json parsing for now because it was breaking Client#commandParse.
+	ID                       Snowflake                    `json:"-"` // It's not needed on app side to work.
 	Type                     CommandType                  `json:"type,omitempty"`
 	ApplicationID            Snowflake                    `json:"application_id"`
 	GuildID                  Snowflake                    `json:"guild_id,omitempty"`
