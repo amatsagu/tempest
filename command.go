@@ -87,6 +87,9 @@ type Command struct {
 	Contexts                 []InteractionContextType     `json:"contexts,omitempty"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
 	NSFW                     bool                         `json:"nsfw,omitempty"`     // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
 	Version                  Snowflake                    `json:"version,omitempty"`  // Autoincrementing version identifier updated during substantial record changes.
+
+	AutoCompleteHandler func(itx CommandInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
+	SlashCommandHandler func(itx *CommandInteraction)         `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
@@ -99,8 +102,8 @@ type CommandOption struct {
 	Required                 bool                `json:"required,omitempty"`
 	MinValue                 float64             `json:"min_value,omitempty"`
 	MaxValue                 float64             `json:"max_value,omitempty"`
-	MinLength                uint                `json:"min_length,omitempty"`
-	MaxLength                uint                `json:"max_length,omitempty"`
+	MinLength                uint32              `json:"min_length,omitempty"`
+	MaxLength                uint32              `json:"max_length,omitempty"`
 	Options                  []CommandOption     `json:"options,omitempty"`
 	ChannelTypes             []ChannelType       `json:"channel_types,omitempty"`
 	Choices                  []Choice            `json:"choices,omitempty"`

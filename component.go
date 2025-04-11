@@ -45,7 +45,7 @@ type Component struct {
 	CustomID     string             `json:"custom_id,omitempty"`
 	Style        uint8              `json:"style,omitempty"` // Either ButtonStyle or TextInputStyle.
 	Label        string             `json:"label,omitempty"`
-	Emoji        *PartialEmoji      `json:"emoji,omitempty"`
+	Emoji        *Emoji             `json:"emoji,omitempty"` // It may only contain id, name, and animated from regular Emoji struct.
 	URL          string             `json:"url,omitempty"`
 	Disabled     bool               `json:"disabled,omitempty"`
 	Placeholder  string             `json:"placeholder,omitempty"`
@@ -61,11 +61,11 @@ type Component struct {
 
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-option-structure
 type SelectMenuOption struct {
-	Label       string        `json:"label,omitempty"`       // Text label that appears on the option label, max 80 characters.
-	Description string        `json:"description,omitempty"` // An additional description of the option, max 100 characters.
-	Emoji       *PartialEmoji `json:"emoji,omitempty"`
-	Value       string        `json:"value"`   // Value to return back to app once clicked, max 100 characters.
-	Default     bool          `json:"default"` // Whether to render this option as selected by default.
+	Label       string `json:"label,omitempty"`       // Text label that appears on the option label, max 80 characters.
+	Description string `json:"description,omitempty"` // An additional description of the option, max 100 characters.
+	Emoji       *Emoji `json:"emoji,omitempty"`       // It may only contain id, name, and animated from regular Emoji struct.
+	Value       string `json:"value"`                 // Value to return back to app once clicked, max 100 characters.
+	Default     bool   `json:"default"`               // Whether to render this option as selected by default.
 }
 
 // https://discord.com/developers/docs/interactions/message-components#action-rows
