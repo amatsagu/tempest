@@ -23,13 +23,13 @@ type Client struct {
 	staticModals     *SharedMap[string, func(ModalInteraction)]
 	jsonBufferPool   *sync.Pool
 
-	preCommandHandler  func(cmd Command, itx CommandInteraction) bool
-	postCommandHandler func(cmd Command, itx CommandInteraction)
-	componentHandler   func(itx ComponentInteraction)
-	modalHandler       func(itx ModalInteraction)
+	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
+	postCommandHandler func(cmd Command, itx *CommandInteraction)
+	componentHandler   func(itx *ComponentInteraction)
+	modalHandler       func(itx *ModalInteraction)
 
-	queuedComponents *SharedMap[string, chan ComponentInteraction]
-	queuedModals     *SharedMap[string, chan ModalInteraction]
+	queuedComponents *SharedMap[string, chan *ComponentInteraction]
+	queuedModals     *SharedMap[string, chan *ModalInteraction]
 }
 
 type ClientOptions struct {
@@ -38,10 +38,10 @@ type ClientOptions struct {
 	JSONBufferSize             uint
 	DefaultInteractionContexts []InteractionContextType
 
-	PreCommandHook   func(cmd Command, itx CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	PostCommandHook  func(cmd Command, itx CommandInteraction)      // Function that runs after each command.
-	ComponentHandler func(itx ComponentInteraction)                 // Function that runs for each unhandled component.
-	ModalHandler     func(itx ModalInteraction)                     // Function that runs for each unhandled modal.
+	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
+	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
+	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 }
 
 func NewClient(opt ClientOptions) Client {
@@ -83,8 +83,8 @@ func NewClient(opt ClientOptions) Client {
 		postCommandHandler: opt.PostCommandHook,
 		componentHandler:   opt.ComponentHandler,
 		modalHandler:       opt.ModalHandler,
-		queuedComponents:   NewSharedMap[string, chan ComponentInteraction](),
-		queuedModals:       NewSharedMap[string, chan ModalInteraction](),
+		queuedComponents:   NewSharedMap[string, chan *ComponentInteraction](),
+		queuedModals:       NewSharedMap[string, chan *ModalInteraction](),
 	}
 }
 
@@ -93,7 +93,7 @@ func NewClient(opt ClientOptions) Client {
 // On timeout (min 1s -> max 15min) - client will automatically call close function.
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) (<-chan ComponentInteraction, func(), error) {
+func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) (<-chan *ComponentInteraction, func(), error) {
 	for _, ID := range customIDs {
 		if client.staticComponents.Has(ID) {
 			return nil, nil, errors.New("client already has registered static component with custom ID = " + ID + " (custom id already in use)")
@@ -104,7 +104,7 @@ func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) 
 		}
 	}
 
-	signalChannel := make(chan ComponentInteraction)
+	signalChannel := make(chan *ComponentInteraction)
 	closeFunction := func() {
 		if signalChannel != nil {
 			client.queuedComponents.mu.Lock()
@@ -140,12 +140,12 @@ func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) 
 // On timeout (min 30s -> max 15min) - client will automatically call close function.
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan ModalInteraction, func(), error) {
+func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan *ModalInteraction, func(), error) {
 	if client.queuedModals.Has(customID) {
 		return nil, nil, errors.New("client already has registered static modal with custom ID = " + customID + " (custom id already in use)")
 	}
 
-	signalChannel := make(chan ModalInteraction)
+	signalChannel := make(chan *ModalInteraction)
 	closeFunction := func() {
 		if signalChannel != nil {
 			client.queuedModals.Delete(customID)

@@ -85,14 +85,14 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 	w.WriteHeader(http.StatusNoContent)
 	itx.Client = client
 
-	if client.preCommandHandler != nil && !client.preCommandHandler(command, itx) {
+	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
 		return
 	}
 
 	command.SlashCommandHandler(&itx)
 
 	if client.postCommandHandler != nil {
-		client.postCommandHandler(command, itx)
+		client.postCommandHandler(command, &itx)
 	}
 }
 
@@ -131,12 +131,12 @@ func (client *Client) componentInteractionHandler(w http.ResponseWriter, interac
 	if available && signalChannel != nil {
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyAcknowledgeResponse)
-		signalChannel <- interaction
+		signalChannel <- &interaction
 		return
 	}
 
 	if client.componentHandler != nil {
-		client.componentHandler(interaction)
+		client.componentHandler(&interaction)
 	}
 }
 
@@ -151,11 +151,11 @@ func (client *Client) modalInteractionHandler(w http.ResponseWriter, interaction
 	if available && signalChannel != nil {
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyAcknowledgeResponse)
-		signalChannel <- interaction
+		signalChannel <- &interaction
 		return
 	}
 
 	if client.modalHandler != nil {
-		client.modalHandler(interaction)
+		client.modalHandler(&interaction)
 	}
 }
