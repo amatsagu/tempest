@@ -1,4 +1,4 @@
-.*
-!.gitignore
-!.github
-example/bin
+.test
+./test/*
+test
+test/*
