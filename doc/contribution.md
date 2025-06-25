@@ -25,6 +25,7 @@ In this library, the default is to pass data by value (i.e., copy it). This is u
 * **Optional fields**, or
 * **Large structs** (size ≥ 512 bytes).
 
-Note: This rule applies to single instances only. Don’t use pointers for slices, arrays, or maps—they are already reference types.
+> [!NOTE]
+> This rule applies to single instances only. Don’t use pointers for slices, arrays, or maps—they are already reference types.
 
 When in doubt, refer to existing implementations. For example, see the [`ModalInteraction`](https://github.com/amatsagu/tempest/blob/de02d0ad11bde79058019ac818ffdfda6afad0e2/interaction.go#L62) struct.
