@@ -12,6 +12,7 @@ type GatewayManager struct {
 	Token      string
 	Intents    uint32
 	ShardCount uint16
+	User       discord.User // User details of bot, available after successfully connecting with discord gateway.
 	Shards     []Shard
 }
 
@@ -20,7 +21,7 @@ type ShardState uint8
 const (
 	UNAVAILABLE_SHARD_STATE ShardState = iota
 	CONNECTING_SHARD_STATE
-	OPERATIONAL_SHARD_STATE
+	ACTIVE_SHARD_STATE
 )
 
 type heartbeatState struct {
@@ -52,6 +53,6 @@ func (manager *GatewayManager) SpawnShard(ctx context.Context, ID uint16) error 
 	}
 
 	manager.Shards = append(manager.Shards, shard)
-	shard.listen()
+	shard.listen(ctx)
 	return nil
 }
