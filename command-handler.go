@@ -28,7 +28,7 @@ func (client *Client) RegisterCommand(cmd Command) error {
 }
 
 func (client *Client) RegisterSubCommand(subCommand Command, parentCommandName string) error {
-	if client.commands.Has(parentCommandName) {
+	if !client.commands.Has(parentCommandName) {
 		return errors.New("missing \"" + parentCommandName + "\" slash command in registry (parent command needs to be registered in client before adding subcommands)")
 	}
 
