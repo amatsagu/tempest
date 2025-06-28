@@ -24,7 +24,7 @@ type EventPacket struct {
 
 // https://discord.com/developers/docs/events/gateway-events#hello
 type HelloEventData struct {
-	HeartbeatInterval float64 `json:"heartbeat_interval"`
+	HeartbeatInterval uint32 `json:"heartbeat_interval"`
 }
 
 // https://discord.com/developers/docs/events/gateway-events#heartbeat
@@ -64,4 +64,32 @@ type ReadyEventData struct {
 	Guilds           []discord.UnavailableGuild `json:"guilds"`
 	// + shard order, same like on identify payload
 	// + partial application object (docs)
+}
+
+// https://discord.com/developers/docs/events/gateway-events#resume
+type ResumeEvent struct {
+	Opcode Opcode          `json:"op"`
+	Data   ResumeEventData `json:"d"`
+}
+
+// https://discord.com/developers/docs/events/gateway-events#resume-resume-structure
+type ResumeEventData struct {
+	Token     string `json:"token"`
+	SessionID string `json:"session_id"`
+	Sequence  uint32 `json:"seq"` // Last sequence number received
+}
+
+// https://discord.com/developers/docs/events/gateway#get-gateway-bot
+type GatewayBot struct {
+	URL               string            `json:"url"`
+	ShardCount        uint16            `json:"shards"`
+	SessionStartLimit SessionStartLimit `json:"session_start_limit"`
+}
+
+// https://discord.com/developers/docs/events/gateway#session-start-limit-object
+type SessionStartLimit struct {
+	ResetAfter     uint32 `json:"reset_after"`
+	Total          uint16 `json:"total"`           // max 1000
+	Remaining      uint16 `json:"remaining"`       // max 1000
+	MaxConcurrency uint16 `json:"max_concurrency"` // Number of identify requests allowed per 5 seconds.
 }

@@ -13,7 +13,7 @@ Before submitting a pull request, please follow these rules:
     - `gateway`: for everything related to the Discord Gateway connection,
     - `core`: for unique logic provided by the library (e.g., REST client or component listener),
     - `helper`: for transformers or helper structs that improve usability (e.g., embed pagination builder),
-    - `util`: for anything else that doesn’t fit the above categories (if needed).
+    - `other`: for anything else that doesn’t fit the above categories (if needed).
 5. Avoid plural naming unless it is explicitly used in the API documentation.
 6. Follow (my) established conventions for when to use pointers versus structs. See the section below for more details.
 
