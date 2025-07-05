@@ -70,34 +70,41 @@ func (manager *GatewayManager) StartSession(ctx context.Context) error {
 		rData.SessionStartLimit.MaxConcurrency = 1
 	}
 
+	// Create one goroutine per bucket
 	var wg sync.WaitGroup
+	for bucket := uint16(0); bucket < rData.SessionStartLimit.MaxConcurrency; bucket++ {
+		wg.Add(1)
+		go func(bucketID uint16) {
+			defer wg.Done()
 
-	for i := uint16(0); i < manager.shardCount; i += rData.SessionStartLimit.MaxConcurrency {
-		batchSize := rData.SessionStartLimit.MaxConcurrency
-		if manager.shardCount-i < rData.SessionStartLimit.MaxConcurrency {
-			batchSize = manager.shardCount - i
-		}
+			for shardID := bucketID; shardID < manager.shardCount; shardID += rData.SessionStartLimit.MaxConcurrency {
+				select {
+				case <-ctx.Done():
+					log.Printf("[Manager] Cancelled while spawning shard %d in bucket %d", shardID, bucketID)
+					return
+				default:
+					log.Printf("[Manager] Spawning shard %d in bucket %d", shardID, bucketID)
 
-		for j := uint16(0); j < batchSize; j++ {
-			shardID := i + j
-			wg.Add(1)
-			go func(id uint16) {
-				defer wg.Done()
-				manager.spawnShard(ctx, id)
-			}(shardID)
-		}
+					// Spawn shard (sequentially)
+					err := manager.spawnShard(ctx, shardID)
+					if err != nil {
+						log.Printf("[Manager] Failed to spawn shard %d: %v", shardID, err)
+						if manager.shardErrorHook != nil {
+							manager.shardErrorHook(shardID, err)
+						}
+					}
 
-		if i+batchSize < manager.shardCount {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(5 * time.Second):
+					// Discord requires a 5-second delay between each IDENTIFY per bucket
+					log.Printf("[Manager] Waiting 5s before next shard in bucket %d", bucketID)
+
+					time.Sleep(5 * time.Second)
+				}
 			}
-		}
+		}(bucket)
 	}
 
-	log.Println("[Manager] Launched all shards.")
 	wg.Wait()
+	log.Println("[Manager] Launched all shards.")
 	return nil
 }
 
@@ -146,6 +153,6 @@ func (manager *GatewayManager) spawnShard(ctx context.Context, ID uint16) error 
 	}
 
 	manager.shards[ID] = &shard
-	shard.listen(ctx)
+	go shard.listen(ctx)
 	return nil
 }
