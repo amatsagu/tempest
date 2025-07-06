@@ -14,12 +14,12 @@ import (
 )
 
 type GatewayManager struct {
-	token                string
-	shards               []*Shard
-	shardCount           uint16
-	started              bool
-	shardStateUpdateHook func(ID uint16, state ShardState)
-	shardErrorHook       func(ID uint16, err error)
+	token                string                            // readonly after start
+	shards               []*shard                          // readonly after start
+	shardCount           uint16                            // readonly after start
+	started              bool                              // readonly after start
+	shardStateUpdateHook func(ID uint16, state ShardState) // readonly after start
+	shardErrorHook       func(ID uint16, err error)        // readonly after start
 }
 
 type GatewayManagerOptions struct {
@@ -64,7 +64,7 @@ func (manager *GatewayManager) StartSession(ctx context.Context) error {
 		manager.shardCount = rData.ShardCount
 	}
 
-	manager.shards = make([]*Shard, manager.shardCount)
+	manager.shards = make([]*shard, manager.shardCount)
 
 	if rData.SessionStartLimit.MaxConcurrency == 0 {
 		rData.SessionStartLimit.MaxConcurrency = 1
@@ -140,14 +140,22 @@ func (manager *GatewayManager) calculateShardCount() (GatewayBot, error) {
 	return data, nil
 }
 
-// Spawns new Shard connection in a sequence and returns it's ID.
+// Spawns new OldShard connection in a sequence and returns it's ID.
 func (manager *GatewayManager) spawnShard(ctx context.Context, ID uint16) error {
-	shard := Shard{
-		ID:      ID,
+	shard := shard{
 		manager: manager,
+		hb: &heartbeat{
+			lastBeat: time.Now(),
+			shardID:  ID,
+		},
+		id:    ID,
+		state: UNAVAILABLE_SHARD_STATE,
 	}
 
-	err := shard.updateConnection(ctx, true, false)
+	shard.hb.shardID = ID
+	shard.hb.sendBeat = shard.sendHeartbeat
+
+	err := shard.reset(ctx, true)
 	if err != nil {
 		return err
 	}

@@ -46,10 +46,10 @@ func (c *wsConn) sendPayload(ctx context.Context, v any) error {
 		return errors.New("ws connection is closed")
 	}
 
-	if !c.limiter.TryConsume() {
-		c.mu.Unlock()
-		return errors.New("reached rate limit (over 120 payloads in last 60s)")
-	}
+	// if !c.limiter.TryConsume() {
+	// 	c.mu.Unlock()
+	// 	return errors.New("reached rate limit (over 120 payloads in last 60s)")
+	// }
 
 	err := wsjson.Write(ctx, c.conn, v)
 	c.mu.Unlock()
