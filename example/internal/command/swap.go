@@ -24,10 +24,9 @@ var Swap tempest.Command = tempest.Command{
 
 		itx.EditReply(tempest.ResponseMessageData{
 			Content: "Modified hello message!",
-			// Provide single nill value for any field that you wish to signal it's empty.
-			// Discord API requires specifically [] empty array as value when clearing embeds, components, etc. but it's hard to achieve with std encoding/json.
-			// Tempest will replace all [{}] with [] in stringified json. Different libraries may resolve that by using custom marshallers, json libs, etc.
-			Embeds: []tempest.Embed{{}},
+			// Define new, empty slice to include empty array when marshalled to JSON.
+			// Discord looks for empty objects or arrays to define intentional lack of value.
+			Embeds: make([]tempest.Embed, 0),
 		}, false)
 	},
 }
