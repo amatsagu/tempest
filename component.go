@@ -52,11 +52,11 @@ type Component struct {
 	MinValues    uint64             `json:"min_values,omitempty"`
 	MaxValues    uint64             `json:"max_values,omitempty"`
 	Required     bool               `json:"required,omitempty"`
-	Options      []SelectMenuOption `json:"options,omitempty"`
-	Value        string             `json:"value,omitempty"`         // Contains menu choice or text input value from user modal submit.
-	ChannelTypes []ChannelType      `json:"channel_types,omitempty"` // Only available for 8th ComponentType.
-	MinLength    uint64             `json:"min_length,omitempty"`    // Only available for text input components
-	MaxLength    uint64             `json:"max_length,omitempty"`    // Only available for text input components
+	Options      []SelectMenuOption `json:"options,omitzero"`
+	Value        string             `json:"value,omitempty"`        // Contains menu choice or text input value from user modal submit.
+	ChannelTypes []ChannelType      `json:"channel_types,omitzero"` // Only available for 8th ComponentType.
+	MinLength    uint64             `json:"min_length,omitempty"`   // Only available for text input components
+	MaxLength    uint64             `json:"max_length,omitempty"`   // Only available for text input components
 }
 
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-option-structure

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -57,7 +58,8 @@ func (rest *Rest) Request(method string, route string, jsonPayload interface{}) 
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
-		body = bytes.NewReader(bytes.Replace(raw, requestSwapNullArray, requestSwapEmptyArray, -1))
+		log.Println(string(raw))
+		body = bytes.NewReader(raw)
 	}
 
 	if !rest.lockedTo.IsZero() {
@@ -102,7 +104,7 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload inte
 			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
 		}
 
-		body = bytes.NewBuffer(bytes.Replace(raw, requestSwapNullArray, requestSwapEmptyArray, -1))
+		body = bytes.NewBuffer(raw)
 		writer = multipart.NewWriter(body)
 	}
 

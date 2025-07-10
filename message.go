@@ -79,9 +79,9 @@ const (
 
 // https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
 type AllowedMentions struct {
-	Parse       []AllowedMentionsType `json:"parse,omitempty"`
-	Roles       []Snowflake           `json:"roles,omitempty"`
-	Users       []Snowflake           `json:"users,omitempty"`
+	Parse       []AllowedMentionsType `json:"parse,omitzero"`
+	Roles       []Snowflake           `json:"roles,omitzero"`
+	Users       []Snowflake           `json:"users,omitzero"`
 	RepliedUser bool                  `json:"replied_user,omitempty"`
 }
 
@@ -128,7 +128,7 @@ type StickerItem struct {
 type Emoji struct {
 	ID            Snowflake   `json:"id,omitempty"`
 	Name          string      `json:"name,omitempty"` // Note: may be empty for deleted emojis.
-	Roles         []Snowflake `json:"roles,omitempty"`
+	Roles         []Snowflake `json:"roles,omitzero"`
 	User          *User       `json:"user,omitempty"`
 	RequireColons bool        `json:"require_colons,omitempty"`
 	Managed       bool        `json:"managed,omitempty"`
@@ -144,7 +144,7 @@ type Embed struct {
 	Color       uint32          `json:"color,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
 	Description string          `json:"description,omitempty"`
-	Fields      []EmbedField    `json:"fields,omitempty"`
+	Fields      []EmbedField    `json:"fields,omitzero"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Video       *EmbedVideo     `json:"video,omitempty"`
@@ -216,10 +216,10 @@ type Message struct {
 	MentionEveryone   bool                `json:"mention_everyone"`
 	Mentions          []User              `json:"mentions"`
 	MentionRoles      []Snowflake         `json:"mention_roles"`
-	MentionChannels   []ChannelMention    `json:"mention_channels,omitempty"`
+	MentionChannels   []ChannelMention    `json:"mention_channels,omitzero"`
 	Attachments       []Attachment        `json:"attachments"`
 	Embeds            []Embed             `json:"embeds"`
-	Reactions         []Reaction          `json:"reactions,omitempty"`
+	Reactions         []Reaction          `json:"reactions,omitzero"`
 	Pinned            bool                `json:"pinned"`
 	WebhookID         Snowflake           `json:"webhook_id,omitempty"`
 	Type              BitSet              `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
@@ -228,8 +228,8 @@ type Message struct {
 	Flags             uint64              `json:"flags,omitempty"`
 	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
 	Interaction       *MessageInteraction `json:"interaction,omitempty"`
-	Components        []ComponentRow      `json:"components,omitempty"`
-	StickerItems      []StickerItem       `json:"sticker_items,omitempty"`
+	Components        []ComponentRow      `json:"components,omitzero"`
+	StickerItems      []StickerItem       `json:"sticker_items,omitzero"`
 }
 
 // https://discord.com/developers/docs/resources/channel#message-reference-object-message-reference-structure

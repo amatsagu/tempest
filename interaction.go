@@ -93,7 +93,7 @@ type CommandInteractionData struct {
 	Name     string                     `json:"name"`
 	Type     CommandType                `json:"type"`
 	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`
-	Options  []CommandInteractionOption `json:"options,omitempty"`
+	Options  []CommandInteractionOption `json:"options,omitzero"`
 	GuildID  Snowflake                  `json:"guild_id,omitempty"`
 	TargetID Snowflake                  `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 }
@@ -103,7 +103,7 @@ type CommandInteractionOption struct {
 	Name    string                     `json:"name"`
 	Type    OptionType                 `json:"type"`
 	Value   any                        `json:"value,omitempty"` // string, float64 (double or integer) or bool
-	Options []CommandInteractionOption `json:"options,omitempty"`
+	Options []CommandInteractionOption `json:"options,omitzero"`
 	Focused bool                       `json:"focused,omitempty"`
 }
 
@@ -128,7 +128,7 @@ type Choice struct {
 type ComponentInteractionData struct {
 	CustomID string                   `json:"custom_id"`
 	Type     ComponentType            `json:"component_type"`
-	Values   []string                 `json:"values,omitempty"`
+	Values   []string                 `json:"values,omitzero"`
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 }
 

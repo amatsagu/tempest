@@ -81,12 +81,12 @@ type Command struct {
 	NameLocalizations        map[Language]string          `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
 	Description              string                       `json:"description"`
 	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitempty"`
-	Options                  []CommandOption              `json:"options,omitempty"`
+	Options                  []CommandOption              `json:"options,omitzero"`
 	DefaultMemberPermissions PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
-	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitempty"`
-	Contexts                 []InteractionContextType     `json:"contexts,omitempty"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	NSFW                     bool                         `json:"nsfw,omitempty"`     // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
-	Version                  Snowflake                    `json:"version,omitempty"`  // Autoincrementing version identifier updated during substantial record changes.
+	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
+	Contexts                 []InteractionContextType     `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
+	NSFW                     bool                         `json:"nsfw,omitempty"`    // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	Version                  Snowflake                    `json:"version,omitempty"` // Autoincrementing version identifier updated during substantial record changes.
 
 	AutoCompleteHandler func(itx CommandInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
 	SlashCommandHandler func(itx *CommandInteraction)         `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
@@ -104,8 +104,8 @@ type CommandOption struct {
 	MaxValue                 float64             `json:"max_value,omitempty"`
 	MinLength                uint32              `json:"min_length,omitempty"`
 	MaxLength                uint32              `json:"max_length,omitempty"`
-	Options                  []CommandOption     `json:"options,omitempty"`
-	ChannelTypes             []ChannelType       `json:"channel_types,omitempty"`
-	Choices                  []Choice            `json:"choices,omitempty"`
+	Options                  []CommandOption     `json:"options,omitzero"`
+	ChannelTypes             []ChannelType       `json:"channel_types,omitzero"`
+	Choices                  []Choice            `json:"choices,omitzero"`
 	AutoComplete             bool                `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
 }
