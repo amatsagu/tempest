@@ -6,23 +6,27 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 type Rest struct {
-	HTTPClient http.Client
-	MaxRetries uint8
-	token      string
-	mu         sync.RWMutex
-	lockedTo   time.Time
+	HTTPClient     http.Client
+	MaxRetries     uint8
+	token          string
+	mu             sync.RWMutex
+	lockedTo       time.Time
+	jsonBufferPool *sync.Pool
+}
+
+// Represents file you can attach to message on Discord.
+type File struct {
+	Name   string // File's display name
+	Reader io.Reader
 }
 
 type rateLimitError struct {
@@ -31,180 +35,197 @@ type rateLimitError struct {
 	Global     bool    `json:"global"`
 }
 
-func NewRest(token string) *Rest {
+func NewRest(token string, jsonBufferSize uint32) *Rest {
 	t := token
 	if !strings.HasPrefix(t, "Bot ") {
 		t = "Bot " + t
 	}
 
+	var poolSize uint32 = 4096
+	if jsonBufferSize > poolSize {
+		poolSize = jsonBufferSize
+	}
+
 	return &Rest{
-		HTTPClient: http.Client{
-			Transport: &http.Transport{
-				TLSHandshakeTimeout: time.Second * 3,
-			},
-			Timeout: time.Second * 3,
-		},
+		HTTPClient: *http.DefaultClient,
 		token:      t,
 		MaxRetries: 3,
 		lockedTo:   time.Time{},
+		jsonBufferPool: &sync.Pool{
+			New: func() any {
+				buf := bytes.NewBuffer(make([]byte, 0, poolSize)) // preallocate
+				return buf
+			},
+		},
 	}
 }
 
-func (rest *Rest) Request(method string, route string, jsonPayload interface{}) ([]byte, error) {
+func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error) {
 	var body io.Reader
+
 	if jsonPayload != nil {
-		raw, err := json.Marshal(jsonPayload)
-		if err != nil {
-			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
+		buf := rest.jsonBufferPool.Get().(*bytes.Buffer)
+		defer rest.jsonBufferPool.Put(buf)
+		buf.Reset()
+
+		encoder := json.NewEncoder(buf)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(jsonPayload); err != nil {
+			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
 		}
 
-		log.Println(string(raw))
-		body = bytes.NewReader(raw)
+		body = buf
 	}
 
-	if !rest.lockedTo.IsZero() {
-		timeLeft := time.Until(rest.lockedTo)
-		if timeLeft > 0 {
-			time.Sleep(timeLeft)
+	rest.mu.RLock()
+	lockedUntil := rest.lockedTo
+	rest.mu.RUnlock()
+
+	if !lockedUntil.IsZero() {
+		sleepFor := time.Until(lockedUntil)
+		if sleepFor > 0 {
+			time.Sleep(sleepFor)
 		}
 	}
 
-	var i uint8 = 0
-	for i < rest.MaxRetries {
-		i++
+	var i uint8
+	for i = 0; i < rest.MaxRetries; i++ {
 		rest.mu.RLock()
-		raw, err, finished := rest.handleRequest(method, route, body, CONTENT_TYPE_JSON)
-		if finished {
-			return raw, err
+		res, err, done := rest.handleRequest(method, route, body, CONTENT_TYPE_JSON)
+		rest.mu.RUnlock()
+
+		if done {
+			return res, err
 		}
-		defer rest.mu.RUnlock()
-		time.Sleep(time.Millisecond * time.Duration(250*i))
+
+		time.Sleep(time.Millisecond * time.Duration(250*(i+1)))
 	}
 
-	return nil, errors.New("failed to make http request in set limit of attempts to " + method + " :: " + route + " (check internet connection and/or app credentials)")
+	return nil, fmt.Errorf("request failed after %d retries to %s %s", rest.MaxRetries, method, route)
 }
 
-func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload interface{}, files []os.File) ([]byte, error) {
+func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
 	if len(files) == 0 {
 		return rest.Request(method, route, jsonPayload)
 	}
 
-	if !rest.lockedTo.IsZero() {
-		timeLeft := time.Until(rest.lockedTo)
-		if timeLeft > 0 {
-			time.Sleep(timeLeft)
+	rest.mu.RLock()
+	lockedUntil := rest.lockedTo
+	rest.mu.RUnlock()
+
+	if !lockedUntil.IsZero() {
+		sleepFor := time.Until(lockedUntil)
+		if sleepFor > 0 {
+			time.Sleep(sleepFor)
 		}
 	}
 
-	var body *bytes.Buffer
-	var writer *multipart.Writer
-	if jsonPayload != nil {
-		raw, err := json.Marshal(jsonPayload)
+	// Prepare pipe for streaming multipart content without full buffering
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+
+	// Encode multipart in a goroutine
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
+
+		// Write JSON payload as "payload_json"
+		jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
+			"Content-Disposition": []string{`form-data; name="payload_json"`},
+			"Content-Type":        []string{CONTENT_TYPE_JSON},
+		})
 		if err != nil {
-			return nil, errors.New("failed to parse provided payload (make sure it's in JSON format)")
+			pw.CloseWithError(fmt.Errorf("failed to create payload_json part: %w", err))
+			return
 		}
 
-		body = bytes.NewBuffer(raw)
-		writer = multipart.NewWriter(body)
-	}
-
-	jsonPart, err := writer.CreatePart(partHeader(`form-data; name="payload_json"`, CONTENT_TYPE_JSON))
-	if err != nil {
-		return nil, errors.New("failed to create json body part in multipart payload: " + err.Error())
-	}
-
-	err = json.NewEncoder(jsonPart).Encode(jsonPayload)
-	if err != nil {
-		return nil, errors.New("failed to encode your json data into multipart payload: " + err.Error())
-	}
-
-	for itx, file := range files {
-		num := strconv.Itoa(itx)
-
-		stat, err := file.Stat()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read statistics of file[%s]: %s", num, err)
+		if err := json.NewEncoder(jsonPart).Encode(jsonPayload); err != nil {
+			pw.CloseWithError(fmt.Errorf("failed to encode payload_json: %w", err))
+			return
 		}
 
-		filePart, err := writer.CreatePart(partHeader(fmt.Sprintf(`form-data; name="files[%s]"; filename="%s"`, num, stat.Name()), "application/octet-stream"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create body part in multipart for file[%s]: %s", num, err)
+		// Stream all files
+		for i, file := range files {
+			filePart, err := writer.CreatePart(textproto.MIMEHeader{
+				"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},
+				"Content-Type":        []string{CONTENT_TYPE_OCTET_STREAM},
+			})
+
+			if err != nil {
+				pw.CloseWithError(fmt.Errorf("failed to create file part [%d]: %w", i, err))
+				return
+			}
+
+			if _, err := io.Copy(filePart, file.Reader); err != nil {
+				pw.CloseWithError(fmt.Errorf("failed to stream file [%s]: %w", file.Name, err))
+				return
+			}
 		}
+	}()
 
-		if _, err := io.Copy(filePart, &file); err != nil {
-			return nil, fmt.Errorf("failed to encode your \"%s\" file data into multipart payload: %s", file.Name(), err)
-		}
-	}
-
-	err = writer.Close()
-	if err != nil {
-		return nil, errors.New("failed to close multipart payload: " + err.Error())
-	}
-
-	var i uint8 = 0
-	for i < rest.MaxRetries {
-		i++
+	var i uint8
+	for i = 0; i < rest.MaxRetries; i++ {
 		rest.mu.RLock()
-		raw, err, finished := rest.handleRequest(method, route, body, writer.FormDataContentType())
-		if finished {
-			return raw, err
+		body, err, done := rest.handleRequest(method, route, pr, writer.FormDataContentType())
+		rest.mu.RUnlock()
+
+		if done {
+			return body, err
 		}
-		defer rest.mu.RUnlock()
-		time.Sleep(time.Millisecond * time.Duration(250*i))
+
+		time.Sleep(time.Millisecond * time.Duration(250*(i+1)))
 	}
 
-	return nil, errors.New("failed to make http request 3 times to " + method + " :: " + route + " (check internet connection and/or app credentials)")
+	return nil, fmt.Errorf("request failed after %d retries to %s %s", rest.MaxRetries, method, route)
 }
 
 func (rest *Rest) handleRequest(method string, route string, payload io.Reader, contentType string) ([]byte, error, bool) {
-	request, err := http.NewRequest(method, DISCORD_API_URL+route, payload)
+	req, err := http.NewRequest(method, DISCORD_API_URL+route, payload)
 	if err != nil {
-		return nil, errors.New("failed to initialize new request: " + err.Error()), false
+		return nil, fmt.Errorf("failed to initialize new request: %w", err), false
 	}
 
-	request.Header.Add("Content-Type", contentType)
-	request.Header.Add("User-Agent", USER_AGENT)
-	request.Header.Add("Authorization", rest.token)
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("User-Agent", USER_AGENT)
+	req.Header.Set("Authorization", rest.token)
 
-	res, err := rest.HTTPClient.Do(request)
+	res, err := rest.HTTPClient.Do(req)
 	if err != nil {
-		return nil, errors.New("failed to process request: " + err.Error()), false
+		return nil, fmt.Errorf("failed to process request: %w", err), false
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode == 204 {
+	if res.StatusCode == http.StatusNoContent {
 		return nil, nil, true
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, errors.New("failed to parse response body (json): " + err.Error()), true
+		return nil, fmt.Errorf("failed to read response body: %w", err), true
 	}
 
-	if res.StatusCode == 429 {
-		rateErr := rateLimitError{}
-		json.Unmarshal(body, &rateErr)
+	if res.StatusCode == http.StatusTooManyRequests {
+		var rateErr rateLimitError
+		_ = json.Unmarshal(body, &rateErr) // even if this fails - it can still fall back
+
+		retryAfter := time.Second * time.Duration(rateErr.RetryAfter+5)
 
 		rest.mu.Lock()
-		timeLeft := time.Now().Add(time.Second * time.Duration(rateErr.RetryAfter+5))
-		rest.lockedTo = timeLeft
+		rest.lockedTo = time.Now().Add(retryAfter)
 		rest.mu.Unlock()
 
-		time.Sleep(time.Until(timeLeft))
+		time.Sleep(retryAfter)
 
 		rest.mu.Lock()
 		rest.lockedTo = time.Time{}
 		rest.mu.Unlock()
-		return nil, errors.New("rate limit"), false
-	} else if res.StatusCode < 200 || res.StatusCode > 299 {
-		return nil, errors.New(res.Status + " :: " + string(body)), true
+
+		return nil, errors.New("rate limited"), false
+	}
+
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return nil, fmt.Errorf("%s :: %s", res.Status, string(body)), true
 	}
 
 	return body, nil, true
-}
-
-func partHeader(contentDisposition string, contentType string) textproto.MIMEHeader {
-	return textproto.MIMEHeader{
-		"Content-Disposition": []string{contentDisposition},
-		"Content-Type":        []string{contentType},
-	}
 }
