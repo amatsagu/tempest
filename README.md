@@ -1,44 +1,81 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/amatsagu/tempest.svg)](https://pkg.go.dev/github.com/amatsagu/tempest)
-[![Go Report](https://goreportcard.com/badge/github.com/amatsagu/tempest)](https://goreportcard.com/report/github.com/amatsagu/tempest)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/amatsagu/tempest)](https://golang.org/doc/devel/release.html)
-[![License](https://img.shields.io/github/license/Amatsagu/tempest)](https://github.com/amatsagu/tempest/blob/development/LICENSE)
-[![Maintenance Status](https://img.shields.io/maintenance/yes/2025)](https://github.com/amatsagu/tempest)
-[![CodeQL](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=development)](https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql)
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+<div align="center">
+    <img align="center" src="/.github/tempest-banner.png" height="165" alt="Tempest library banner">
+</div>
 
-<img align="left" src="/.github/tempest-logo.png" width=192 alt="Tempest library logo">
+<p align="center">
+  <i align="center">Create lightning fast Discord Applications</i>
+</p>
 
-# Tempest
-Tempest is a [Discord](https://discord.com) API wrapper for Applications, written in [Golang](https://golang.org/). It aims to be fast, use minimal caching and be easier to use than other Discord API wrappers using http.
+<h4 align="center">
+    <a href="#http-vs-gateway">HTTP vs Gateway</a> - <a href="#getting-started">Getting started</a> - <a href="#troubleshooting">Troubleshooting</a> - <a href="#contributing">Contributing</a>
+</h4>
 
-It was created as a better alternative to [discord-interactions-go](https://github.com/bsdlp/discord-interactions-go) which is "low level" and outdated.
+<h4 align="center">
+    <a href="https://pkg.go.dev/github.com/amatsagu/tempest">
+        <img src="https://pkg.go.dev/badge/github.com/amatsagu/tempest.svg" alt="Go Reference">
+    </a>
+    <a href="https://goreportcard.com/report/github.com/amatsagu/tempest">
+        <img src="https://goreportcard.com/badge/github.com/amatsagu/tempest" alt="Go Report">
+    </a>
+    <a href="https://golang.org/doc/devel/release.html">
+        <img src="https://img.shields.io/github/go-mod/go-version/amatsagu/tempest" alt="Go Version">
+    </a>
+    <a href="https://github.com/amatsagu/tempest/blob/development/LICENSE">
+        <img src="https://img.shields.io/github/license/Amatsagu/tempest" alt="License">
+    </a>
+    <a href="https://github.com/amatsagu/tempest">
+        <img src="https://img.shields.io/maintenance/yes/2025" alt="Maintenance Status">
+    </a>
+    <a href="https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql">
+        <img src="https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master" alt="CodeQL">
+    </a>
+    <a href="https://conventionalcommits.org">
+        <img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white" alt="Conventional Commits">
+    </a>
+</h4>
 
-## Summary
-1. [HTTP vs Gateway](#http-vs-gateway)
-2. [Special features](#special-features)
-3. [Getting Started](#getting-started)
-4. [Troubleshooting](#troubleshooting)
-5. [Contributing](#contributing)
+**Project: Tempest** is a modern, minimal [Discord](https://discord.com) library for building Discord Apps, written in [Go](https://golang.org/). It aims to be extremely fast, stay very close to the Discord API, and include little to no caching - making it an excellent choice for small VPS or serverless architecture. In real-world projects using this lib, your bottlenecks will 9/10 cases be in the database or network bandwidth, not in app/bot itself.
+
+It was created as a better alternative to [discord-interactions-go](https://github.com/bsdlp/discord-interactions-go), which is too low-level and outdated.
+
+### Features
+
+- [x] Secure HTTPS-based communication with the Discord API using `crypto/ed25519`
+- [x] Automatic dispatching of:
+    - [x] Application commands
+    - [x] Message components (buttons, select menu, text input)
+    - [x] Autocomplete interactions
+    - [x] Modal interactions  
+- [x] Built-in basic rate limit management that respects Discord’s HTTP limits
+- [x] Basic file upload support (message attachments)
+- [x] Lightweight, fast command manager for auto handling slash commands, their auto complete and subcommands
+- [x] Performance focused approach:
+    - Structs only contain fields usable without a Gateway session
+    - Essentially no caching for very low resource usage & easier hosting
+- [x] Built-in helpers for component & modal interaction flow:
+  - [Supports buttons, select menus, text inputs, and modals](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitComponent)
+  - Includes timeout support and flexible interaction flows
+  - Works with both [static](https://pkg.go.dev/github.com/amatsagu/tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitModal) handlers
+- [x] Helper structs and methods to manage:
+  - [x] Simple messages
+  - [x] Embeds
+  - [x] Components (buttons, selects, modals, etc.)
+  - [x] Bitfields
+  - [ ] Message Components v2 *(planned)*
+- [ ] Support for new HTTP event webhooks *(planned)*:
+  - [ ] Application Authorized
+  - [ ] Application Deauthorized
+  - [ ] Entitlement Create
+- [ ] Support for Discord Monetization API *(planned)*
+
+
 
 ### HTTP vs Gateway
 **TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
 
-There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTP. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly reduced number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
+There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTPS. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly reduced number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
 
-### Special features
-* [Efficient handler for (/) commands & auto complete interactions](https://pkg.go.dev/github.com/amatsagu/tempest#Client.RegisterCommand)
-    - Deep control with [command middleware(s)](https://pkg.go.dev/github.com/amatsagu/tempest#ClientOptions)
-* [Exposed REST](https://pkg.go.dev/github.com/amatsagu/tempest#Client.Rest)
-* [Mixed component & modal handling](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitComponent)
-    - Works with buttons, select menus, text inputs and modals,
-    - Supports timeouts & gives a lot of freedom,
-    - Works for both [static](https://pkg.go.dev/github.com/amatsagu/tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitModal) ways
-* [Simple way to sync (/) commands with API](https://pkg.go.dev/github.com/amatsagu/tempest#Client.SyncCommands)
-* Request failure auto recovery (3 attempts by default)
-    - On failed attempts *(probably due to internet connection)*, it'll try again set number of times before returning error
-* Minimal Discord data caching by default
-* Attempts to use debloated structs (only defines fields you may actually get in Application connection mode)
-* Focus on performance over being beginner-friendly
+
 
 ### Getting started
 1. Install with: `go get -u github.com/amatsagu/tempest`
