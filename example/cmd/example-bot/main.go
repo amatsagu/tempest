@@ -43,6 +43,7 @@ func main() {
 	client.RegisterCommand(command.FetchUser)
 	client.RegisterCommand(command.MemoryUsage)
 	client.RegisterCommand(command.Modal)
+	client.RegisterCommand(command.SendFile)
 	client.RegisterCommand(command.Static)
 	client.RegisterCommand(command.Swap)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
