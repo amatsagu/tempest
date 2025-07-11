@@ -124,14 +124,12 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
-	// Encode multipart in a goroutine
 	go func() {
 		defer pw.Close()
 		defer writer.Close()
 
-		// Write JSON payload as "payload_json"
 		jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
-			"Content-Disposition": []string{`form-data; name="payload_json"`},
+			"Content-Disposition": []string{CONTENT_MULTIPART_JSON_DESCRIPTION},
 			"Content-Type":        []string{CONTENT_TYPE_JSON},
 		})
 		if err != nil {
@@ -144,7 +142,6 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 			return
 		}
 
-		// Stream all files
 		for i, file := range files {
 			filePart, err := writer.CreatePart(textproto.MIMEHeader{
 				"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},

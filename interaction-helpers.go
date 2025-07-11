@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 )
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -78,7 +77,7 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []os.File) error {
+func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []File) error {
 	if ephemeral && reply.Flags == 0 {
 		reply.Flags = EPHEMERAL_MESSAGE_FLAG
 	}

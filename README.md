@@ -47,7 +47,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
     - [x] Autocomplete interactions
     - [x] Modal interactions  
 - [x] Built-in basic rate limit management that respects Discord’s HTTP limits
-- [x] Basic file upload support (message attachments)
+- [x] Full file upload support (message attachments) as stream (over x4 times faster than regular multipart creation)
 - [x] Lightweight, fast command manager for auto handling slash commands, their auto complete and subcommands
 - [x] Performance focused approach:
     - Structs only contain fields usable without a Gateway session

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 )
@@ -35,7 +34,7 @@ type Client struct {
 type ClientOptions struct {
 	Token                      string
 	PublicKey                  string
-	JSONBufferSize             uint
+	JSONBufferSize             uint32
 	DefaultInteractionContexts []InteractionContextType
 
 	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
@@ -55,7 +54,7 @@ func NewClient(opt ClientOptions) Client {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
-	var poolSize uint = 4096
+	var poolSize uint32 = 4096
 	if opt.JSONBufferSize > poolSize {
 		poolSize = opt.JSONBufferSize
 	}
@@ -68,7 +67,7 @@ func NewClient(opt ClientOptions) Client {
 	return Client{
 		ApplicationID:    botUserID,
 		PublicKey:        discordPublicKey,
-		Rest:             NewRest(opt.Token),
+		Rest:             NewRest(opt.Token, poolSize),
 		commands:         NewSharedMap[string, Command](),
 		commandContexts:  contexts,
 		staticComponents: NewSharedMap[string, func(ComponentInteraction)](),
@@ -173,7 +172,7 @@ func (client *Client) Ping() time.Duration {
 	return time.Since(start)
 }
 
-func (client *Client) SendMessage(channelID Snowflake, message Message, files []os.File) (Message, error) {
+func (client *Client) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
 	raw, err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files)
 	if err != nil {
 		return Message{}, err
@@ -194,7 +193,7 @@ func (client *Client) SendLinearMessage(channelID Snowflake, content string) (Me
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
-func (client *Client) SendPrivateMessage(userID Snowflake, content Message, files []os.File) (Message, error) {
+func (client *Client) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
 	res := make(map[string]interface{}, 0)
 	res["recipient_id"] = userID
 
