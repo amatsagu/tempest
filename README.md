@@ -60,7 +60,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
   - [x] Simple messages
   - [x] Embeds
   - [x] Components (buttons, selects, modals, etc.)
-  - [x] Bitfields
+  - [x] Bitfields (flags, permissions, etc.)
   - [ ] Message Components v2 *(planned)*
 - [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
 - [ ] Support for new HTTP event webhooks *(planned)*:
