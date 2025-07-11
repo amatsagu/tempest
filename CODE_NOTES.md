@@ -10,6 +10,14 @@ In our case - I've decided to by default pass data by value (copy them) as it re
 ### Why some Discord API structs feels incomplete?
 I've decided to simply cut, not include dead fields - data that I'm sure will never be provided/used by Application. Sadly, Discord API at times can be confusing - for example it's hard to sometimes see differences between Application, Bot or Activity. Not including those fields makes your final app slightly faster as json parser will have less bytes to handle.
 
+
+### JSON Parsing of Optional Fields
+To ensure consistent behavior with other languages and align with Discord API expectations, Tempest follows a specific convention for optional fields in Go:
+- `omitempty` for optional fields like strings, numbers, booleans, etc.
+- `omitzero` for **slices or maps** where an **explicit empty value** (e.g., `[]`) must be included in the payload to signal the removal or absence of a resource.
+
+> 💡 This is required in cases like `Message#embeds`, where sending `"embeds": []` is necessary to explicitly clear embeds from a message. Using only `omitempty` would omit the field entirely, which would not trigger removal in the Discord API.
+
 <br>
 
 ### Interaction

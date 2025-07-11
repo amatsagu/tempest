@@ -44,7 +44,7 @@ var Dynamic tempest.Command = tempest.Command{
 			citx := <-signalChannel
 			// Default, "0 value" struct is returned when something fails or it gets timed out.
 			// It's ineffcient and annoying to compare whole structs so instead just check for string Token that is always defined for any valid interaction.
-			if citx.Token == "" {
+			if citx != nil {
 				log.Println("component listener channel closed")
 				stopFunction()
 				return
