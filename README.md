@@ -7,7 +7,7 @@
 </p>
 
 <h4 align="center">
-    <a href="#http-vs-gateway">HTTP vs Gateway</a> - <a href="#getting-started">Getting started</a> - <a href="#troubleshooting">Troubleshooting</a> - <a href="#contributing">Contributing</a>
+    <a href="#features">Features</a> - <a href="#http-vs-gateway">HTTP vs Gateway</a> - <a href="#getting-started">Getting started</a> - <a href="#troubleshooting">Troubleshooting</a> - <a href="#contributing">Contributing</a>
 </h4>
 
 <h4 align="center">
@@ -62,6 +62,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
   - [x] Components (buttons, selects, modals, etc.)
   - [x] Bitfields
   - [ ] Message Components v2 *(planned)*
+- [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
 - [ ] Support for new HTTP event webhooks *(planned)*:
   - [ ] Application Authorized
   - [ ] Application Deauthorized
