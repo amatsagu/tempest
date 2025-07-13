@@ -65,8 +65,8 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 
 	if jsonPayload != nil {
 		buf := rest.jsonBufferPool.Get().(*bytes.Buffer)
-		defer rest.jsonBufferPool.Put(buf)
 		buf.Reset()
+		defer rest.jsonBufferPool.Put(buf)
 
 		encoder := json.NewEncoder(buf)
 		encoder.SetEscapeHTML(false)
