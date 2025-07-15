@@ -1,3 +1,3 @@
 module github.com/amatsagu/tempest
 
-go 1.24.0
+go 1.24.5
