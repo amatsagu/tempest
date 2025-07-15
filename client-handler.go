@@ -14,8 +14,9 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	rawData, err := io.ReadAll(io.LimitReader(r.Body, MAX_REQUEST_BODY_SIZE))
-	r.Body.Close()
+	limitedReader := http.MaxBytesReader(w, r.Body, MAX_REQUEST_BODY_SIZE)
+	rawData, err := io.ReadAll(limitedReader)
+	limitedReader.Close() // closes underlying r.Body
 	if err != nil {
 		http.Error(w, "bad request - failed to read body payload", http.StatusBadRequest)
 		return
