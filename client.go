@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -20,7 +21,6 @@ type Client struct {
 	commandContexts  []InteractionContextType
 	staticComponents *SharedMap[string, func(ComponentInteraction)]
 	staticModals     *SharedMap[string, func(ModalInteraction)]
-	jsonBufferPool   *sync.Pool
 
 	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
 	postCommandHandler func(cmd Command, itx *CommandInteraction)
@@ -34,7 +34,6 @@ type Client struct {
 type ClientOptions struct {
 	Token                      string
 	PublicKey                  string
-	JSONBufferSize             uint32
 	DefaultInteractionContexts []InteractionContextType
 
 	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
@@ -54,30 +53,19 @@ func NewClient(opt ClientOptions) Client {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
-	var poolSize uint32 = 4096
-	if opt.JSONBufferSize > poolSize {
-		poolSize = opt.JSONBufferSize
-	}
-
 	contexts := []InteractionContextType{0}
 	if opt.DefaultInteractionContexts != nil || len(opt.DefaultInteractionContexts) > 0 {
 		contexts = opt.DefaultInteractionContexts
 	}
 
 	return Client{
-		ApplicationID:    botUserID,
-		PublicKey:        discordPublicKey,
-		Rest:             NewRest(opt.Token, poolSize),
-		commands:         NewSharedMap[string, Command](),
-		commandContexts:  contexts,
-		staticComponents: NewSharedMap[string, func(ComponentInteraction)](),
-		staticModals:     NewSharedMap[string, func(ModalInteraction)](),
-		jsonBufferPool: &sync.Pool{
-			New: func() any {
-				buf := make([]byte, poolSize) // start with a decent buffer
-				return &buf
-			},
-		},
+		ApplicationID:      botUserID,
+		PublicKey:          discordPublicKey,
+		Rest:               NewRest(opt.Token),
+		commands:           NewSharedMap[string, Command](),
+		commandContexts:    contexts,
+		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),
+		staticModals:       NewSharedMap[string, func(ModalInteraction)](),
 		preCommandHandler:  opt.PreCommandHook,
 		postCommandHandler: opt.PostCommandHook,
 		componentHandler:   opt.ComponentHandler,
@@ -89,80 +77,94 @@ func NewClient(opt ClientOptions) Client {
 
 // Makes client dynamically "listen" incoming component type interactions.
 // When component custom id matches - it'll send back interaction through channel.
-// On timeout (min 1s -> max 15min) - client will automatically call close function.
+// Holder s responsible for calling cleanup function once done (check example app code for better understanding).
+// You can use context to control timeout - Discord API allows to reply to interaction for max 15 minutes.
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *Client) AwaitComponent(customIDs []string, timeout time.Duration) (<-chan *ComponentInteraction, func(), error) {
-	for _, ID := range customIDs {
-		if client.staticComponents.Has(ID) {
-			return nil, nil, errors.New("client already has registered static component with custom ID = " + ID + " (custom id already in use)")
-		}
-
-		if client.queuedComponents.Has(ID) {
-			return nil, nil, errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use)")
+func (client *Client) AwaitComponent(customIDs []string) (<-chan *ComponentInteraction, func(), error) {
+	client.staticComponents.mu.RLock()
+	for _, id := range customIDs {
+		if client.staticComponents.cache[id] != nil {
+			client.staticComponents.mu.RUnlock()
+			return nil, nil, fmt.Errorf("static component with custom ID \"%s\" is already registered", id)
 		}
 	}
+	client.staticComponents.mu.RUnlock()
 
-	signalChannel := make(chan *ComponentInteraction)
-	closeFunction := func() {
-		if signalChannel != nil {
+	client.queuedComponents.mu.RLock()
+	for _, id := range customIDs {
+		if client.queuedComponents.cache[id] != nil {
+			client.queuedComponents.mu.RUnlock()
+			return nil, nil, fmt.Errorf("dynamic component with custom ID \"%s\" is already registered", id)
+		}
+	}
+	client.queuedComponents.mu.RUnlock()
+
+	signalChan := make(chan *ComponentInteraction)
+	var once sync.Once
+
+	cleanup := func() {
+		once.Do(func() {
 			client.queuedComponents.mu.Lock()
-			for _, key := range customIDs {
-				delete(client.queuedComponents.cache, key)
+			for _, id := range customIDs {
+				delete(client.queuedComponents.cache, id)
 			}
 			client.queuedComponents.mu.Unlock()
-
-			close(signalChannel)
-			signalChannel = nil
-		}
+			close(signalChan)
+		})
 	}
 
 	client.queuedComponents.mu.Lock()
-	for _, key := range customIDs {
-		client.queuedComponents.cache[key] = signalChannel
+	for _, id := range customIDs {
+		client.queuedComponents.cache[id] = signalChan
 	}
 	client.queuedComponents.mu.Unlock()
 
-	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second)
-	if timeout > maxTime {
-		timeout = maxTime
-	} else if timeout < minTime {
-		timeout = minTime
-	}
-
-	time.AfterFunc(timeout, closeFunction)
-	return signalChannel, closeFunction, nil
+	return signalChan, cleanup, nil
 }
 
-// Makes client dynamically "listen" incoming modal type interactions.
-// When modal custom id matches - it'll send back interaction through channel.
-// On timeout (min 30s -> max 15min) - client will automatically call close function.
-//
-// Warning! Components handled this way will already be acknowledged.
-func (client *Client) AwaitModal(customID string, timeout time.Duration) (<-chan *ModalInteraction, func(), error) {
-	if client.queuedModals.Has(customID) {
-		return nil, nil, errors.New("client already has registered static modal with custom ID = " + customID + " (custom id already in use)")
-	}
-
-	signalChannel := make(chan *ModalInteraction)
-	closeFunction := func() {
-		if signalChannel != nil {
-			client.queuedModals.Delete(customID)
-			close(signalChannel)
-			signalChannel = nil
+// Mirror method to Client.AwaitComponent but for handling modal interactions.
+// Look comment on Client.AwaitComponent and see example bot/app code for more.
+func (client *Client) AwaitModal(customIDs []string) (<-chan *ModalInteraction, func(), error) {
+	client.staticModals.mu.RLock()
+	for _, id := range customIDs {
+		if client.staticModals.cache[id] != nil {
+			client.staticModals.mu.RUnlock()
+			return nil, nil, fmt.Errorf("static modal with custom ID \"%s\" is already registered", id)
 		}
 	}
+	client.staticModals.mu.RUnlock()
 
-	client.queuedModals.Set(customID, signalChannel)
-	maxTime, minTime := time.Duration(time.Minute*15), time.Duration(time.Second*30)
-	if timeout > maxTime {
-		timeout = maxTime
-	} else if timeout < minTime {
-		timeout = minTime
+	client.queuedModals.mu.RLock()
+	for _, id := range customIDs {
+		if client.queuedModals.cache[id] != nil {
+			client.queuedModals.mu.RUnlock()
+			return nil, nil, fmt.Errorf("dynamic modal with custom ID \"%s\" is already registered", id)
+		}
+	}
+	client.queuedModals.mu.RUnlock()
+
+	signalChan := make(chan *ModalInteraction)
+	var once sync.Once
+
+	cleanup := func() {
+		once.Do(func() {
+			client.queuedModals.mu.Lock()
+			for _, id := range customIDs {
+				delete(client.queuedModals.cache, id)
+			}
+			client.queuedModals.mu.Unlock()
+			close(signalChan)
+		})
 	}
 
-	time.AfterFunc(timeout, closeFunction)
-	return signalChannel, closeFunction, nil
+	client.queuedModals.mu.Lock()
+	for _, id := range customIDs {
+		client.queuedModals.cache[id] = signalChan
+	}
+	client.queuedModals.mu.Unlock()
+
+	return signalChan, cleanup, nil
 }
 
 // Pings Discord API and returns time it took to get response.

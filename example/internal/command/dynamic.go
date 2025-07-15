@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"log"
 	"strconv"
 	"time"
@@ -8,11 +9,13 @@ import (
 	tempest "github.com/amatsagu/tempest"
 )
 
+// Tip: This example would be nearly identical for handling dynamic modals.
+
 var Dynamic tempest.Command = tempest.Command{
 	Name:        "dynamic",
 	Description: "Same as static but awaits button (impurity).",
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
-		uniqueButtonID := "button-hello-dynamic-" + itx.ID.String()
+		uniqueButtonID := "btn-dynamic-" + itx.ID.String()
 
 		msg := tempest.ResponseMessageData{
 			Content: "Click below button *(only you can do it)*:",
@@ -32,34 +35,51 @@ var Dynamic tempest.Command = tempest.Command{
 		}
 
 		itx.SendReply(msg, false, nil)
-		signalChannel, stopFunction, err := itx.Client.AwaitComponent([]string{uniqueButtonID}, time.Minute*1)
+
+		// In real world - you'll probably have some sort of master context instead default background to gracefully control app/bot lifecycles.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		signalChan, cleanupFunc, err := itx.Client.AwaitComponent([]string{uniqueButtonID})
 		if err != nil {
-			log.Println("failed to create component listener", err)
+			log.Println("failed to create component listener:", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)
 			return
 		}
+		defer cleanupFunc()
 
 		var counter uint64 = 0
 		for {
-			citx := <-signalChannel
-			// Default, "0 value" struct is returned when something fails or it gets timed out.
-			// It's ineffcient and annoying to compare whole structs so instead just check for string Token that is always defined for any valid interaction.
-			if citx != nil {
-				log.Println("component listener channel closed")
-				stopFunction()
-				return
-			}
+			select {
+			case citx, open := <-signalChan:
+				if !open {
+					return
+				}
 
-			if citx.Member.User.ID != itx.Member.User.ID {
-				continue
-			}
+				if citx.Member.User.ID != itx.Member.User.ID {
+					continue
+				}
 
-			counter++
-			msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
-			err = itx.EditReply(msg, false)
-			if err != nil {
-				log.Println("failed to edit response", err)
-				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+				counter++
+				msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
+				err = itx.EditReply(msg, false)
+				if err != nil {
+					log.Println("failed to edit response", err)
+					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+					return
+				}
+			case <-ctx.Done():
+				// timeout or cancellation (we already defer cleanup higher)
+
+				err = itx.EditReply(tempest.ResponseMessageData{
+					Content: "Reached timeout or cancellation of context",
+				}, false)
+
+				if err != nil {
+					log.Println("failed to edit response", err)
+					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+				}
+
 				return
 			}
 		}
