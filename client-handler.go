@@ -14,18 +14,15 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	buf := client.jsonBufferPool.Get().(*[]byte)
-	defer client.jsonBufferPool.Put(buf)
-
-	n, err := r.Body.Read(*buf)
-	if err != nil && err != io.EOF {
+	rawData, err := io.ReadAll(io.LimitReader(r.Body, MAX_REQUEST_BODY_SIZE))
+	r.Body.Close()
+	if err != nil {
 		http.Error(w, "bad request - failed to read body payload", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
 	var extractor InteractionTypeExtractor
-	if err := json.Unmarshal((*buf)[:n], &extractor); err != nil {
+	if err := json.Unmarshal(rawData, &extractor); err != nil {
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
@@ -37,7 +34,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		if err := json.Unmarshal((*buf)[:n], &interaction); err != nil {
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
 			http.Error(w, "bad request - failed to decode CommandInteraction", http.StatusBadRequest)
 			return
 		}
@@ -45,7 +42,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var interaction ComponentInteraction
-		if err := json.Unmarshal((*buf)[:n], &interaction); err != nil {
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
 			http.Error(w, "bad request - failed to decode ComponentInteraction", http.StatusBadRequest)
 			return
 		}
@@ -54,7 +51,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		client.componentInteractionHandler(w, interaction)
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
-		if err := json.Unmarshal((*buf)[:n], &interaction); err != nil {
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
 			http.Error(w, "bad request - failed to decode CommandInteraction", http.StatusBadRequest)
 			return
 		}
@@ -63,7 +60,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
-		if err := json.Unmarshal((*buf)[:n], &interaction); err != nil {
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
 			http.Error(w, "bad request - failed to decode ModalInteraction", http.StatusBadRequest)
 			return
 		}
@@ -121,17 +118,21 @@ func (client *Client) autoCompleteInteractionHandler(w http.ResponseWriter, inte
 }
 
 func (client *Client) componentInteractionHandler(w http.ResponseWriter, interaction ComponentInteraction) {
-	fn, available := client.staticComponents.Get(interaction.Data.CustomID)
-	if available {
+	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
 		fn(interaction)
 		return
 	}
 
-	signalChannel, available := client.queuedComponents.Get(interaction.Data.CustomID)
-	if available && signalChannel != nil {
-		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+	if signalChan, ok := client.queuedComponents.Get(interaction.Data.CustomID); ok && signalChan != nil {
+		w.Header().Set("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyAcknowledgeResponse)
-		signalChannel <- &interaction
+
+		select {
+		case signalChan <- &interaction:
+			// Successfully sent
+		default:
+			// Receiver gone, drop silently
+		}
 		return
 	}
 

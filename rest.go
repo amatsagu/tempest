@@ -15,12 +15,11 @@ import (
 )
 
 type Rest struct {
-	HTTPClient     http.Client
-	MaxRetries     uint8
-	token          string
-	mu             sync.RWMutex
-	lockedTo       time.Time
-	jsonBufferPool *sync.Pool
+	HTTPClient http.Client
+	MaxRetries uint8
+	token      string
+	mu         sync.RWMutex
+	lockedTo   time.Time
 }
 
 // Represents file you can attach to message on Discord.
@@ -35,15 +34,10 @@ type rateLimitError struct {
 	Global     bool    `json:"global"`
 }
 
-func NewRest(token string, jsonBufferSize uint32) *Rest {
+func NewRest(token string) *Rest {
 	t := token
 	if !strings.HasPrefix(t, "Bot ") {
 		t = "Bot " + t
-	}
-
-	var poolSize uint32 = 4096
-	if jsonBufferSize > poolSize {
-		poolSize = jsonBufferSize
 	}
 
 	return &Rest{
@@ -51,12 +45,6 @@ func NewRest(token string, jsonBufferSize uint32) *Rest {
 		token:      t,
 		MaxRetries: 3,
 		lockedTo:   time.Time{},
-		jsonBufferPool: &sync.Pool{
-			New: func() any {
-				buf := bytes.NewBuffer(make([]byte, 0, poolSize)) // preallocate
-				return buf
-			},
-		},
 	}
 }
 
@@ -64,17 +52,15 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 	var body io.Reader
 
 	if jsonPayload != nil {
-		buf := rest.jsonBufferPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		defer rest.jsonBufferPool.Put(buf)
+		var buf bytes.Buffer
 
-		encoder := json.NewEncoder(buf)
+		encoder := json.NewEncoder(&buf)
 		encoder.SetEscapeHTML(false)
 		if err := encoder.Encode(jsonPayload); err != nil {
 			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
 		}
 
-		body = buf
+		body = &buf
 	}
 
 	rest.mu.RLock()
@@ -137,7 +123,10 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 			return
 		}
 
-		if err := json.NewEncoder(jsonPart).Encode(jsonPayload); err != nil {
+		encoder := json.NewEncoder(jsonPart)
+		encoder.SetEscapeHTML(false)
+
+		if err := encoder.Encode(jsonPayload); err != nil {
 			pw.CloseWithError(fmt.Errorf("failed to encode payload_json: %w", err))
 			return
 		}
