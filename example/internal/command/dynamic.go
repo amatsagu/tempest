@@ -49,11 +49,13 @@ var Dynamic tempest.Command = tempest.Command{
 		defer cleanupFunc()
 
 		var counter uint64 = 0
+
+	counterLoop: // At least in our case, use label to clearly exit infinite loop where appropriate.
 		for {
 			select {
 			case citx, open := <-signalChan:
 				if !open {
-					return
+					break counterLoop
 				}
 
 				if citx.Member.User.ID != itx.Member.User.ID {
@@ -68,6 +70,8 @@ var Dynamic tempest.Command = tempest.Command{
 					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
 					return
 				}
+
+				//break counterLoop
 			case <-ctx.Done():
 				// timeout or cancellation (we already defer cleanup higher)
 
@@ -80,8 +84,10 @@ var Dynamic tempest.Command = tempest.Command{
 					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
 				}
 
-				return
+				break counterLoop
 			}
 		}
+
+		// Any code after for loop would run just fine...
 	},
 }
