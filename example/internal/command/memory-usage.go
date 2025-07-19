@@ -18,14 +18,18 @@ var MemoryUsage tempest.Command = tempest.Command{
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
+		runtime.GC()
+
 		reply := fmt.Sprintf(`
 Current memory usage: **%.2fMB**
 Finished GC cycles: **%d**
+Goroutines: **%d**
 Uptime: **%s**
 Ping (to Discord API): **%dms**
 `,
 			mb(m.Alloc),
 			m.NumGC,
+			runtime.NumGoroutine(),
 			time.Since(startedAt).String(),
 			itx.Client.Ping().Milliseconds(),
 		)

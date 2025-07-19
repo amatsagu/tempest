@@ -4,7 +4,8 @@ import (
 	"example-bot/internal/command"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+
+	// _ "net/http/pprof"
 	"os"
 
 	tempest "github.com/amatsagu/tempest"
@@ -46,6 +47,7 @@ func main() {
 	client.RegisterCommand(command.SendFile)
 	client.RegisterCommand(command.Static)
 	client.RegisterCommand(command.Swap)
+	client.RegisterCommand(command.V2Component)
 	client.RegisterComponent([]string{"button-hello"}, command.HelloStatic)
 	client.RegisterModal("my-modal", command.HelloModal)
 

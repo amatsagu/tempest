@@ -13,14 +13,14 @@ var Modal tempest.Command = tempest.Command{
 		err := itx.SendModal(tempest.ResponseModalData{
 			CustomID: "my-modal",
 			Title:    "Hello modal!",
-			Components: []tempest.ComponentRow{
-				{
-					Type: tempest.ROW_COMPONENT_TYPE,
-					Components: []tempest.Component{
-						{
-							CustomID: "example-text-input",
+			Components: []tempest.LayoutComponent{
+				tempest.ActionRowComponent{
+					Type: tempest.ACTION_ROW_COMPONENT_TYPE,
+					Components: []tempest.InteractiveComponent{
+						tempest.TextInputComponent{
 							Type:     tempest.TEXT_INPUT_COMPONENT_TYPE,
-							Style:    uint8(tempest.SHORT_TEXT_INPUT_STYLE),
+							CustomID: "example-test-input",
+							Style:    tempest.SHORT_TEXT_INPUT_STYLE,
 							Label:    "Tell me something you like",
 						},
 					},

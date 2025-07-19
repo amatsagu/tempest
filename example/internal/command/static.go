@@ -13,15 +13,15 @@ var Static tempest.Command = tempest.Command{
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		itx.SendReply(tempest.ResponseMessageData{
 			Content: "Example message",
-			Components: []tempest.ComponentRow{
-				{
-					Type: tempest.ROW_COMPONENT_TYPE,
-					Components: []tempest.Component{
-						{
-							CustomID: "button-hello",
+			Components: []tempest.LayoutComponent{
+				tempest.ActionRowComponent{
+					Type: tempest.ACTION_ROW_COMPONENT_TYPE,
+					Components: []tempest.InteractiveComponent{
+						tempest.ButtonComponent{
 							Type:     tempest.BUTTON_COMPONENT_TYPE,
-							Style:    uint8(tempest.SECONDARY_BUTTON_STYLE),
-							Label:    "Click me",
+							CustomID: "button-hello",
+							Style:    tempest.SECONDARY_BUTTON_STYLE,
+							Label:    "Click me!",
 						},
 					},
 				},
