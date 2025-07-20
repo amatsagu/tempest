@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"log"
+	"strconv"
 	"time"
 
 	tempest "github.com/amatsagu/tempest"
@@ -18,19 +19,19 @@ var Dynamic tempest.Command = tempest.Command{
 
 		msg := tempest.ResponseMessageData{
 			Content: "Click below button *(only you can do it)*:",
-			// Components: []tempest.ComponentRow{
-			// 	{
-			// 		Type: tempest.ROW_COMPONENT_TYPE,
-			// 		Components: []tempest.Component{
-			// 			{
-			// 				CustomID: uniqueButtonID,
-			// 				Type:     tempest.BUTTON_COMPONENT_TYPE,
-			// 				Style:    uint8(tempest.SECONDARY_BUTTON_STYLE),
-			// 				Label:    "0",
-			// 			},
-			// 		},
-			// 	},
-			// },
+			Components: []tempest.LayoutComponent{
+				tempest.ActionRowComponent{
+					Type: tempest.ACTION_ROW_COMPONENT_TYPE,
+					Components: []tempest.InteractiveComponent{
+						tempest.ButtonComponent{
+							Type:     tempest.BUTTON_COMPONENT_TYPE,
+							Style:    tempest.SECONDARY_BUTTON_STYLE,
+							Label:    "0",
+							CustomID: uniqueButtonID,
+						},
+					},
+				},
+			},
 		}
 
 		itx.SendReply(msg, false, nil)
@@ -62,7 +63,14 @@ var Dynamic tempest.Command = tempest.Command{
 				}
 
 				counter++
-				//msg.Components[0].Components[0].Label = strconv.FormatUint(counter, 10)
+				if row, ok := msg.Components[0].(tempest.ActionRowComponent); ok {
+					if btn, ok := row.Components[0].(tempest.ButtonComponent); ok {
+						btn.Label = strconv.FormatUint(counter, 10)
+						row.Components[0] = btn
+						msg.Components[0] = row
+					}
+				}
+
 				err = itx.EditReply(msg, false)
 				if err != nil {
 					log.Println("failed to edit response", err)
