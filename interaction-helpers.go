@@ -226,9 +226,10 @@ func (itx ModalInteraction) GetInputValue(customID string) string {
 	}
 
 	for _, row := range rows {
-		for _, component := range row.Components {
-			if component.CustomID == customID {
-				return component.Value
+		for _, component := range row.(ActionRowComponent).Components {
+			scmp := component.(TextInputComponent)
+			if scmp.CustomID == customID {
+				return scmp.Value
 			}
 		}
 	}

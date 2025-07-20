@@ -69,19 +69,19 @@ type ComponentInteraction struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
-	ID              Snowflake            `json:"id"`
-	ApplicationID   Snowflake            `json:"application_id"`
-	Type            InteractionType      `json:"type"`
-	Data            ModalInteractionData `json:"data"`
-	GuildID         Snowflake            `json:"guild_id,omitempty"`
-	ChannelID       Snowflake            `json:"channel_id,omitempty"`
-	Member          *Member              `json:"member,omitempty"`
-	User            *User                `json:"user,omitempty"`
-	Token           string               `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot/app token.
-	Version         uint8                `json:"version"`                // Read-only property, always = 1.
-	PermissionFlags PermissionFlags      `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
-	Locale          string               `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string               `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+	ID              Snowflake       `json:"id"`
+	ApplicationID   Snowflake       `json:"application_id"`
+	Type            InteractionType `json:"type"`
+	Data            ModalSubmitData `json:"data"`
+	GuildID         Snowflake       `json:"guild_id,omitempty"`
+	ChannelID       Snowflake       `json:"channel_id,omitempty"`
+	Member          *Member         `json:"member,omitempty"`
+	User            *User           `json:"user,omitempty"`
+	Token           string          `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot/app token.
+	Version         uint8           `json:"version"`                // Read-only property, always = 1.
+	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
+	Locale          string          `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 
 	Client *Client             `json:"-"`
 	w      http.ResponseWriter `json:"-"`
@@ -109,19 +109,19 @@ type CommandInteractionOption struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type InteractionDataResolved struct {
-	Users       map[Snowflake]*User           `json:"users,omitempty"`
-	Members     map[Snowflake]*Member         `json:"members,omitempty"`
-	Roles       map[Snowflake]*Role           `json:"roles,omitempty"`
-	Channels    map[Snowflake]*PartialChannel `json:"channels,omitempty"`
-	Messages    map[Snowflake]*Message        `json:"messages,omitempty"`
-	Attachments map[Snowflake]*Attachment     `json:"attachments,omitempty"`
+	Users       map[Snowflake]*User           `json:"users,omitzero"`
+	Members     map[Snowflake]*Member         `json:"members,omitzero"`
+	Roles       map[Snowflake]*Role           `json:"roles,omitzero"`
+	Channels    map[Snowflake]*PartialChannel `json:"channels,omitzero"`
+	Messages    map[Snowflake]*Message        `json:"messages,omitzero"`
+	Attachments map[Snowflake]*Attachment     `json:"attachments,omitzero"`
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
 type Choice struct {
 	Name              string            `json:"name"`
-	NameLocalizations map[string]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
-	Value             any               `json:"value"`                        // string, float64 (double or integer) or bool
+	NameLocalizations map[string]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
+	Value             any               `json:"value"`                       // string, float64 (double or integer) or bool
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-message-component-data-structure
@@ -132,7 +132,8 @@ type ComponentInteractionData struct {
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 }
 
-type ModalInteractionData struct {
-	CustomID   string         `json:"custom_id"`
-	Components []ComponentRow `json:"components"`
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
+type ModalSubmitData struct {
+	CustomID   string            `json:"custom_id"`
+	Components []LayoutComponent `json:"components,omitzero"`
 }

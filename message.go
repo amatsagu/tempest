@@ -18,9 +18,13 @@ const (
 	EPHEMERAL_MESSAGE_FLAG
 	LOADING_MESSAGE_FLAG
 	FAILED_TO_MENTION_SOME_ROLES_IN_THREAD_MESSAGE_FLAG
+	_
+	_
+	_
 	SUPPRESS_NOTIFICATIONS_MESSAGE_FLAG
 	IS_VOICE_MESSAGE_MESSAGE_FLAG
 	HAS_SNAPSHOT_MESSAGE_FLAG
+	IS_COMPONENTS_V2_MESSAGE_FLAG // When used, regular content, embeds, poll & stickers fields will be ignored.
 )
 
 // https://discord.com/developers/docs/resources/channel#channel-object-channel-types
@@ -228,7 +232,7 @@ type Message struct {
 	Flags             uint64              `json:"flags,omitempty"`
 	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
 	Interaction       *MessageInteraction `json:"interaction,omitempty"`
-	Components        []ComponentRow      `json:"components,omitzero"`
+	Components        []LayoutComponent   `json:"components,omitzero"`
 	StickerItems      []StickerItem       `json:"sticker_items,omitzero"`
 }
 

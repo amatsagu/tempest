@@ -18,7 +18,7 @@ const (
 	LAUNCH_ACTIVITY_RESPONSE_TYPE // Launch the Activity associated with the app. Only available for apps with Activities enabled.
 )
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-response-structure
 type ResponseMessage struct {
 	Type ResponseType         `json:"type"`
 	Data *ResponseMessageData `json:"data,omitempty"`
@@ -26,14 +26,14 @@ type ResponseMessage struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
 type ResponseMessageData struct {
-	TTS             bool             `json:"tts,omitempty"`
-	Content         string           `json:"content,omitempty"`
-	Embeds          []Embed          `json:"embeds,omitzero"`
-	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-	Flags           MessageFlags     `json:"flags,omitempty"`
-	Components      []ComponentRow   `json:"components,omitzero"`
-	Attachments     []Attachment     `json:"attachments,omitzero"`
-	Poll            *Poll            `json:"poll,omitempty"`
+	TTS             bool              `json:"tts,omitempty"`
+	Content         string            `json:"content,omitempty"`
+	Embeds          []Embed           `json:"embeds,omitzero"`
+	AllowedMentions *AllowedMentions  `json:"allowed_mentions,omitempty"`
+	Flags           MessageFlags      `json:"flags,omitempty"`
+	Components      []LayoutComponent `json:"components,omitzero"`
+	Attachments     []Attachment      `json:"attachments,omitzero"`
+	Poll            *Poll             `json:"poll,omitempty"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
@@ -55,7 +55,7 @@ type ResponseModal struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
-	CustomID   string         `json:"custom_id"`
-	Title      string         `json:"title"`
-	Components []ComponentRow `json:"components,omitzero"`
+	CustomID   string            `json:"custom_id"`
+	Title      string            `json:"title"`
+	Components []LayoutComponent `json:"components,omitzero"`
 }
