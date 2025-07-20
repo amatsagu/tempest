@@ -50,6 +50,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 
 		interaction.Client, interaction.w = client, w
 		client.componentInteractionHandler(w, interaction)
+		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(rawData, &interaction); err != nil {
