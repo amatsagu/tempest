@@ -221,7 +221,7 @@ type SeparatorComponent struct {
 type ContainerComponent struct {
 	Type        ComponentType  `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (15)
 	ID          uint32         `json:"id,omitempty"`
-	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator, or file.
+	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator or file.
 	AccentColor uint32         `json:"accent_color,omitempty"` // Color for the accent on the container as RGB from 0x000000 to 0xFFFFFF.
 	Spoiler     bool           `json:"spoiler,omitempty"`
 }
