@@ -8,7 +8,7 @@ package tempest
 //
 // Avoid using this interface, instead look at LayoutComponent, InteractiveComponent, ContentComponent or AccessoryComponent.
 type AnyComponent interface {
-	_cmp()
+	Kind() ComponentType
 }
 
 // LayoutComponent represents message layout containers like Action Rows, Sections, Separators & Containers.
@@ -45,40 +45,40 @@ type AccessoryComponent interface {
 	_acmp()
 }
 
-func (cmp ActionRowComponent) _cmp()  {}
-func (cmp ActionRowComponent) _lcmp() {}
+func (cmp ActionRowComponent) Kind() ComponentType { return cmp.Type }
+func (cmp ActionRowComponent) _lcmp()              {}
 
-func (cmp ButtonComponent) _cmp()  {}
-func (cmp ButtonComponent) _icmp() {}
-func (cmp ButtonComponent) _acmp() {}
+func (cmp ButtonComponent) Kind() ComponentType { return cmp.Type }
+func (cmp ButtonComponent) _icmp()              {}
+func (cmp ButtonComponent) _acmp()              {}
 
-func (cmp StringSelectComponent) _cmp()  {}
-func (cmp StringSelectComponent) _icmp() {}
+func (cmp StringSelectComponent) Kind() ComponentType { return cmp.Type }
+func (cmp StringSelectComponent) _icmp()              {}
 
-func (cmp TextInputComponent) _cmp()  {}
-func (cmp TextInputComponent) _icmp() {}
+func (cmp TextInputComponent) Kind() ComponentType { return cmp.Type }
+func (cmp TextInputComponent) _icmp()              {}
 
-func (cmp SelectComponent) _cmp()  {}
-func (cmp SelectComponent) _icmp() {}
+func (cmp SelectComponent) Kind() ComponentType { return cmp.Type }
+func (cmp SelectComponent) _icmp()              {}
 
-func (cmp SectionComponent) _cmp()  {}
-func (cmp SectionComponent) _lcmp() {}
+func (cmp SectionComponent) Kind() ComponentType { return cmp.Type }
+func (cmp SectionComponent) _lcmp()              {}
 
-func (cmp TextDisplayComponent) _cmp()  {}
-func (cmp TextDisplayComponent) _ccmp() {}
+func (cmp TextDisplayComponent) Kind() ComponentType { return cmp.Type }
+func (cmp TextDisplayComponent) _ccmp()              {}
 
-func (cmp ThumbnailComponent) _cmp()  {}
-func (cmp ThumbnailComponent) _ccmp() {}
-func (cmp ThumbnailComponent) _acmp() {}
+func (cmp ThumbnailComponent) Kind() ComponentType { return cmp.Type }
+func (cmp ThumbnailComponent) _ccmp()              {}
+func (cmp ThumbnailComponent) _acmp()              {}
 
-func (cmp MediaGalleryComponent) _cmp()  {}
-func (cmp MediaGalleryComponent) _ccmp() {}
+func (cmp MediaGalleryComponent) Kind() ComponentType { return cmp.Type }
+func (cmp MediaGalleryComponent) _ccmp()              {}
 
-func (cmp FileComponent) _cmp()  {}
-func (cmp FileComponent) _ccmp() {}
+func (cmp FileComponent) Kind() ComponentType { return cmp.Type }
+func (cmp FileComponent) _ccmp()              {}
 
-func (cmp SeparatorComponent) _cmp()  {}
-func (cmp SeparatorComponent) _lcmp() {}
+func (cmp SeparatorComponent) Kind() ComponentType { return cmp.Type }
+func (cmp SeparatorComponent) _lcmp()              {}
 
-func (cmp ContainerComponent) _cmp()  {}
-func (cmp ContainerComponent) _lcmp() {}
+func (cmp ContainerComponent) Kind() ComponentType { return cmp.Type }
+func (cmp ContainerComponent) _lcmp()              {}
