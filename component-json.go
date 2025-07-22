@@ -34,10 +34,10 @@ func UnmarshalComponent(data []byte) (AnyComponent, error) {
 			return nil, err
 		}
 		return cmp, nil
-	case USER_SELECT_COMPONENT_TYPE:
-	case ROLE_SELECT_COMPONENT_TYPE:
-	case MENTIONABLE_SELECT_COMPONENT_TYPE:
-	case CHANNEL_SELECT_COMPONENT_TYPE:
+	case USER_SELECT_COMPONENT_TYPE,
+		ROLE_SELECT_COMPONENT_TYPE,
+		MENTIONABLE_SELECT_COMPONENT_TYPE,
+		CHANNEL_SELECT_COMPONENT_TYPE:
 		var cmp SelectComponent
 		if err := json.Unmarshal(data, &cmp); err != nil {
 			return nil, err
