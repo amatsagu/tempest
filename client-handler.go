@@ -55,6 +55,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 
 		client.componentInteractionHandler(w, ComponentInteraction{
 			Interaction: &interaction,
+			Data:        data,
 			w:           w,
 		})
 		return
