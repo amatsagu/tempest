@@ -4,18 +4,18 @@ package tempest
 type CommandType uint8
 
 const (
-	CHAT_INPUT_COMMAND_TYPE          CommandType = iota + 1 // Default option, a slash command.
-	USER_COMMAND_TYPE                                       // Mounted to user/member profile.
-	MESSAGE_COMMAND_TYPE                                    // Mounted to text message.
-	PRIMARY_ENTRY_POINT_COMMAND_TYPE                        // A UI-based command that represents the primary way to invoke an app's Activity.
+	CHAT_INPUT_COMMAND_TYPE          CommandType = iota + 1 // Slash command (default option)
+	USER_COMMAND_TYPE                                       // Mounted to user/member profile
+	MESSAGE_COMMAND_TYPE                                    // Mounted to text message
+	PRIMARY_ENTRY_POINT_COMMAND_TYPE                        // An UI-based command that represents the primary way to invoke an app's Activity
 )
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
 type OptionType uint8
 
 const (
-	SUB_OPTION_TYPE OptionType = iota + 1
-	_                          // OPTION_SUB_COMMAND_GROUP (not supported)
+	SUB_OPTION_TYPE               OptionType = iota + 1
+	SUB_COMMAND_GROUP_OPTION_TYPE            // NOT SUPPORTED BY LIBRARY
 	STRING_OPTION_TYPE
 	INTEGER_OPTION_TYPE
 	BOOLEAN_OPTION_TYPE
@@ -33,6 +33,14 @@ type ApplicationIntegrationType uint8
 const (
 	GUILD_INSTALL ApplicationIntegrationType = iota
 	USER_INSTALL
+)
+
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
+type CommandHandlerType uint8
+
+const (
+	APP_COMMAND_HANDLER CommandHandlerType = iota + 1
+	DISCORD_LAUNCH_ACTIVITY_COMMAND_HANDLER
 )
 
 // https://discord.com/developers/docs/reference#locales
@@ -78,34 +86,35 @@ type Command struct {
 	ApplicationID            Snowflake                    `json:"application_id"`
 	GuildID                  Snowflake                    `json:"guild_id,omitempty"`
 	Name                     string                       `json:"name"`
-	NameLocalizations        map[Language]string          `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
+	NameLocalizations        map[Language]string          `json:"name_localizations,omitzero"`
 	Description              string                       `json:"description"`
 	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitzero"`
 	Options                  []CommandOption              `json:"options,omitzero"`
-	DefaultMemberPermissions PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
+	RequiredPermissions      PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
 	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
 	Contexts                 []InteractionContextType     `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
 	NSFW                     bool                         `json:"nsfw,omitempty"`    // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
 	Version                  Snowflake                    `json:"version,omitempty"` // Autoincrementing version identifier updated during substantial record changes.
+	Handler                  CommandHandlerType           `json:"handler,omitempty"`
 
-	AutoCompleteHandler func(itx CommandInteraction) []Choice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	SlashCommandHandler func(itx *CommandInteraction)         `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
+	AutoCompleteHandler func(itx CommandInteraction) []CommandOptionChoice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
+	SlashCommandHandler func(itx *CommandInteraction)                      `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
 type CommandOption struct {
-	Type                     OptionType          `json:"type"`
-	Name                     string              `json:"name"`
-	NameLocalizations        map[Language]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
-	Description              string              `json:"description"`
-	DescriptionLocalizations map[Language]string `json:"description_localizations,omitzero"`
-	Required                 bool                `json:"required,omitempty"`
-	MinValue                 float64             `json:"min_value,omitempty"`
-	MaxValue                 float64             `json:"max_value,omitempty"`
-	MinLength                uint32              `json:"min_length,omitempty"`
-	MaxLength                uint32              `json:"max_length,omitempty"`
-	Options                  []CommandOption     `json:"options,omitzero"`
-	ChannelTypes             []ChannelType       `json:"channel_types,omitzero"`
-	Choices                  []Choice            `json:"choices,omitzero"`
-	AutoComplete             bool                `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
+	Type                     OptionType            `json:"type"`
+	Name                     string                `json:"name"`
+	NameLocalizations        map[Language]string   `json:"name_localizations,omitzero"`
+	Description              string                `json:"description"`
+	DescriptionLocalizations map[Language]string   `json:"description_localizations,omitzero"`
+	Required                 bool                  `json:"required,omitempty"`
+	Choices                  []CommandOptionChoice `json:"choices,omitzero"`
+	Options                  []CommandOption       `json:"options,omitzero"`
+	ChannelTypes             []ChannelType         `json:"channel_types,omitzero"`
+	MinValue                 float64               `json:"min_value,omitempty"`
+	MaxValue                 float64               `json:"max_value,omitempty"`
+	MinLength                uint16                `json:"min_length,omitempty"`
+	MaxLength                uint16                `json:"max_length,omitempty"`
+	AutoComplete             bool                  `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
 }
