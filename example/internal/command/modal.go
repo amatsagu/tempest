@@ -49,13 +49,7 @@ func HelloModal(itx tempest.ModalInteraction) {
 	// In case you work with interaction that you know has just 1-2 interactive components, use higher commented code for better performance.
 	textInput, ok := tempest.FindInteractiveComponent(
 		itx.Data.Components,
-		func(cmp tempest.TextInputComponent) bool {
-			if cmp.CustomID == "example-test-input" {
-				return true
-			}
-
-			return false
-		},
+		func(cmp tempest.TextInputComponent) bool { return cmp.CustomID == "example-test-input" },
 	)
 
 	if ok {
