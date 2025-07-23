@@ -2,8 +2,8 @@ package tempest
 
 import "encoding/json"
 
-func (msd *ModalSubmitData) UnmarshalJSON(data []byte) error {
-	type alias ModalSubmitData
+func (msd *ModalInteractionData) UnmarshalJSON(data []byte) error {
+	type alias ModalInteractionData
 	var raw struct {
 		alias
 		Components []json.RawMessage `json:"components"`
@@ -13,7 +13,7 @@ func (msd *ModalSubmitData) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*msd = ModalSubmitData(raw.alias)
+	*msd = ModalInteractionData(raw.alias)
 	for _, comp := range raw.Components {
 		parsed, err := UnmarshalComponent(comp)
 		if err != nil {

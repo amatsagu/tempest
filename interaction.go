@@ -70,22 +70,22 @@ type Interaction struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
-	Interaction
+	*Interaction
 	Data CommandInteractionData `json:"data"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
-	Interaction
+	*Interaction
 	Data ComponentInteractionData `json:"data"`
 	w    http.ResponseWriter      `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
-	Interaction
-	Data ModalSubmitData     `json:"data"`
-	w    http.ResponseWriter `json:"-"`
+	*Interaction
+	Data ModalInteractionData `json:"data"`
+	w    http.ResponseWriter  `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data
@@ -134,7 +134,7 @@ type ComponentInteractionData struct {
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
-type ModalSubmitData struct {
+type ModalInteractionData struct {
 	CustomID   string            `json:"custom_id"`
 	Components []LayoutComponent `json:"components,omitzero"`
 }
