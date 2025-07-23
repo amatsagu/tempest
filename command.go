@@ -78,9 +78,9 @@ type Command struct {
 	ApplicationID            Snowflake                    `json:"application_id"`
 	GuildID                  Snowflake                    `json:"guild_id,omitempty"`
 	Name                     string                       `json:"name"`
-	NameLocalizations        map[Language]string          `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	NameLocalizations        map[Language]string          `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
 	Description              string                       `json:"description"`
-	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitempty"`
+	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitzero"`
 	Options                  []CommandOption              `json:"options,omitzero"`
 	DefaultMemberPermissions PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set. Set it to 0 to make command unavailable for regular members.
 	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
@@ -96,9 +96,9 @@ type Command struct {
 type CommandOption struct {
 	Type                     OptionType          `json:"type"`
 	Name                     string              `json:"name"`
-	NameLocalizations        map[Language]string `json:"name_localizations,omitempty"` // https://discord.com/developers/docs/reference#locales
+	NameLocalizations        map[Language]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
 	Description              string              `json:"description"`
-	DescriptionLocalizations map[Language]string `json:"description_localizations,omitempty"`
+	DescriptionLocalizations map[Language]string `json:"description_localizations,omitzero"`
 	Required                 bool                `json:"required,omitempty"`
 	MinValue                 float64             `json:"min_value,omitempty"`
 	MaxValue                 float64             `json:"max_value,omitempty"`
