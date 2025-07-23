@@ -22,53 +22,66 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var extractor InteractionTypeExtractor
-	if err := json.Unmarshal(rawData, &extractor); err != nil {
+	var interaction Interaction
+	if err := json.Unmarshal(rawData, &interaction); err != nil {
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
+	interaction.Client = client
 
-	switch extractor.Type {
+	switch interaction.Type {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyPingResponse)
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			http.Error(w, "bad request - failed to decode CommandInteraction", http.StatusBadRequest)
+		var data CommandInteractionData
+		if err := json.Unmarshal(interaction.Data, &data); err != nil {
+			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
 			return
 		}
-		client.commandInteractionHandler(w, interaction)
+
+		client.commandInteractionHandler(w, CommandInteraction{
+			Interaction: &interaction,
+			Data:        data,
+		})
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var interaction ComponentInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			http.Error(w, "bad request - failed to decode ComponentInteraction", http.StatusBadRequest)
+		var data ComponentInteractionData
+		if err := json.Unmarshal(interaction.Data, &data); err != nil {
+			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
 			return
 		}
 
-		interaction.Client, interaction.w = client, w
-		client.componentInteractionHandler(w, interaction)
+		client.componentInteractionHandler(w, ComponentInteraction{
+			Interaction: &interaction,
+			w:           w,
+		})
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			http.Error(w, "bad request - failed to decode CommandInteraction", http.StatusBadRequest)
+		var data CommandInteractionData
+		if err := json.Unmarshal(interaction.Data, &data); err != nil {
+			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
 			return
 		}
 
-		client.autoCompleteInteractionHandler(w, interaction)
+		client.autoCompleteInteractionHandler(w, CommandInteraction{
+			Interaction: &interaction,
+			Data:        data,
+		})
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var interaction ModalInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			http.Error(w, "bad request - failed to decode ModalInteraction", http.StatusBadRequest)
+		var data ModalInteractionData
+		if err := json.Unmarshal(interaction.Data, &data); err != nil {
+			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
 			return
 		}
 
-		interaction.Client, interaction.w = client, w
-		client.modalInteractionHandler(w, interaction)
+		client.modalInteractionHandler(w, ModalInteraction{
+			Interaction: &interaction,
+			Data:        data,
+			w:           w,
+		})
 		return
 	}
 }
