@@ -35,7 +35,7 @@ type InteractionTypeExtractor struct {
 //
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	// This struct is purposefuly lacking some large but hardly ever used fields like Message or (partial) Guild.
+	// This struct is purposefully lacking some large but hardly ever used fields like Message or (partial) Guild.
 	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
 	// If you truly need them - apply changes and open pull request to discuss.
 
