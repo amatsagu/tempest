@@ -22,12 +22,12 @@ func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
 	return nil, false
 }
 
-// Returns pointer to user if present in interaction.data.resolved. It'll return <nil> if there's no resolved user.
+// Returns pointer to user if present in interaction.data.resolved. It'll return empty struct if there's no resolved user.
 func (itx CommandInteraction) ResolveUser(id Snowflake) User {
 	return itx.Data.Resolved.Users[id]
 }
 
-// Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return <nil> if there's no resolved member.
+// Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return empty struct if there's no resolved member.
 func (itx CommandInteraction) ResolveMember(id Snowflake) Member {
 	member, available := itx.Data.Resolved.Members[id]
 	if available {
@@ -36,6 +36,27 @@ func (itx CommandInteraction) ResolveMember(id Snowflake) Member {
 		return member
 	}
 	return Member{}
+}
+
+// Returns pointer to guild role if present in interaction.data.resolved. It'll return empty struct if there's no resolved role.
+func (itx CommandInteraction) ResolveRole(id Snowflake) (Role, bool) {
+	role, ok := itx.Data.Resolved.Roles[id]
+	return role, ok
+}
+
+// Returns pointer to partial channel if present in interaction.data.resolved.  It'll return empty struct if there's no resolved partial channel.
+func (itx CommandInteraction) ResolveChannel(id Snowflake) PartialChannel {
+	return itx.Data.Resolved.Channels[id]
+}
+
+// Returns pointer to message if present in interaction.data.resolved.  It'll return empty struct if there's no resolved message.
+func (itx CommandInteraction) ResolveMessage(id Snowflake) Message {
+	return itx.Data.Resolved.Messages[id]
+}
+
+// Returns pointer to attachment if present in interaction.data.resolved.  It'll return empty struct if there's no resolved attachment.
+func (itx CommandInteraction) ResolveAttachment(id Snowflake) Attachment {
+	return itx.Data.Resolved.Attachments[id]
 }
 
 // Use to let user/member know that bot is processing command.
