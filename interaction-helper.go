@@ -23,38 +23,19 @@ func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
 }
 
 // Returns pointer to user if present in interaction.data.resolved. It'll return <nil> if there's no resolved user.
-func (itx CommandInteraction) ResolveUser(id Snowflake) *User {
+func (itx CommandInteraction) ResolveUser(id Snowflake) User {
 	return itx.Data.Resolved.Users[id]
 }
 
 // Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return <nil> if there's no resolved member.
-func (itx CommandInteraction) ResolveMember(id Snowflake) *Member {
+func (itx CommandInteraction) ResolveMember(id Snowflake) Member {
 	member, available := itx.Data.Resolved.Members[id]
 	if available {
-		member.User = itx.Data.Resolved.Users[id]
+		user := itx.Data.Resolved.Users[id]
+		member.User = &user
 		return member
 	}
-	return nil
-}
-
-// Returns pointer to guild role if present in interaction.data.resolved. It'll return <nil> if there's no resolved role.
-func (itx CommandInteraction) ResolveRole(id Snowflake) *Role {
-	return itx.Data.Resolved.Roles[id]
-}
-
-// Returns pointer to partial channel if present in interaction.data.resolved.  It'll return <nil> if there's no resolved partial channel.
-func (itx CommandInteraction) ResolveChannel(id Snowflake) *PartialChannel {
-	return itx.Data.Resolved.Channels[id]
-}
-
-// Returns pointer to message if present in interaction.data.resolved.  It'll return <nil> if there's no resolved message.
-func (itx CommandInteraction) ResolveMessage(id Snowflake) *Message {
-	return itx.Data.Resolved.Messages[id]
-}
-
-// Returns pointer to attachment if present in interaction.data.resolved.  It'll return <nil> if there's no resolved attachment.
-func (itx CommandInteraction) ResolveAttachment(id Snowflake) *Attachment {
-	return itx.Data.Resolved.Attachments[id]
+	return Member{}
 }
 
 // Use to let user/member know that bot is processing command.
