@@ -1,6 +1,9 @@
 package tempest
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
@@ -27,69 +30,67 @@ type InteractionTypeExtractor struct {
 	Type InteractionType `json:"type"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
-type CommandInteraction struct {
-	ID              Snowflake              `json:"id"`
-	ApplicationID   Snowflake              `json:"application_id"`
-	Type            InteractionType        `json:"type"`
-	Data            CommandInteractionData `json:"data"`
-	GuildID         Snowflake              `json:"guild_id,omitempty"`
-	ChannelID       Snowflake              `json:"channel_id,omitempty"`
-	Member          *Member                `json:"member,omitempty"`
-	User            *User                  `json:"user,omitempty"`
-	Token           string                 `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot/app token.
-	Version         uint8                  `json:"version"`                // Read-only property, always = 1.
-	PermissionFlags PermissionFlags        `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
-	Locale          string                 `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string                 `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+// Represents general interaction.
+// Use Command/Component/Modal interaction to read Data field.
+//
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
+type Interaction struct {
+	// This struct is purposefuly lacking some large but hardly ever used fields like Message or (partial) Guild.
+	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
+	// If you truly need them - apply changes and open pull request to discuss.
+
+	ID            Snowflake       `json:"id"`
+	ApplicationID Snowflake       `json:"application_id"`
+	Type          InteractionType `json:"type"`
+	Data          json.RawMessage `json:"data"`
+
+	// partial guild struct is skipped
+
+	GuildID Snowflake `json:"guild_id,omitempty"`
+
+	// partial channel struct is skipped
+
+	ChannelID Snowflake `json:"channel_id,omitempty"`
+	Member    *Member   `json:"member,omitempty"`
+	User      *User     `json:"user,omitempty"`
+	Token     string    `json:"token"` // Temporary token used for responding to the interaction. It's not the same as bot token.
+
+	// version is skipped (docs says it's always 1, read-only property)
+
+	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
+	Locale          Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+	Entitlements    []Entitlement   `json:"entitlements,omitzero"`  // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
+
+	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
+	// attachment_size_limit is also skipped - appears to have no use anywhere
 
 	Client *Client `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
-type ComponentInteraction struct {
-	ID              Snowflake                `json:"id"`
-	ApplicationID   Snowflake                `json:"application_id"`
-	Type            InteractionType          `json:"type"`
-	Data            ComponentInteractionData `json:"data"`
-	GuildID         Snowflake                `json:"guild_id,omitempty"`
-	ChannelID       Snowflake                `json:"channel_id,omitempty"`
-	Member          *Member                  `json:"member,omitempty"`
-	User            *User                    `json:"user,omitempty"`
-	Token           string                   `json:"token"`   // Temporary token used for responding to the interaction. It's not the same as bot/app token.
-	Version         uint8                    `json:"version"` // Read-only property, always = 1.
-	Message         Message                  `json:"message"`
-	PermissionFlags PermissionFlags          `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
-	Locale          string                   `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string                   `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+type CommandInteraction struct {
+	Interaction
+	Data CommandInteractionData `json:"data"`
+}
 
-	Client *Client             `json:"-"`
-	w      http.ResponseWriter `json:"-"`
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+type ComponentInteraction struct {
+	Interaction
+	Data ComponentInteractionData `json:"data"`
+	w    http.ResponseWriter      `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
-	ID              Snowflake       `json:"id"`
-	ApplicationID   Snowflake       `json:"application_id"`
-	Type            InteractionType `json:"type"`
-	Data            ModalSubmitData `json:"data"`
-	GuildID         Snowflake       `json:"guild_id,omitempty"`
-	ChannelID       Snowflake       `json:"channel_id,omitempty"`
-	Member          *Member         `json:"member,omitempty"`
-	User            *User           `json:"user,omitempty"`
-	Token           string          `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot/app token.
-	Version         uint8           `json:"version"`                // Read-only property, always = 1.
-	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app or bot has within the channel the interaction was sent from.
-	Locale          string          `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
-
-	Client *Client             `json:"-"`
-	w      http.ResponseWriter `json:"-"`
+	Interaction
+	Data ModalSubmitData     `json:"data"`
+	w    http.ResponseWriter `json:"-"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-application-command-data-structure
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data
 type CommandInteractionData struct {
-	ID       Snowflake                  `json:"id,omitempty"`
+	ID       Snowflake                  `json:"id"`
 	Name     string                     `json:"name"`
 	Type     CommandType                `json:"type"`
 	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`
@@ -109,26 +110,26 @@ type CommandInteractionOption struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type InteractionDataResolved struct {
-	Users       map[Snowflake]*User           `json:"users,omitzero"`
-	Members     map[Snowflake]*Member         `json:"members,omitzero"`
-	Roles       map[Snowflake]*Role           `json:"roles,omitzero"`
-	Channels    map[Snowflake]*PartialChannel `json:"channels,omitzero"`
-	Messages    map[Snowflake]*Message        `json:"messages,omitzero"`
-	Attachments map[Snowflake]*Attachment     `json:"attachments,omitzero"`
+	Users       map[Snowflake]User           `json:"users,omitzero"`
+	Members     map[Snowflake]Member         `json:"members,omitzero"`
+	Roles       map[Snowflake]Role           `json:"roles,omitzero"`
+	Channels    map[Snowflake]PartialChannel `json:"channels,omitzero"`
+	Messages    map[Snowflake]Message        `json:"messages,omitzero"`
+	Attachments map[Snowflake]Attachment     `json:"attachments,omitzero"`
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
-type Choice struct {
-	Name              string            `json:"name"`
-	NameLocalizations map[string]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
-	Value             any               `json:"value"`                       // string, float64 (double or integer) or bool
+type CommandOptionChoice struct {
+	Name              string              `json:"name"`
+	NameLocalizations map[Language]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
+	Value             any                 `json:"value"`                       // string, float64 (double or integer) or bool
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
 	CustomID string                   `json:"custom_id"`
 	Type     ComponentType            `json:"component_type"`
-	Values   []string                 `json:"values,omitzero"`
+	Values   []string                 `json:"values,omitzero"` // Values the user selected in a select menu component
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 }
 
