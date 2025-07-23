@@ -81,7 +81,7 @@ const (
 	DEFAULT_POOL_LAYOUT_TYPE PoolLayoutType = iota + 1
 )
 
-// https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
+// https://discord.com/developers/docs/resources/message#allowed-mentions-object
 type AllowedMentions struct {
 	Parse       []AllowedMentionsType `json:"parse,omitzero"`
 	Roles       []Snowflake           `json:"roles,omitzero"`
@@ -274,11 +274,10 @@ type Attachment struct {
 // https://discord.com/developers/docs/resources/poll#poll-create-request-object
 type Poll struct {
 	Question    PollMedia      `json:"question"`
-	Answers     []PollAnswer   `json:"answers"`
-	Expiry      *time.Time     `json:"expiry,omitempty"`
-	Multiselect bool           `json:"allow_multiselect"`
+	Answers     []PollAnswer   `json:"answers,omitzero"`
+	Duration    uint16         `json:"duration,omitempty"` // Number of hours the poll should be open for, up to 32 days (defaults to 24)
+	Multiselect bool           `json:"allow_multiselect,omitempty"`
 	LayoutType  PoolLayoutType `json:"layout_type"`
-	Results     *PoolResult    `json:"results,omitempty"`
 }
 
 // https://discord.com/developers/docs/resources/poll#poll-media-object-poll-media-object-structure
@@ -287,7 +286,7 @@ type PollMedia struct {
 	Emoji *Emoji `json:"emoji,omitempty"`
 }
 
-// https://discord.com/developers/docs/resources/poll#poll-answer-object
+// https://discord.com/developers/docs/resources/poll#poll-answer-object-poll-answer-object-structure
 type PollAnswer struct {
 	AnswerID  uint32    `json:"answer_id,omitempty"`
 	PollMedia PollMedia `json:"poll_media"`
