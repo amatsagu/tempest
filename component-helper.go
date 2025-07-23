@@ -8,7 +8,7 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 	var zero T
 
 	for _, cmp := range components {
-		switch cmp.Kind() {
+		switch cmp._kind() {
 		case BUTTON_COMPONENT_TYPE,
 			STRING_SELECT_COMPONENT_TYPE,
 			TEXT_INPUT_COMPONENT_TYPE,
@@ -30,7 +30,7 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 		case SECTION_COMPONENT_TYPE:
 			if section, ok := any(cmp).(SectionComponent); ok {
 				// Only button is InteractiveComponent for Accessory type.
-				if section.Accessory.Kind() == THUMBNAIL_COMPONENT_TYPE {
+				if section.Accessory._kind() == THUMBNAIL_COMPONENT_TYPE {
 					continue
 				}
 
