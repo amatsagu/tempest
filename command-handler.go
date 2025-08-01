@@ -135,33 +135,41 @@ func (client *Client) handleInteraction(itx CommandInteraction) (CommandInteract
 func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist []string, reverseMode bool) []Command {
 	commands.mu.RLock()
 
-	cmdTree := make(map[string]map[string]Command, len(commands.cache))
-	cmdRootSymbol := "-"
+	tree := make(map[string]map[string]Command, len(commands.cache))
 	parsedCommands := make([]Command, 0, len(commands.cache))
 
-	// Prepare nested map for reading later
-	for fullName, command := range commands.cache {
-		if strings.Contains(fullName, "@") {
-			names := strings.Split(fullName, "@")
-			cmdBranch := cmdTree[names[0]]
-			cmdBranch[names[1]] = command
-			cmdTree[names[0]] = cmdBranch
+	// First loop - prepare nested space for potential sub commands
+	for name, command := range commands.cache {
+		if strings.Contains(name, "@") {
+			continue
 		}
 
-		cmdBranch := make(map[string]Command, 0)
-		cmdBranch[cmdRootSymbol] = command
-		cmdTree[fullName] = cmdBranch
+		group := make(map[string]Command, 0)
+		group[ROOT_PLACEHOLDER] = command
+		tree[name] = group
+	}
+
+	// Second loop - assign commands
+	for name, command := range commands.cache {
+		if strings.Contains(name, "@") {
+			parts := strings.Split(name, "@")
+			group := tree[parts[0]]
+
+			command.Type = CommandType(SUB_OPTION_TYPE)
+			group[parts[1]] = command
+			tree[parts[0]] = group
+		}
 	}
 
 	commands.mu.RUnlock()
 
 	// Use nested map to build final array with structs matching Discord API
-	for _, branch := range cmdTree {
-		baseCommand := branch[cmdRootSymbol]
+	for _, branch := range tree {
+		baseCommand := branch[ROOT_PLACEHOLDER]
 
 		if len(branch) > 1 {
 			for key, subCommand := range branch {
-				if key == cmdRootSymbol {
+				if key == ROOT_PLACEHOLDER {
 					continue
 				}
 
