@@ -80,8 +80,8 @@ func (itx CommandInteraction) Defer(ephemeral bool) error {
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
 func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []File) error {
-	if ephemeral && reply.Flags == 0 {
-		reply.Flags = EPHEMERAL_MESSAGE_FLAG
+	if ephemeral {
+		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
 	_, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
@@ -92,7 +92,6 @@ func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral boo
 	return err
 }
 
-// Use that for simple text messages that won't be modified.
 func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
 	return itx.SendReply(ResponseMessageData{
 		Content: content,
@@ -109,12 +108,18 @@ func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
 }
 
 func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
-	if ephemeral && content.Flags == 0 {
-		content.Flags = EPHEMERAL_MESSAGE_FLAG
+	if ephemeral {
+		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
+}
+
+func (itx CommandInteraction) EditLinearReply(content string, ephemeral bool) error {
+	return itx.EditReply(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
 }
 
 func (itx CommandInteraction) DeleteReply() error {
@@ -123,8 +128,8 @@ func (itx CommandInteraction) DeleteReply() error {
 }
 
 func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
-	if ephemeral && content.Flags == 0 {
-		content.Flags = EPHEMERAL_MESSAGE_FLAG
+	if ephemeral {
+		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
 	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
@@ -141,9 +146,21 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 	return res, nil
 }
 
-func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessage) error {
+func (itx CommandInteraction) SendLinearFollowUp(content string, ephemeral bool) (Message, error) {
+	return itx.SendFollowUp(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}
+
+func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessageData) error {
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
+}
+
+func (itx CommandInteraction) EditLinearFollowUp(messageID Snowflake, content string) error {
+	return itx.EditFollowUp(messageID, ResponseMessageData{
+		Content: content,
+	})
 }
 
 func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseMessage) error {
@@ -180,14 +197,14 @@ func (itx ComponentInteraction) Acknowledge() error {
 	return err
 }
 
-func (itx ComponentInteraction) AcknowledgeWithMessage(content ResponseMessageData, ephemeral bool) error {
-	if ephemeral && content.Flags == 0 {
-		content.Flags = EPHEMERAL_MESSAGE_FLAG
+func (itx ComponentInteraction) AcknowledgeWithMessage(reply ResponseMessageData, ephemeral bool) error {
+	if ephemeral {
+		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
 	body, err := json.Marshal(ResponseMessage{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &content,
+		Data: &reply,
 	})
 
 	if err != nil {
@@ -255,8 +272,8 @@ func (itx ModalInteraction) Acknowledge() error {
 }
 
 func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData, ephemeral bool) error {
-	if ephemeral && response.Flags == 0 {
-		response.Flags = EPHEMERAL_MESSAGE_FLAG
+	if ephemeral {
+		response.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
 	body, err := json.Marshal(ResponseMessage{
