@@ -57,9 +57,9 @@ func (sm *SharedMap[K, V]) Size() int {
 
 // Creates a copy of a given shared map,
 // filtered down to just the elements from the given array that pass the test implemented by the provided function.
-func (sm *SharedMap[K, V]) Filter(fn func(key K, value V) bool, limit int) *SharedMap[K, V] {
+func (sm *SharedMap[K, V]) FilterMap(fn func(key K, value V) bool, limit int) *SharedMap[K, V] {
 	res := NewSharedMap[K, V]()
-	sm.mu.Lock()
+	sm.mu.RLock()
 
 	i := 0
 	if limit == 0 {
@@ -76,7 +76,67 @@ func (sm *SharedMap[K, V]) Filter(fn func(key K, value V) bool, limit int) *Shar
 		}
 	}
 
-	sm.mu.Unlock()
+	sm.mu.RUnlock()
+	return res
+}
+
+// Same as FilterMap but returns slice of values that pass the provided test function.
+func (sm *SharedMap[K, V]) FilterValues(fn func(key K, value V) bool, limit int) []V {
+	var res []V
+
+	if limit == 0 {
+		res = make([]V, 0)
+	} else {
+		res = make([]V, 0, limit)
+	}
+
+	sm.mu.RLock()
+	i := 0
+	if limit == 0 {
+		limit = len(sm.cache)
+	}
+
+	for key, value := range sm.cache {
+		if fn(key, value) {
+			res[i] = value
+			i++
+			if i == limit {
+				break
+			}
+		}
+	}
+
+	sm.mu.RUnlock()
+	return res
+}
+
+// Same as FilterMap but returns slice of keys that pass the provided test function.
+func (sm *SharedMap[K, V]) FilterKeys(fn func(key K, value V) bool, limit int) []K {
+	var res []K
+
+	if limit == 0 {
+		res = make([]K, 0)
+	} else {
+		res = make([]K, 0, limit)
+	}
+
+	sm.mu.RLock()
+	i := 0
+	if limit == 0 {
+		limit = len(sm.cache)
+	}
+
+	for key, value := range sm.cache {
+		if fn(key, value) {
+			res[i] = key
+			i++
+			if i == limit {
+				break
+			}
+		}
+	}
+
+	sm.mu.RUnlock()
 	return res
 }
 
