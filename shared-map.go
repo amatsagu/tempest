@@ -98,7 +98,7 @@ func (sm *SharedMap[K, V]) FilterValues(fn func(key K, value V) bool, limit int)
 
 	for key, value := range sm.cache {
 		if fn(key, value) {
-			res[i] = value
+			res = append(res, value)
 			i++
 			if i == limit {
 				break
@@ -128,7 +128,7 @@ func (sm *SharedMap[K, V]) FilterKeys(fn func(key K, value V) bool, limit int) [
 
 	for key, value := range sm.cache {
 		if fn(key, value) {
-			res[i] = key
+			res = append(res, key)
 			i++
 			if i == limit {
 				break
