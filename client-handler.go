@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime/debug"
 	"net/http"
 )
 
@@ -106,14 +107,16 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 	defer func() {
 		if r := recover(); r != nil {
 			if client.errorCommandHandler != nil {
-				client.errorCommandHandler(command, fmt.Errorf("panic occurred: %v", r), &itx)
+				stack := debug.Stack()
+				client.errorCommandHandler(command, fmt.Errorf("panic occurred: %v\n%s", r, stack), &itx)
 			}
 		}
 	}()
 
 	err := command.SlashCommandHandler(&itx)
 	if err != nil && client.errorCommandHandler != nil {
-		client.errorCommandHandler(command, err, &itx)
+		stack := debug.Stack()
+		client.errorCommandHandler(command, fmt.Errorf("%v\n%s", err, stack), &itx)
 		return
 	}
 
