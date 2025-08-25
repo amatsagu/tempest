@@ -3,6 +3,7 @@ package tempest
 import (
 	"crypto/ed25519"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -102,7 +103,19 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 		return
 	}
 
-	command.SlashCommandHandler(&itx)
+	defer func() {
+		if r := recover(); r != nil {
+			if client.errorCommandHandler != nil {
+				client.errorCommandHandler(command, fmt.Errorf("panic occurred: %v", r), &itx)
+			}
+		}
+	}()
+
+	err := command.SlashCommandHandler(&itx)
+	if err != nil && client.errorCommandHandler != nil {
+		client.errorCommandHandler(command, err, &itx)
+		return
+	}
 
 	if client.postCommandHandler != nil {
 		client.postCommandHandler(command, &itx)

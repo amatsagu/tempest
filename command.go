@@ -98,7 +98,7 @@ type Command struct {
 	Handler                  CommandHandlerType           `json:"handler,omitempty"`
 
 	AutoCompleteHandler func(itx CommandInteraction) []CommandOptionChoice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	SlashCommandHandler func(itx *CommandInteraction)                      `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
+	SlashCommandHandler func(itx *CommandInteraction) error                `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
 }
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
