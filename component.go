@@ -16,23 +16,24 @@ type ComponentType uint8
 
 // https://discord.com/developers/docs/interactions/message-components#component-object-component-types
 const (
-	ACTION_ROW_COMPONENT_TYPE         ComponentType = iota + 1 // Layout component
-	BUTTON_COMPONENT_TYPE                                      // Interactive component
-	STRING_SELECT_COMPONENT_TYPE                               // Interactive component
-	TEXT_INPUT_COMPONENT_TYPE                                  // Interactive component
-	USER_SELECT_COMPONENT_TYPE                                 // Interactive component
-	ROLE_SELECT_COMPONENT_TYPE                                 // Interactive component
-	MENTIONABLE_SELECT_COMPONENT_TYPE                          // Interactive component
-	CHANNEL_SELECT_COMPONENT_TYPE                              // Interactive component
-	SECTION_COMPONENT_TYPE                                     // Layout component
-	TEXT_DISPLAY_COMPONENT_TYPE                                // Content component
-	THUMBNAIL_COMPONENT_TYPE                                   // Content component
-	MEDIA_GALLERY_COMPONENT_TYPE                               // Content component
-	FILE_COMPONENT_TYPE                                        // Content component
-	SEPARATOR_COMPONENT_TYPE                                   // Layout component
+	ACTION_ROW_COMPONENT_TYPE         ComponentType = iota + 1 // Layout component for Messages
+	BUTTON_COMPONENT_TYPE                                      // Interactive component for Messages
+	STRING_SELECT_COMPONENT_TYPE                               // Interactive component for Messages and Modals
+	TEXT_INPUT_COMPONENT_TYPE                                  // Interactive component for Modals
+	USER_SELECT_COMPONENT_TYPE                                 // Interactive component for Messages
+	ROLE_SELECT_COMPONENT_TYPE                                 // Interactive component for Messages
+	MENTIONABLE_SELECT_COMPONENT_TYPE                          // Interactive component for Messages
+	CHANNEL_SELECT_COMPONENT_TYPE                              // Interactive component for Messages
+	SECTION_COMPONENT_TYPE                                     // Layout component for Messages
+	TEXT_DISPLAY_COMPONENT_TYPE                                // Content component for Messages
+	THUMBNAIL_COMPONENT_TYPE                                   // Content component for Messages
+	MEDIA_GALLERY_COMPONENT_TYPE                               // Content component for Messages
+	FILE_COMPONENT_TYPE                                        // Content component for Messages
+	SEPARATOR_COMPONENT_TYPE                                   // Layout component for Messages
 	_                                                          //
 	_                                                          //
-	CONTAINER_COMPONENT_TYPE                                   // Layout component
+	CONTAINER_COMPONENT_TYPE                                   // Layout component for Messages
+	LABEL_COMPONENT_TYPE                                       // Interactive component for Modals
 )
 
 // https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-styles
@@ -110,7 +111,7 @@ type TextInputComponent struct {
 	ID          uint32         `json:"id,omitempty"`
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
-	Label       string         `json:"label"`
+	Label       string         `json:"label"`                // Deprecated: use `label` and `description` on the Label component
 	MinLength   uint16         `json:"min_length,omitempty"` // min: 0, max: 4000 characters
 	MaxLength   uint16         `json:"max_length,omitempty"` // min: 1, max: 4000 characters
 	Required    bool           `json:"required,omitempty"`
@@ -224,4 +225,14 @@ type ContainerComponent struct {
 	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator or file.
 	AccentColor uint32         `json:"accent_color,omitempty"` // Color for the accent on the container as RGB from 0x000000 to 0xFFFFFF.
 	Spoiler     bool           `json:"spoiler,omitempty"`
+}
+
+// A top-level layout component that wraps modal components with text as a label and optional description
+// https://discord.com/developers/docs/components/reference#label
+type LabelComponent struct {
+	Type        ComponentType       `json:"type"`                  // Always = LABEL_COMPONENT_TYPE (18)
+	ID          uint32              `json:"id,omitempty"`          // Optional identifier for component
+	Label       string              `json:"label"`                 // Text that appears on the label, max 45 characters.
+	Description string              `json:"description,omitempty"` // Additional description for the label, max 100 characters.
+	Component   LabelChildComponent `json:"component"`             // The component within the label/
 }
