@@ -98,7 +98,7 @@ type StringSelectComponent struct {
 
 	// Below 2 fields are controlled by API and should be readonly for us, developers.
 	// https://discord.com/developers/docs/components/reference#string-select-string-select-interaction-response-structure
-	ComponentType ComponentType `json:"component_type,omitempty"` // This field is ignored and provided by the API as part of the response.
+	ComponentType ComponentType `json:"component_type,omitempty"` // This field is ignored and provided by the API as part of the response (only provided for message interaction)
 	Values        []string      `json:"values,omitzero"`          // This field is ignored and provided by the API as part of the response.
 }
 
