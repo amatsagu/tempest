@@ -102,6 +102,29 @@ func UnmarshalComponent(data []byte) (AnyComponent, error) {
 	return nil, fmt.Errorf("unknown component type: %d", partial.Type)
 }
 
+func (c *LabelComponent) UnmarshalJSON(data []byte) error {
+	type alias LabelComponent
+	var raw struct {
+		alias
+		Component json.RawMessage `json:"component"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	*c = LabelComponent(raw.alias)
+	parsed, err := UnmarshalComponent(raw.Component)
+	if err != nil {
+		return err
+	}
+
+	if cmp, ok := parsed.(LabelChildComponent); ok {
+		c.Component = cmp
+	}
+	raw.Component = nil
+	return nil
+}
+
 func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 	type alias ActionRowComponent
 	var raw struct {
