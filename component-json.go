@@ -91,6 +91,12 @@ func UnmarshalComponent(data []byte) (AnyComponent, error) {
 			return nil, err
 		}
 		return cmp, nil
+	case LABEL_COMPONENT_TYPE:
+		var cmp LabelComponent
+		if err := json.Unmarshal(data, &cmp); err != nil {
+			return nil, err
+		}
+		return cmp, nil
 	}
 
 	return nil, fmt.Errorf("unknown component type: %d", partial.Type)
