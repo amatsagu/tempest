@@ -86,7 +86,7 @@ type ButtonComponent struct {
 
 // https://discord.com/developers/docs/components/reference#string-select
 type StringSelectComponent struct {
-	Type        ComponentType      `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3)
+	Type        ComponentType      `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3). For responses, only provided for modal interactions
 	ID          uint32             `json:"id,omitempty"`
 	CustomID    string             `json:"custom_id,omitempty"`
 	Options     []SelectMenuOption `json:"options,omitzero"`
@@ -95,6 +95,11 @@ type StringSelectComponent struct {
 	MaxValues   uint8              `json:"max_values,omitempty"`
 	Disabled    bool               `json:"disabled,omitempty"`
 	Required    bool               `json:"required"`
+
+	// Below 2 fields are controlled by API and should be readonly for us, developers.
+	// https://discord.com/developers/docs/components/reference#string-select-string-select-interaction-response-structure
+	ComponentType ComponentType `json:"component_type,omitempty"` // This field is ignored and provided by the API as part of the response.
+	Values        []string      `json:"values,omitzero"`          // This field is ignored and provided by the API as part of the response.
 }
 
 // https://discord.com/developers/docs/components/reference#string-select-select-option-structure
