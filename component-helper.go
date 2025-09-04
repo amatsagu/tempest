@@ -12,7 +12,6 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 		case BUTTON_COMPONENT_TYPE,
 			STRING_SELECT_COMPONENT_TYPE,
 			TEXT_INPUT_COMPONENT_TYPE,
-			LABEL_COMPONENT_TYPE,
 			USER_SELECT_COMPONENT_TYPE,
 			ROLE_SELECT_COMPONENT_TYPE,
 			MENTIONABLE_SELECT_COMPONENT_TYPE,
@@ -46,6 +45,12 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 			}
 
 			return FindInteractiveComponent(container.Components, filter)
+		case LABEL_COMPONENT_TYPE:
+			if label, ok := any(cmp).(LabelComponent); ok {
+				if casted, ok := any(label.Component).(T); ok && filter(casted) {
+					return casted, true
+				}
+			}
 		}
 
 	}
