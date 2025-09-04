@@ -93,6 +93,7 @@ type StringSelectComponent struct {
 	MinValues   uint8              `json:"min_values,omitempty"`
 	MaxValues   uint8              `json:"max_values,omitempty"`
 	Disabled    bool               `json:"disabled,omitempty"`
+	Required    bool               `json:"required"`
 }
 
 // https://discord.com/developers/docs/components/reference#string-select-select-option-structure
@@ -111,9 +112,9 @@ type TextInputComponent struct {
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
 	Label       string         `json:"label"`
-	MinLength   uint16         `json:"min_length,omitempty"` // min: 0, max: 4000 characters
-	MaxLength   uint16         `json:"max_length,omitempty"` // min: 1, max: 4000 characters
-	Required    bool           `json:"required,omitempty"`
+	MinLength   uint16         `json:"min_length,omitempty"`  // min: 0, max: 4000 characters
+	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
+	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
 	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component, max 4000 characters.
 	Placeholder string         `json:"placeholder,omitempty"` // max: 100 characters
 }
@@ -213,7 +214,7 @@ type FileComponent struct {
 type SeparatorComponent struct {
 	Type    ComponentType `json:"type"` // Always = SEPARATOR_COMPONENT_TYPE (14)
 	ID      uint32        `json:"id,omitempty"`
-	Divider bool          `json:"divider,omitempty"` // Whether a visual divider should be displayed in the component (defaults to true).
+	Divider bool          `json:"divider"`           // Whether a visual divider should be displayed in the component (defaults to true).
 	Spacing uint8         `json:"spacing,omitempty"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
 }
 
