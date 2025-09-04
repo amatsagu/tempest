@@ -310,3 +310,52 @@ func (itx ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error 
 	itx.w.Write(body)
 	return err
 }
+
+// Used to let user/member know that the bot is processing the modal submission,
+// which will close the modal dialog.
+// Set ephemeral = true to make notification visible only to the submitter.
+func (itx ModalInteraction) Defer(ephemeral bool) error {
+	var flags MessageFlags = 0
+
+	if ephemeral {
+		flags = EPHEMERAL_MESSAGE_FLAG
+	}
+
+	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &ResponseMessageData{
+			Flags: flags,
+		},
+	})
+
+	return err
+}
+
+// Used after defering a modal submission to send a message to the user/member.
+// Set ephemeral = true to make message visible only to the submitter.
+func (itx ModalInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
+	if ephemeral {
+		content.Flags |= EPHEMERAL_MESSAGE_FLAG
+	}
+
+	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	if err != nil {
+		return Message{}, err
+	}
+
+	res := Message{}
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return Message{}, errors.New("failed to parse received data from discord")
+	}
+
+	return res, nil
+}
+
+// Used after defering a modal submission to send a message to the user/member.
+// Set ephemeral = true to make message visible only to the submitter.
+func (itx ModalInteraction) SendLinearFollowUp(content string, ephemeral bool) (Message, error) {
+	return itx.SendFollowUp(ResponseMessageData{
+		Content: content,
+	}, ephemeral)
+}

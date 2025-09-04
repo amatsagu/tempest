@@ -11,6 +11,17 @@ type AnyComponent interface {
 	_kind() ComponentType
 }
 
+// LabelChildComponent is a special subset of components that can be used as the child of a LabelComponent.
+// Only one child component is allowed per label.
+//
+// Currently valid types: TextInputComponent & StringSelectComponent.
+//
+// https://discord.com/developers/docs/components/reference#label-label-child-components
+type LabelChildComponent interface {
+	AnyComponent
+	_lblcmp()
+}
+
 // LayoutComponent represents message layout containers like Action Rows, Sections, Separators & Containers.
 //
 // These are used to control final look of your custom message/embed.
@@ -54,9 +65,11 @@ func (cmp ButtonComponent) _acmp()               {}
 
 func (cmp StringSelectComponent) _kind() ComponentType { return cmp.Type }
 func (cmp StringSelectComponent) _icmp()               {}
+func (cmp StringSelectComponent) _lblcmp()             {}
 
 func (cmp TextInputComponent) _kind() ComponentType { return cmp.Type }
 func (cmp TextInputComponent) _icmp()               {}
+func (cmp TextInputComponent) _lblcmp()             {}
 
 func (cmp SelectComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SelectComponent) _icmp()               {}
@@ -82,3 +95,6 @@ func (cmp SeparatorComponent) _lcmp()               {}
 
 func (cmp ContainerComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ContainerComponent) _lcmp()               {}
+
+func (cmp LabelComponent) _kind() ComponentType { return cmp.Type }
+func (cmp LabelComponent) _lcmp()               {}
