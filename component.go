@@ -33,7 +33,7 @@ const (
 	_                                                          //
 	_                                                          //
 	CONTAINER_COMPONENT_TYPE                                   // Layout component for Messages
-	LABEL_COMPONENT_TYPE                                       // Interactive component for Modals
+	LABEL_COMPONENT_TYPE                                       // Layout component for Modals
 )
 
 // https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-styles
