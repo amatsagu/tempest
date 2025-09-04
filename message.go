@@ -229,7 +229,7 @@ type Message struct {
 	Type              BitSet              `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
 	ApplicationID     Snowflake           `json:"application_id,omitempty"`
 	MessageReference  *MessageReference   `json:"message_reference,omitempty"`
-	Flags             uint64              `json:"flags,omitempty"`
+	Flags             MessageFlags        `json:"flags,omitempty"`
 	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
 	Interaction       *MessageInteraction `json:"interaction,omitempty"`
 	Components        []LayoutComponent   `json:"components,omitzero"`
