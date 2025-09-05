@@ -22,11 +22,10 @@ type Client struct {
 	staticComponents *SharedMap[string, func(ComponentInteraction)]
 	staticModals     *SharedMap[string, func(ModalInteraction)]
 
-	preCommandHandler   func(cmd Command, itx *CommandInteraction) bool
-	postCommandHandler  func(cmd Command, itx *CommandInteraction)
-	errorCommandHandler func(cmd Command, err error, itx *CommandInteraction)
-	componentHandler    func(itx *ComponentInteraction)
-	modalHandler        func(itx *ModalInteraction)
+	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
+	postCommandHandler func(cmd Command, itx *CommandInteraction)
+	componentHandler   func(itx *ComponentInteraction)
+	modalHandler       func(itx *ModalInteraction)
 
 	queuedComponents *SharedMap[string, chan *ComponentInteraction]
 	queuedModals     *SharedMap[string, chan *ModalInteraction]
@@ -37,11 +36,10 @@ type ClientOptions struct {
 	PublicKey                  string
 	DefaultInteractionContexts []InteractionContextType
 
-	PreCommandHook      func(cmd Command, itx *CommandInteraction) bool       // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	PostCommandHook     func(cmd Command, itx *CommandInteraction)            // Function that runs after each command.
-	ErrorCommandHandler func(cmd Command, err error, itx *CommandInteraction) // Funtion that runs instead of PostCommandHook if command failed.
-	ComponentHandler    func(itx *ComponentInteraction)                       // Function that runs for each unhandled component.
-	ModalHandler        func(itx *ModalInteraction)                           // Function that runs for each unhandled modal.
+	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
+	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
+	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 }
 
 func NewClient(opt ClientOptions) Client {
@@ -61,20 +59,19 @@ func NewClient(opt ClientOptions) Client {
 	}
 
 	return Client{
-		ApplicationID:       botUserID,
-		PublicKey:           discordPublicKey,
-		Rest:                NewRest(opt.Token),
-		commands:            NewSharedMap[string, Command](),
-		commandContexts:     contexts,
-		staticComponents:    NewSharedMap[string, func(ComponentInteraction)](),
-		staticModals:        NewSharedMap[string, func(ModalInteraction)](),
-		preCommandHandler:   opt.PreCommandHook,
-		postCommandHandler:  opt.PostCommandHook,
-		errorCommandHandler: opt.ErrorCommandHandler,
-		componentHandler:    opt.ComponentHandler,
-		modalHandler:        opt.ModalHandler,
-		queuedComponents:    NewSharedMap[string, chan *ComponentInteraction](),
-		queuedModals:        NewSharedMap[string, chan *ModalInteraction](),
+		ApplicationID:      botUserID,
+		PublicKey:          discordPublicKey,
+		Rest:               NewRest(opt.Token),
+		commands:           NewSharedMap[string, Command](),
+		commandContexts:    contexts,
+		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),
+		staticModals:       NewSharedMap[string, func(ModalInteraction)](),
+		preCommandHandler:  opt.PreCommandHook,
+		postCommandHandler: opt.PostCommandHook,
+		componentHandler:   opt.ComponentHandler,
+		modalHandler:       opt.ModalHandler,
+		queuedComponents:   NewSharedMap[string, chan *ComponentInteraction](),
+		queuedModals:       NewSharedMap[string, chan *ModalInteraction](),
 	}
 }
 
