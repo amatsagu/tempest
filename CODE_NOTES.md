@@ -13,10 +13,12 @@ I've decided to simply cut, not include dead fields - data that I'm sure will ne
 
 ### JSON Parsing of Optional Fields
 To ensure consistent behavior with other languages and align with Discord API expectations, Tempest follows a specific convention for optional fields in Go:
-- `omitempty` for optional fields like strings, numbers, booleans, etc.
+- `omitempty` for optional fields like strings, numbers, etc.
 - `omitzero` for **slices or maps** where an **explicit empty value** (e.g., `[]`) must be included in the payload to signal the removal or absence of a resource.
 
 > 💡 This is required in cases like `Message#embeds`, where sending `"embeds": []` is necessary to explicitly clear embeds from a message. Using only `omitempty` would omit the field entirely, which would not trigger removal in the Discord API.
+
+> ⚠️ Please at least for now avoid using `omitempty` on bool type struct fields. Go's default, zero value logic may overwrite expected outcome (in some cases). I'll try finding better solution later on but that works for now.
 
 <br>
 
