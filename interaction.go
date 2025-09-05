@@ -105,7 +105,7 @@ type CommandInteractionOption struct {
 	Type    OptionType                 `json:"type"`
 	Value   any                        `json:"value,omitempty"` // string, float64 (double or integer) or bool
 	Options []CommandInteractionOption `json:"options,omitzero"`
-	Focused bool                       `json:"focused,omitempty"`
+	Focused bool                       `json:"focused"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure

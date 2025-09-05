@@ -93,7 +93,7 @@ type Command struct {
 	RequiredPermissions      PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
 	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
 	Contexts                 []InteractionContextType     `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	NSFW                     bool                         `json:"nsfw,omitempty"`    // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	NSFW                     bool                         `json:"nsfw"`              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
 	Version                  Snowflake                    `json:"version,omitempty"` // Autoincrementing version identifier updated during substantial record changes.
 	Handler                  CommandHandlerType           `json:"handler,omitempty"`
 
@@ -108,7 +108,7 @@ type CommandOption struct {
 	NameLocalizations        map[Language]string   `json:"name_localizations,omitzero"`
 	Description              string                `json:"description"`
 	DescriptionLocalizations map[Language]string   `json:"description_localizations,omitzero"`
-	Required                 bool                  `json:"required,omitempty"`
+	Required                 bool                  `json:"required"`
 	Choices                  []CommandOptionChoice `json:"choices,omitzero"`
 	Options                  []CommandOption       `json:"options,omitzero"`
 	ChannelTypes             []ChannelType         `json:"channel_types,omitzero"`
@@ -116,5 +116,5 @@ type CommandOption struct {
 	MaxValue                 float64               `json:"max_value,omitempty"`
 	MinLength                uint16                `json:"min_length,omitempty"`
 	MaxLength                uint16                `json:"max_length,omitempty"`
-	AutoComplete             bool                  `json:"autocomplete,omitempty"` // Required to be = true if you want to catch it later in auto complete handler.
+	AutoComplete             bool                  `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
 }

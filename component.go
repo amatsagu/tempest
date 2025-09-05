@@ -81,7 +81,7 @@ type ButtonComponent struct {
 	CustomID string        `json:"custom_id,omitempty"`
 	SkuID    Snowflake     `json:"sku_id,omitempty"` // Identifier for a purchasable SKU, only available when using premium-style buttons. Premium buttons do not send an interaction to your app when clicked.
 	URL      string        `json:"url,omitempty"`
-	Disabled bool          `json:"disabled,omitempty"`
+	Disabled bool          `json:"disabled"`
 }
 
 // https://discord.com/developers/docs/components/reference#string-select
@@ -93,7 +93,7 @@ type StringSelectComponent struct {
 	Placeholder string             `json:"placeholder,omitempty"`
 	MinValues   uint8              `json:"min_values,omitempty"`
 	MaxValues   uint8              `json:"max_values,omitempty"`
-	Disabled    bool               `json:"disabled,omitempty"`
+	Disabled    bool               `json:"disabled"`
 	Required    bool               `json:"required"`
 
 	// Below 2 fields are controlled by API and should be readonly for us, developers.
@@ -108,7 +108,7 @@ type SelectMenuOption struct {
 	Value       string `json:"value"`                 // Value to return back to app once clicked, max 100 characters.
 	Description string `json:"description,omitempty"` // An additional description of the option, max 100 characters.
 	Emoji       *Emoji `json:"emoji,omitempty"`       // It may only contain id, name, and animated from regular Emoji struct.
-	Default     bool   `json:"default,omitempty"`     // Whether to render this option as selected by default.
+	Default     bool   `json:"default"`               // Whether to render this option as selected by default.
 }
 
 // https://discord.com/developers/docs/components/reference#text-input
@@ -143,7 +143,7 @@ type SelectComponent struct {
 	DefaultValues []DefaultValueOption `json:"default_values,omitzero"`
 	MinValues     uint8                `json:"min_values,omitempty"`
 	MaxValues     uint8                `json:"max_values,omitempty"`
-	Disabled      bool                 `json:"disabled,omitempty"`
+	Disabled      bool                 `json:"disabled"`
 }
 
 // https://discord.com/developers/docs/components/reference#user-select-select-default-value-structure
@@ -176,7 +176,7 @@ type ThumbnailComponent struct {
 	ID          uint32            `json:"id,omitempty"`
 	Media       UnfurledMediaItem `json:"media"`
 	Description string            `json:"description,omitempty"` // Alt text for the media, max 1024 characters
-	Spoiler     bool              `json:"spoiler,omitempty"`
+	Spoiler     bool              `json:"spoiler"`
 }
 
 // https://discord.com/developers/docs/components/reference#unfurled-media-item-structure
@@ -200,7 +200,7 @@ type MediaGalleryComponent struct {
 type MediaGalleryItem struct {
 	Media       UnfurledMediaItem `json:"media"`
 	Description string            `json:"description,omitempty"` // Alt text for the media, max 1024 characters
-	Spoiler     bool              `json:"spoiler,omitempty"`
+	Spoiler     bool              `json:"spoiler"`
 }
 
 // https://discord.com/developers/docs/components/reference#file-file-structure
@@ -208,7 +208,7 @@ type FileComponent struct {
 	Type    ComponentType     `json:"type"` // Always = FILE_COMPONENT_TYPE (13)
 	ID      uint32            `json:"id,omitempty"`
 	File    UnfurledMediaItem `json:"file"` // This unfurled media item is unique in that it only supports attachment references using the attachment://<filename> syntax.
-	Spoiler bool              `json:"spoiler,omitempty"`
+	Spoiler bool              `json:"spoiler"`
 
 	// Below 2 fields are controlled by API and should be readonly for us, developers.
 
@@ -230,7 +230,7 @@ type ContainerComponent struct {
 	ID          uint32         `json:"id,omitempty"`
 	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator or file.
 	AccentColor uint32         `json:"accent_color,omitempty"` // Color for the accent on the container as RGB from 0x000000 to 0xFFFFFF.
-	Spoiler     bool           `json:"spoiler,omitempty"`
+	Spoiler     bool           `json:"spoiler"`
 }
 
 // A top-level layout component that wraps modal components with text as a label and optional description

@@ -86,7 +86,7 @@ type AllowedMentions struct {
 	Parse       []AllowedMentionsType `json:"parse,omitzero"`
 	Roles       []Snowflake           `json:"roles,omitzero"`
 	Users       []Snowflake           `json:"users,omitzero"`
-	RepliedUser bool                  `json:"replied_user,omitempty"`
+	RepliedUser bool                  `json:"replied_user"`
 }
 
 // https://discord.com/developers/docs/resources/channel#channel-object
@@ -134,10 +134,10 @@ type Emoji struct {
 	Name          string      `json:"name,omitempty"` // Note: may be empty for deleted emojis.
 	Roles         []Snowflake `json:"roles,omitzero"`
 	User          *User       `json:"user,omitempty"`
-	RequireColons bool        `json:"require_colons,omitempty"`
-	Managed       bool        `json:"managed,omitempty"`
-	Animated      bool        `json:"animated,omitempty"`
-	Available     bool        `json:"available,omitempty"`
+	RequireColons bool        `json:"require_colons"`
+	Managed       bool        `json:"managed"`
+	Animated      bool        `json:"animated"`
+	Available     bool        `json:"available"`
 }
 
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-structure (always rich embed type)
@@ -176,7 +176,7 @@ type EmbedThumbnail struct {
 type EmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
-	Inline bool   `json:"inline,omitempty"`
+	Inline bool   `json:"inline"`
 }
 
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
@@ -241,7 +241,7 @@ type MessageReference struct {
 	MessageID       Snowflake `json:"message_id,omitempty"`
 	ChannelID       Snowflake `json:"channel_id,omitempty"`
 	GuildID         Snowflake `json:"guild_id,omitempty"`
-	FailIfNotExists bool      `json:"fail_if_not_exists,omitempty"`
+	FailIfNotExists bool      `json:"fail_if_not_exists"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
@@ -265,7 +265,7 @@ type Attachment struct {
 	ProxyURL     string    `json:"proxy_url"`
 	Height       uint32    `json:"height,omitempty"`
 	Width        uint32    `json:"width,omitempty"`
-	Ephemeral    bool      `json:"ephemeral,omitempty"`
+	Ephemeral    bool      `json:"ephemeral"`
 	DurationSecs float64   `json:"duration_secs,omitempty"`
 	Waveform     string    `json:"waveform,omitempty"`
 	Flags        uint64    `json:"flags,omitempty"`
@@ -276,7 +276,7 @@ type Poll struct {
 	Question    PollMedia      `json:"question"`
 	Answers     []PollAnswer   `json:"answers,omitzero"`
 	Duration    uint16         `json:"duration,omitempty"` // Number of hours the poll should be open for, up to 32 days (defaults to 24)
-	Multiselect bool           `json:"allow_multiselect,omitempty"`
+	Multiselect bool           `json:"allow_multiselect"`
 	LayoutType  PoolLayoutType `json:"layout_type"`
 }
 

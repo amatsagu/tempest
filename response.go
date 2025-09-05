@@ -38,7 +38,7 @@ type ResponseModal struct {
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
 type ResponseMessageData struct {
-	TTS             bool              `json:"tts,omitempty"`
+	TTS             bool              `json:"tts"`
 	Content         string            `json:"content,omitempty"`
 	Embeds          []Embed           `json:"embeds,omitzero"`
 	AllowedMentions *AllowedMentions  `json:"allowed_mentions,omitempty"`

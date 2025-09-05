@@ -70,8 +70,8 @@ type User struct {
 	Username             string            `json:"username"`
 	GlobalName           string            `json:"global_name,omitempty"`  // User's display name, if it is set. For bots, this is the application name.
 	AvatarHash           string            `json:"avatar,omitempty"`       // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
-	Bot                  bool              `json:"bot,omitempty"`          // Whether it's bot/app account.
-	System               bool              `json:"bool,omitempty"`         // Whether user is Discord System Message account.
+	Bot                  bool              `json:"bot"`                    // Whether it's bot/app account.
+	System               bool              `json:"system"`                 // Whether user is Discord System Message account.
 	BannerHash           string            `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
 	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
 	Locale               string            `json:"locale,omitempty"`
@@ -138,7 +138,7 @@ type Member struct {
 	Deaf                       bool              `json:"deaf"`
 	Mute                       bool              `json:"mute"`
 	Flags                      MemberFlags       `json:"flags"`
-	Pending                    bool              `json:"pending,omitempty"`
+	Pending                    bool              `json:"pending"`
 	PermissionFlags            PermissionFlags   `json:"permissions,string"`
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
@@ -220,8 +220,8 @@ func (role Role) IconURL() string {
 type RoleTag struct {
 	BotID                 Snowflake `json:"bot_id,omitempty"`
 	IntegrationID         Snowflake `json:"integration_id,omitempty"`          // The id of the integration this role belongs to.
-	PremiumSubscriber     bool      `json:"premium_subscriber,omitempty"`      // Whether this is the guild's Booster role.
+	PremiumSubscriber     bool      `json:"premium_subscriber"`                // Whether this is the guild's Booster role.
 	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitempty"` // The id of this role's subscription sku and listing.
-	AvailableForPurchase  bool      `json:"available_for_purchase,omitempty"`
-	GuildConnections      bool      `json:"guild_connections,omitempty"` // Whether this role is a guild's linked role.
+	AvailableForPurchase  bool      `json:"available_for_purchase"`
+	GuildConnections      bool      `json:"guild_connections"` // Whether this role is a guild's linked role.
 }
