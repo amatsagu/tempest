@@ -41,9 +41,14 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
+		// Channel to receive the first response from the command handler
+		responseChan := make(chan []byte, 1)
+
 		client.commandInteractionHandler(w, CommandInteraction{
-			Interaction: &interaction,
-			Data:        data,
+			Interaction:  &interaction,
+			Data:         data,
+			w:            w,
+			responseChan: responseChan,
 		})
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
@@ -95,7 +100,6 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
 	itx.Client = client
 
 	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
@@ -103,7 +107,6 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 	}
 
 	command.SlashCommandHandler(&itx)
-
 	if client.postCommandHandler != nil {
 		client.postCommandHandler(command, &itx)
 	}

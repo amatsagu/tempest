@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/textproto"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,8 +42,22 @@ func NewRest(token string) *Rest {
 		t = "Bot " + t
 	}
 
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     false,
+		MaxIdleConns:          256,
+		MaxIdleConnsPerHost:   256,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ExpectContinueTimeout: 0,
+	}
+
 	return &Rest{
-		HTTPClient: *http.DefaultClient,
+		HTTPClient: http.Client{Transport: transport, Timeout: 3 * time.Second},
 		token:      t,
 		MaxRetries: 3,
 		lockedTo:   time.Time{},
@@ -76,9 +92,7 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 
 	var i uint8
 	for i = 0; i < rest.MaxRetries; i++ {
-		rest.mu.RLock()
 		res, err, done := rest.handleRequest(method, route, body, CONTENT_TYPE_JSON)
-		rest.mu.RUnlock()
 
 		if done {
 			return res, err
@@ -151,9 +165,7 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 
 	var i uint8
 	for i = 0; i < rest.MaxRetries; i++ {
-		rest.mu.RLock()
 		body, err, done := rest.handleRequest(method, route, pr, writer.FormDataContentType())
-		rest.mu.RUnlock()
 
 		if done {
 			return body, err
@@ -194,18 +206,26 @@ func (rest *Rest) handleRequest(method string, route string, payload io.Reader, 
 		var rateErr rateLimitError
 		_ = json.Unmarshal(body, &rateErr) // even if this fails - it can still fall back
 
-		retryAfter := time.Second * time.Duration(rateErr.RetryAfter+5)
+		var retryAfter time.Duration
+		if hdr := res.Header.Get("Retry-After"); hdr != "" {
+			if v, err := strconv.ParseFloat(hdr, 64); err == nil {
+				retryAfter = time.Duration(v * float64(time.Second))
+			}
+		}
+		if retryAfter == 0 {
+			retryAfter = time.Duration(float64(rateErr.RetryAfter) * float64(time.Second))
+		}
+		if retryAfter <= 0 {
+			retryAfter = 250 * time.Millisecond
+		}
 
-		rest.mu.Lock()
-		rest.lockedTo = time.Now().Add(retryAfter)
-		rest.mu.Unlock()
+		if rateErr.Global {
+			rest.mu.Lock()
+			rest.lockedTo = time.Now().Add(retryAfter)
+			rest.mu.Unlock()
+		}
 
 		time.Sleep(retryAfter)
-
-		rest.mu.Lock()
-		rest.lockedTo = time.Time{}
-		rest.mu.Unlock()
-
 		return nil, errors.New("rate limited"), false
 	}
 

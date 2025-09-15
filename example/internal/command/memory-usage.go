@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"time"
 
@@ -18,8 +19,9 @@ var MemoryUsage tempest.Command = tempest.Command{
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
-		runtime.GC()
+		//runtime.GC()
 
+		now := time.Now()
 		reply := fmt.Sprintf(`
 Current memory usage: **%.2fMB**
 Finished GC cycles: **%d**
@@ -35,6 +37,7 @@ Ping (to Discord API): **%dms**
 		)
 
 		itx.SendLinearReply(reply, false)
+		log.Println(time.Since(now).String())
 	},
 }
 

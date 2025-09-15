@@ -61,50 +61,121 @@ func (itx CommandInteraction) ResolveAttachment(id Snowflake) Attachment {
 
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
-func (itx CommandInteraction) Defer(ephemeral bool) error {
+func (itx *CommandInteraction) Defer(ephemeral bool) error {
 	var flags MessageFlags = 0
 
 	if ephemeral {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	body, err := json.Marshal(ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &ResponseMessageData{
-			Flags: flags,
-		},
+		Data: &ResponseMessageData{Flags: flags},
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Send response via channel for fast HTTP return
+	if itx.responseChan != nil {
+		select {
+		case itx.responseChan <- body:
+			itx.deferred = true
+			return nil
+		default:
+			// Channel full, fall back to direct write
+		}
+	}
+
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+	_, werr := itx.w.Write(body)
+
+	if werr == nil {
+		itx.deferred = true
+	}
+
+	return werr
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
-func (itx CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []File) error {
+func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bool, files []File) error {
 	if ephemeral {
 		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
-		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
-		Data: &reply,
-	}, files)
+	// If files are present, defer fast and then edit original with files
+	if len(files) > 0 {
+		if !itx.deferred && !itx.responded {
+			if derr := itx.Defer(ephemeral); derr != nil {
+				return derr
+			}
+		}
+		_, err := itx.Client.Rest.RequestWithFiles(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", reply, files)
+		return err
+	}
 
-	return err
+	// If we've already responded once, send a follow-up
+	if itx.responded {
+		_, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, reply)
+		return err
+	}
+
+	// First response goes through the initial HTTP response
+	body, err := json.Marshal(ResponseMessage{Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE, Data: &reply})
+	if err != nil {
+		return err
+	}
+
+	// Send response via channel for fast HTTP return
+	if itx.responseChan != nil {
+		select {
+		case itx.responseChan <- body:
+			itx.responded = true
+			return nil
+		default:
+			// Channel full, fall back to direct write
+		}
+	}
+
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+	_, werr := itx.w.Write(body)
+
+	if werr == nil {
+		itx.responded = true
+	}
+
+	return werr
 }
 
-func (itx CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
+func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
 	return itx.SendReply(ResponseMessageData{
 		Content: content,
 	}, ephemeral, nil)
 }
 
-func (itx CommandInteraction) SendModal(modal ResponseModalData) error {
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseModal{
-		Type: MODAL_RESPONSE_TYPE,
-		Data: &modal,
-	})
+func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
+	body, err := json.Marshal(ResponseModal{Type: MODAL_RESPONSE_TYPE, Data: &modal})
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Send response via channel for fast HTTP return
+	if itx.responseChan != nil {
+		select {
+		case itx.responseChan <- body:
+			itx.responded = true
+			return nil
+		default:
+			// Channel full, fall back to direct write
+		}
+	}
+
+	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+	_, werr := itx.w.Write(body)
+	if werr == nil {
+		itx.responded = true
+	}
+	return werr
 }
 
 func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {

@@ -71,7 +71,11 @@ type Interaction struct {
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
 	*Interaction
-	Data CommandInteractionData `json:"data"`
+	Data         CommandInteractionData `json:"data"`
+	w            http.ResponseWriter    `json:"-"`
+	responseChan chan []byte            `json:"-"`
+	responded    bool                   `json:"-"`
+	deferred     bool                   `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
