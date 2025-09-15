@@ -37,7 +37,7 @@ var Dynamic tempest.Command = tempest.Command{
 		itx.SendReply(msg, false, nil)
 
 		// In real world - you'll probably have some sort of master context instead default background to gracefully control app/bot lifecycles.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 		defer cancel()
 
 		signalChan, cleanupFunc, err := itx.Client.AwaitComponent([]string{uniqueButtonID})
