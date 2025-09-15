@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 )
 
 func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -102,13 +103,31 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 
 	itx.Client = client
 
-	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
-		return
-	}
+	// Run command handler in goroutine
+	go func() {
+		allowed := true
+		if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
+			allowed = false
+		}
 
-	command.SlashCommandHandler(&itx)
-	if client.postCommandHandler != nil {
-		client.postCommandHandler(command, &itx)
+		if allowed {
+			command.SlashCommandHandler(&itx)
+			if client.postCommandHandler != nil {
+				client.postCommandHandler(command, &itx)
+			}
+		}
+	}()
+
+	// Wait for first response with timeout
+	select {
+	case response := <-itx.responseChan:
+		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+		w.Write(response)
+		return
+	case <-time.After(2900 * time.Millisecond):
+		// Timeout - send 204 to acknowledge
+		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 }
 
