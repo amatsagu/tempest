@@ -41,6 +41,7 @@ func NewRest(token string) *Rest {
 	}
 
 	// This transport is aggressively tuned for low-latency communication with the Discord API.
+	// Rest.HTTPClient is exposed so if needed - developer can swap it for other solution after creation.
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
