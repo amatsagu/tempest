@@ -3,272 +3,384 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
-	"qord/discord"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
-
-	"github.com/coder/websocket"
 )
-
-func trace(shardID uint16, category string, msg string, args ...any) {
-	log.Printf("[Shard %02d] [%s] %s", shardID+1, category, fmt.Sprintf(msg+"\n", args...))
-}
-
-// Represents single connection with discord gateway.
-// Shards are fully controlled by GatewayManager - do not use them directly.
-type shard struct {
-	mu               sync.RWMutex
-	manager          *GatewayManager // readonly after start
-	conn             *wsConn
-	hb               *heartbeat
-	sessionID        string
-	resumeGatewayURL string
-	lastSequence     atomic.Uint32
-	id               uint16 // readonly after start
-	state            ShardState
-}
 
 type ShardState uint8
 
 const (
-	UNAVAILABLE_SHARD_STATE ShardState = iota
-	CONNECTING_SHARD_STATE
-	READY_SHARD_STATE
+	// Represents any state that cannot be considered ready
+	// (offline, dead, zombie connection, just disconnected, etc.).
+	ShardStateOffline ShardState = iota
+	ShardStateConnecting
+	// State where Shard's socket is connected but still in process of identifying or resuming session.
+	ShardStateAuthenticating
+	ShardStateOnline
 )
 
-func (shard *shard) close(resetSession bool) error {
-	shard.mu.Lock()
-
-	shard.state = UNAVAILABLE_SHARD_STATE
-	if shard.conn != nil {
-		err := shard.conn.close()
-		if err != nil {
-			shard.mu.Unlock()
-			return err
-		}
-		shard.conn = nil
-	}
-
-	if resetSession {
-		shard.lastSequence.Store(0)
-		shard.sessionID = ""
-		shard.resumeGatewayURL = ""
-	}
-
-	shard.hb.reset()
-	shard.mu.Unlock()
-	return nil
-}
-
-// Closes current WS connection and starts new one with optional session resume.
-func (shard *shard) reset(ctx context.Context, resetSession bool) error {
-	err := shard.close(resetSession)
-	if err != nil {
-		trace(shard.id, "WebSocket", "Ran into issue while closing websocket connection - received error: %v", err)
-	}
-
-	shard.mu.Lock()
-	shard.state = CONNECTING_SHARD_STATE
-	time.Sleep(time.Second * 2) // Safety wait before reconnect (probably not needed but just in case)
-
-	if shard.resumeGatewayURL == "" {
-		trace(shard.id, "WebSocket", "Requested new websocket connection.")
-		shard.conn, err = createwsConnection(ctx, discord.DISCORD_GATEWAY_URL)
-	} else {
-		trace(shard.id, "WebSocket", "Requested new websocket connection to %s (resuming session)", shard.resumeGatewayURL)
-		shard.conn, err = createwsConnection(ctx, shard.resumeGatewayURL)
-	}
-
-	if err != nil {
-		shard.mu.Unlock()
-		trace(shard.id, "WebSocket", "Ran into issue while trying to open (dial) new websocket connection - received error: %v", err)
-		return err
-	}
-
-	shard.mu.Unlock()
-	return nil
-}
-
-func (shard *shard) sendHeartbeat(ctx context.Context) error {
-	return shard.conn.sendPayload(ctx, HeartbeatEvent{Opcode: HEARTBEAT_OPCODE, Sequence: shard.lastSequence.Load()})
-}
-
-func (shard *shard) sendIdentify(ctx context.Context) error {
-	return shard.conn.sendPayload(ctx, IdentifyEvent{
-		Opcode: IDENTIFY_OPCODE,
-		Data: IdentifyPayloadData{
-			Token:          shard.manager.token,
-			Intents:        0, // In this lib, we only care about interactions.
-			ShardOrder:     [2]uint16{shard.id, shard.manager.shardCount},
-			LargeThreshold: 50,
-			Properties: IdentifyPayloadDataProperties{
-				OS:      runtime.GOOS,
-				Browser: discord.LIBRARY_NAME,
-				Device:  discord.LIBRARY_NAME,
-			},
-		},
-	})
-}
-
-func (shard *shard) sendResume(ctx context.Context) error {
-	return shard.conn.sendPayload(ctx, ResumeEvent{
-		Opcode: RESUME_OPCODE,
-		Data: ResumeEventData{
-			Token:     shard.manager.token,
-			SessionID: shard.sessionID,
-			Sequence:  shard.lastSequence.Load(),
-		},
-	})
-}
-
-func (shard *shard) handleHello(ctx context.Context, raw json.RawMessage) {
-	var helloData HelloEventData
-	err := json.Unmarshal(raw, &helloData)
-	if err != nil {
-		trace(shard.id, "Event", "Received hello opcode but failed to decode json payload - received error: %v (returning early, cannot identify without that data so will likely result in damaged session logic)", err)
-		return
-	}
-
-	shard.hb.start(ctx, time.Duration(helloData.HeartbeatInterval)*time.Millisecond)
-	shard.hb.manualBeat(ctx)
-	shard.mu.RLock()
-
-	if shard.sessionID == "" {
-		err = shard.sendIdentify(ctx)
-	} else {
-		err = shard.sendResume(ctx)
-	}
-
-	if err != nil {
-		trace(shard.id, "Event", "Failed to reply to hello opcode - received error: %v (identify? = %t)\n", err, shard.sessionID == "")
-	}
-
-	shard.mu.RUnlock()
-}
-
-func (shard *shard) dispatchEvent(payload EventPacket) {
-	switch payload.Event {
-	case READY_EVENT:
-		var readyData ReadyEventData
-		err := json.Unmarshal(payload.Data, &readyData)
-		if err != nil {
-			trace(shard.id, "Event", "Received request to dispatch READY event but failed to decode json payload - received error: %v (returning early, will likely result in damaged session logic)", err)
-			return
-		}
-
-		shard.mu.Lock()
-		shard.sessionID = readyData.SessionID
-		shard.resumeGatewayURL = readyData.ResumeGatewayURL
-		trace(shard.id, "Event", "Successfully joined new session. Changed status to ready!")
-		shard.state = READY_SHARD_STATE
-		shard.mu.Unlock()
-	case RESUMED_EVENT:
-		shard.mu.Lock()
-		shard.state = READY_SHARD_STATE
-		shard.mu.Unlock()
-		trace(shard.id, "Event", "Successfully resumed session. Changed status to ready!")
+func (s ShardState) String() string {
+	switch s {
+	case ShardStateOffline:
+		return "OFFLINE"
+	case ShardStateConnecting:
+		return "CONNECTING"
+	case ShardStateAuthenticating:
+		return "AUTHENTICATING"
+	case ShardStateOnline:
+		return "ONLINE"
 	default:
-		trace(shard.id, "Event", "Received new, known event: %s - there's no handler for this event!\n%+v\n", payload.Event, payload)
+		return "UNKNOWN"
 	}
 }
 
-// Scans & handles incoming payloads in infinite loop - cancel context to exit early.
-func (shard *shard) listen(ctx context.Context) {
+// Shard represents a single connection to the Discord Gateway. It handles
+// the full lifecycle of the connection, including identifying, heartbeating,
+// and resuming. It is designed to be managed by a Manager.
+type Shard struct {
+	ID           uint16
+	totalShards  uint16
+	token        string
+	intents      uint32
+	socket       *socket
+	traceLogger  *log.Logger // Inherited from the manager
+	eventHandler func(packet EventPacket)
+
+	// State
+	mu                  sync.RWMutex
+	sessionID           string
+	resumeGatewayURL    string
+	lastSequence        uint32
+	heartbeatInterval   time.Duration
+	heartbeatAckMissing bool
+	state               ShardState // New field to track the shard's state
+}
+
+// Creates a new Shard instance
+// - shard by default will handle own session lifecycle (identify, heartbeat, session resume).
+//
+// All packets shard receives that are not related to connection lifecycle will be pushed to eventHandler function.
+//
+// Warning: Shards are intended to be used via Manager. If you don't know what you're doing - use manager instead.
+func NewShard(
+	id uint16,
+	totalShards uint16,
+	token string,
+	intents uint32,
+	traceLogger *log.Logger,
+	eventHandler func(packet EventPacket),
+) *Shard {
+	return &Shard{
+		ID:           id,
+		totalShards:  totalShards,
+		token:        token,
+		intents:      intents,
+		socket:       &socket{},
+		traceLogger:  traceLogger,
+		eventHandler: eventHandler,
+		// state:        ShardStateOffline,
+	}
+}
+
+func (s *Shard) tracef(format string, v ...any) {
+	s.traceLogger.Printf("[SHARD %d (%s)] "+format, append([]any{s.ID, s.Status()}, v...)...)
+}
+
+// Start establishes a connection to the Discord Gateway and starts handling events.
+// This is a blocking call that will manage the connection until the context is canceled.
+func (s *Shard) Start(ctx context.Context, gatewayURL string) {
+	s.tracef("Starting connection loop.")
+
 	for {
 		select {
 		case <-ctx.Done():
-			trace(shard.id, "WebSocket", "Cancelled context, requested shutdown.")
-			shard.close(true)
+			s.tracef("Context cancellation received. Exiting connection loop.")
+			s.socket.close() // Explicitly close the socket.
+			s.mu.Lock()
+			s.state = ShardStateOffline
+			s.mu.Unlock()
 			return
 		default:
-		}
+			s.socket.close()
 
-		var payload EventPacket
-		err := shard.conn.readJSON(ctx, &payload)
-		if err != nil {
-			// trace(shard.id, "WebSocket", "Failed to read json payload - received error: %v", err)
+			s.mu.Lock()
+			s.state = ShardStateConnecting
+			s.mu.Unlock()
+			s.tracef("Changing state to %s.", s.state.String())
 
-			var exitCode ExitCode
-			if code := websocket.CloseStatus(err); code == -1 {
-				exitCode = SESSION_TIMED_OUT
-			} else {
-				exitCode = ExitCode(code)
+			targetURL := gatewayURL
+			s.mu.RLock()
+			if s.resumeGatewayURL != "" {
+				targetURL = s.resumeGatewayURL
 			}
+			s.mu.RUnlock()
 
-			switch exitCode {
-			case AUTHENTICATION_FAILED,
-				INVALID_SHARD,
-				SHARDING_REQUIRED,
-				INVALID_API_VERSION,
-				INVALID_INTENT,
-				DISALLOWED_INTENT:
-				trace(shard.id, "WebSocket", "Received fatal exit code (%d). Not resumable.", exitCode)
-				shard.close(true)
+			s.tracef("Attempting to connect to %s", targetURL)
+			if err := s.socket.connect(targetURL); err != nil {
+				s.tracef("Connection failed: %v. Retrying in 5 seconds.", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			s.tracef("WebSocket connection established.")
+
+			s.mu.Lock()
+			s.state = ShardStateAuthenticating
+			s.mu.Unlock()
+			s.tracef("Changing state to %s.", s.state.String())
+
+			// Start the heartbeat loop
+			go s.heartbeatLoop(ctx)
+
+			// Start the read loop. This is blocking.
+			err := s.readLoop()
+
+			// If readLoop returns, it means we disconnected.
+			s.mu.Lock()
+			s.state = ShardStateOffline
+			s.mu.Unlock()
+			s.tracef("Disconnected from gateway: %v", err)
+
+			// Check if we should stop trying to reconnect.
+			select {
+			case <-ctx.Done():
+				s.tracef("Context cancellation received. Not reconnecting.")
 				return
-			case INVALID_SEQ, SESSION_TIMED_OUT:
-				trace(shard.id, "WebSocket", "Received error code (%d) from expected codes - shard will try to resume session on new connection.", exitCode)
-				if err := shard.reset(ctx, false); err != nil {
-					trace(shard.id, "WebSocket", "Attempted to open new connection within same session but failed - received error: %v", err)
-				}
-				continue
 			default:
-				trace(shard.id, "WebSocket", "Received unknown, not typical discord gateway error code (%d) - shard will attempt to open new connection and start brand new session.", exitCode)
-				if err := shard.reset(ctx, true); err != nil {
-					trace(shard.id, "WebSocket", "Attempted to open new connection & create new session but failed - received error: %v", err)
-				}
-				continue
+				s.tracef("Reconnecting...")
 			}
-		}
-
-		if payload.Sequence != 0 {
-			shard.lastSequence.Store(payload.Sequence)
-		}
-
-		switch payload.Opcode {
-		case DISPATCH_OPCODE:
-			trace(shard.id, "Event", "Received dispatch opcode with %s event name.", payload.Event)
-			shard.dispatchEvent(payload)
-		case HEARTBEAT_OPCODE:
-			trace(shard.id, "Event", "Received heartbeat opcode request - sending manual heartbeat.")
-			shard.hb.manualBeat(ctx)
-		case RECONNECT_OPCODE:
-			trace(shard.id, "Event", "Received reconnect opcode request - closing & reopening websocket connection within same session.")
-			if err := shard.reset(ctx, false); err != nil {
-				trace(shard.id, "WebSocket", "Attempted to open new connection within same session but failed - received error: %v", err)
-			}
-
-			continue
-		case INVALID_SESSION_OPCODE:
-			var canResume bool
-			if err := json.Unmarshal(payload.Data, &canResume); err != nil {
-				trace(shard.id, "Event", "Received invalid session opcode request but failed to decode json payload - unable to verify whether session can be resumed! (assuming not, new session is needed)")
-			}
-
-			if canResume {
-				trace(shard.id, "Event", "Received invalid session opcode request - closing & reopening websocket connection within same session.")
-				if err := shard.reset(ctx, false); err != nil {
-					trace(shard.id, "WebSocket", "Attempted to open new connection within same session but failed - received error: %v", err)
-				}
-			} else {
-				trace(shard.id, "Event", "Received invalid session opcode request - closing & reopening websocket connection & creating new session.")
-				if err := shard.reset(ctx, true); err != nil {
-					trace(shard.id, "WebSocket", "Attempted to open new connection & create new session but failed - received error: %v", err)
-				}
-			}
-
-			continue
-		case HELLO_OPCODE:
-			trace(shard.id, "Event", "Received hello opcode - shard will now try to identify/resume.")
-			shard.handleHello(ctx, payload.Data)
-		case HEARTBEAT_ACK_OPCODE:
-			// trace(shard.id, "Event", "Received heartbeat ack code.")
-			shard.hb.acknowledged.Store(true)
-		default:
-			trace(shard.id, "Event", "Received %d opcode - there's no handler for this event!", payload.Opcode)
 		}
 	}
+}
+
+// Close gracefully disconnects the shard from the gateway.
+func (s *Shard) Close() {
+	s.tracef("Closing shard connection.")
+	s.socket.close()
+	s.mu.Lock()
+	s.state = ShardStateOffline
+	s.mu.Unlock()
+}
+
+func (s *Shard) Send(jsonPayload any) error {
+	return s.socket.writeJSON(jsonPayload)
+}
+
+func (s *Shard) readLoop() error {
+	for {
+		var packet EventPacket
+		if err := s.socket.readJSON(&packet); err != nil {
+			return err
+		}
+
+		s.tracef("RECV Op: %d, Seq: %d, Event: %s", packet.Opcode, packet.Sequence, packet.Event)
+
+		if packet.Sequence > 0 {
+			s.mu.Lock()
+			s.lastSequence = packet.Sequence
+			s.mu.Unlock()
+		}
+
+		if err := s.handlePacket(packet); err != nil {
+			s.tracef("HANDLE_EVENT Error: %v", err)
+			return err
+		}
+	}
+}
+
+func (s *Shard) handleDispatchEvent(p EventPacket) error {
+	switch p.Event {
+	case READY_EVENT:
+		var ready ReadyEventData
+		if err := json.Unmarshal(p.Data, &ready); err != nil {
+			return err
+		}
+
+		s.mu.Lock()
+		s.sessionID = ready.SessionID
+		s.resumeGatewayURL = ready.ResumeGatewayURL
+		s.state = ShardStateOnline
+		s.mu.Unlock()
+		s.tracef("Successfully started new session with ID = %s.", ready.SessionID)
+	case RESUMED_EVENT:
+		s.mu.Lock()
+		s.state = ShardStateOnline
+		s.mu.Unlock()
+		s.tracef("Successfully resumed session.")
+	default:
+		s.tracef("Received unknown dispatch event: %s (pushing to provided event handler)", p.Event)
+		s.eventHandler(p)
+	}
+
+	return nil
+}
+
+func (s *Shard) handlePacket(p EventPacket) error {
+	switch p.Opcode {
+	case DISPATCH_OPCODE:
+		s.handleDispatchEvent(p)
+	case HELLO_OPCODE:
+		var hello HelloEventData
+		if err := json.Unmarshal(p.Data, &hello); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		s.heartbeatInterval = time.Duration(hello.HeartbeatInterval) * time.Millisecond
+		s.heartbeatAckMissing = false
+		s.mu.Unlock()
+		s.tracef("HELLO Heartbeat interval set to %s.", s.heartbeatInterval)
+
+		return s.identifyOrResume()
+	case HEARTBEAT_ACK_OPCODE:
+		s.mu.Lock()
+		s.heartbeatAckMissing = false
+		s.mu.Unlock()
+		s.tracef("HEARTBEAT ACK received.")
+	case HEARTBEAT_OPCODE:
+		s.tracef("HEARTBEAT Server requested heartbeat.")
+		return s.sendHeartbeat()
+	case RECONNECT_OPCODE:
+		s.tracef("RECONNECT Server requested reconnect. Closing connection to reconnect.")
+
+		// Add a small delay to throttle reconnect attempts
+		time.Sleep(1 * time.Second)
+
+		return s.socket.close()
+	case INVALID_SESSION_OPCODE:
+		var resume bool
+		if err := json.Unmarshal(p.Data, &resume); err != nil {
+			return err
+		}
+
+		if !resume {
+			s.mu.Lock()
+			s.lastSequence = 0
+			s.sessionID = ""
+			s.resumeGatewayURL = ""
+			s.mu.Unlock()
+		}
+
+		// Add a small delay to throttle reconnect attempts
+		time.Sleep(1 * time.Second)
+
+		return s.socket.close()
+	default:
+		s.tracef("Received unknown Opcode: %d", p.Opcode)
+	}
+
+	return nil
+}
+
+func (s *Shard) identifyOrResume() error {
+	s.mu.RLock()
+	sessionID := s.sessionID
+	s.mu.RUnlock()
+
+	if sessionID == "" {
+		return s.sendIdentify()
+	}
+
+	return s.sendResume()
+}
+
+func (s *Shard) sendIdentify() error {
+	s.tracef("IDENTIFY as a new session.")
+	payload := IdentifyEvent{
+		Opcode: IDENTIFY_OPCODE,
+		Data: IdentifyPayloadData{
+			Token:      s.token,
+			Intents:    s.intents,
+			ShardOrder: [2]uint16{s.ID, s.totalShards},
+			Properties: IdentifyPayloadDataProperties{
+				OS:      runtime.GOOS,
+				Browser: "qord",
+				Device:  "qord",
+			},
+		},
+	}
+
+	return s.socket.writeJSON(payload)
+}
+
+func (s *Shard) sendResume() error {
+	s.mu.RLock()
+	sessionID := s.sessionID
+	seq := s.lastSequence
+	s.mu.RUnlock()
+
+	s.tracef("RESUME session ID = %s with sequence = %d.", sessionID, seq)
+
+	payload := ResumeEvent{
+		Opcode: RESUME_OPCODE,
+		Data: ResumeEventData{
+			Token:     s.token,
+			SessionID: sessionID,
+			Sequence:  seq,
+		},
+	}
+
+	return s.socket.writeJSON(payload)
+}
+
+func (s *Shard) heartbeatLoop(ctx context.Context) {
+	s.mu.RLock()
+	interval := s.heartbeatInterval
+	s.mu.RUnlock()
+
+	if interval == 0 {
+		s.tracef("Invalid heartbeat interval (0). Aborting heartbeat loop.")
+		return
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	s.tracef("Starting heartbeat loop.")
+	for {
+		s.mu.Lock()
+		if s.heartbeatAckMissing {
+			s.mu.Unlock()
+			s.tracef("Zombied connection detected. Reconnecting!")
+
+			// Close the socket to force the main readLoop to exit.
+			// This will cause the Start loop to trigger a reconnect.
+			s.socket.close()
+			return
+		}
+		s.heartbeatAckMissing = true
+		s.mu.Unlock()
+
+		if err := s.sendHeartbeat(); err != nil {
+			s.tracef("Failed to send heartbeat: %v", err)
+		}
+
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			s.tracef("Context cancellation received. Exiting heartbeat loop.")
+			return
+		}
+	}
+}
+
+func (s *Shard) sendHeartbeat() error {
+	s.mu.RLock()
+	seq := s.lastSequence
+	s.mu.RUnlock()
+
+	s.tracef("Sending heartbeat with sequence = %d.", seq)
+
+	payload := HeartbeatEvent{
+		Opcode:   HEARTBEAT_OPCODE,
+		Sequence: seq,
+	}
+
+	return s.socket.writeJSON(payload)
+}
+
+func (s *Shard) Status() ShardState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.state
 }

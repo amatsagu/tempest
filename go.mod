@@ -1,5 +1,5 @@
 module qord
 
-go 1.24.4
+go 1.25.1
 
-require github.com/coder/websocket v1.8.13
+require github.com/gorilla/websocket v1.5.3

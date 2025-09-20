@@ -6,14 +6,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"qord/discord"
+	"qord/api"
 	"strings"
 
 	"io"
 	"net/http"
 )
 
-// Verifies incoming request if it's from Discord.
+// Verifies incoming webhook request if it's from Discord.
 func VerifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	var msg bytes.Buffer
 
@@ -55,7 +55,7 @@ func VerifyRequest(r *http.Request, key ed25519.PublicKey) bool {
 	return ed25519.Verify(key, msg.Bytes(), sig)
 }
 
-func ExtractUserIDFromToken(token string) (discord.Snowflake, error) {
+func ExtractUserIDFromToken(token string) (api.Snowflake, error) {
 	strs := strings.Split(token, ".")
 	if len(strs) == 0 {
 		return 0, errors.New("token is not in a valid format")
@@ -68,5 +68,5 @@ func ExtractUserIDFromToken(token string) (discord.Snowflake, error) {
 		return 0, err
 	}
 
-	return discord.StringToSnowflake(string(byteID))
+	return api.StringToSnowflake(string(byteID))
 }
