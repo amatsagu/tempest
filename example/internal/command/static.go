@@ -3,7 +3,8 @@ package command
 import (
 	"fmt"
 	"log"
-	"qord/api"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var Static api.Command = api.Command{

@@ -3,10 +3,11 @@ package command
 import (
 	"context"
 	"log"
-	"qord"
-	"qord/api"
 	"strconv"
 	"time"
+
+	"github.com/amatsagu/qord"
+	"github.com/amatsagu/qord/api"
 )
 
 // Tip: This example would be nearly identical for handling dynamic modals.

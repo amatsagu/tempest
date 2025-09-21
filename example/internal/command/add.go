@@ -2,7 +2,8 @@ package command
 
 import (
 	"fmt"
-	"qord/api"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var Add api.Command = api.Command{

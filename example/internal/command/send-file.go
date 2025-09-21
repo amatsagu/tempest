@@ -3,8 +3,9 @@ package command
 import (
 	"log"
 	"os"
-	"qord/api"
-	"qord/rest"
+
+	"github.com/amatsagu/qord/api"
+	"github.com/amatsagu/qord/rest"
 )
 
 var SendFile api.Command = api.Command{

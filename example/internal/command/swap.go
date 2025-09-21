@@ -1,8 +1,9 @@
 package command
 
 import (
-	"qord/api"
 	"time"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var Swap api.Command = api.Command{

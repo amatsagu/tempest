@@ -2,7 +2,8 @@ package command
 
 import (
 	"log"
-	"qord/api"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var Modal api.Command = api.Command{

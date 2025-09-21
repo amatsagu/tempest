@@ -2,7 +2,8 @@ package command
 
 import (
 	"log"
-	"qord/api"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var V2Component api.Command = api.Command{

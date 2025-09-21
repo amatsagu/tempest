@@ -1,8 +1,9 @@
 package command
 
 import (
-	"qord/api"
 	"time"
+
+	"github.com/amatsagu/qord/api"
 )
 
 var Defer api.Command = api.Command{
