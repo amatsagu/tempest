@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"qord/api"
+	"qord/constant"
 	"sync"
 	"time"
 )
@@ -18,7 +18,7 @@ import (
 type ShardManager struct {
 	token        string
 	traceLogger  *log.Logger
-	eventHandler func(packet EventPacket)
+	eventHandler func(shardID uint16, packet EventPacket)
 
 	mu     sync.RWMutex
 	shards map[uint16]*Shard
@@ -30,7 +30,7 @@ type ShardManager struct {
 
 // Creates a new gateway connection manager.
 // Set trace to true to enable detailed logging for the manager & all shards under it control.
-func NewShardManager(token string, trace bool, eventHandler func(packet EventPacket)) *ShardManager {
+func NewShardManager(token string, trace bool, eventHandler func(shardID uint16, packet EventPacket)) *ShardManager {
 	m := &ShardManager{
 		token:        token,
 		shards:       make(map[uint16]*Shard),
@@ -44,44 +44,12 @@ func NewShardManager(token string, trace bool, eventHandler func(packet EventPac
 	}
 
 	if m.eventHandler == nil {
-		m.eventHandler = func(p EventPacket) {
-			m.tracef("Received %s event but there's no proper event handling setup in place.", p.Event)
+		m.eventHandler = func(shardID uint16, packet EventPacket) {
+			m.tracef("Received %s event from shard ID = %d but there's no proper event handling setup in place.", packet.Event, shardID)
 		}
 	}
 
 	return m
-}
-
-func (m *ShardManager) tracef(format string, v ...interface{}) {
-	m.traceLogger.Printf("[MANAGER] "+format, v...)
-}
-
-func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {
-	req, err := http.NewRequest(http.MethodGet, api.DISCORD_API_URL+"/gateway/bot", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", api.CONTENT_TYPE_JSON)
-	req.Header.Add("User-Agent", api.USER_AGENT)
-	req.Header.Add("Authorization", "Bot "+m.token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to get gateway info: " + resp.Status)
-	}
-
-	var gatewayBot GatewayBot
-	if err := json.NewDecoder(resp.Body).Decode(&gatewayBot); err != nil {
-		return nil, err
-	}
-
-	return &gatewayBot, nil
 }
 
 // Start connects the manager to Discord. It fetches the gateway configuration,
@@ -170,19 +138,96 @@ func (m *ShardManager) Stop() {
 	m.tracef("All shards have stopped.")
 }
 
+func (m *ShardManager) Status() map[uint16]ShardState {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if len(m.shards) == 0 {
+		m.mu.RUnlock()
+		return nil
+	}
+
+	res := make(map[uint16]ShardState, len(m.shards))
+	for _, s := range m.shards {
+		res[s.ID] = s.Status()
+	}
+
+	return res
+}
+
+func (m *ShardManager) Send(shardID uint16, jsonStruct any) {
+	m.tracef("Trying to send payload to shard ID = %d!", shardID)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if shardID+1 > uint16(len(m.shards)) {
+		m.tracef("Tried sending payload via invalid shard (ID = %d) - such shard does not exist.", shardID)
+		return
+	}
+
+	shard, ok := m.shards[shardID]
+	if !ok || shard.Status() != ONLINE_SHARD_STATE {
+		m.tracef("Failed to send payload to shard ID = %d: session status is not \"ONLINE\".", shardID)
+		return
+	}
+
+	go func(s *Shard) {
+		if err := s.Send(jsonStruct); err != nil {
+			s.tracef("Error sending payload to shard ID = %d: %v", s.ID, err)
+		}
+	}(shard)
+}
+
 // Sends a payload to all online shards. This is useful for
 // actions that affect the bot's global state, such as presence updates.
 func (m *ShardManager) Broadcast(jsonStruct any) {
-	m.tracef("[MANAGER] Broadcasting payload to all online shards!")
+	m.tracef("Broadcasting payload to all online shards!")
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for _, shard := range m.shards {
+		if shard.Status() != ONLINE_SHARD_STATE {
+			m.tracef("Error broadcasting payload to shard ID = %d: session status is not \"ONLINE\".", shard.ID)
+			continue
+		}
+
 		// Send concurrently to avoid a slow shard blocking others.
 		go func(s *Shard) {
 			if err := s.Send(jsonStruct); err != nil {
-				s.tracef("[BROADCAST] Error sending to shard ID = %d: %v", s.ID, err)
+				m.tracef("Error broadcasting payload to shard ID = %d: %v", s.ID, err)
 			}
 		}(shard)
 	}
+}
+
+func (m *ShardManager) tracef(format string, v ...interface{}) {
+	m.traceLogger.Printf("[MANAGER] "+format, v...)
+}
+
+func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {
+	req, err := http.NewRequest(http.MethodGet, constant.DISCORD_API_URL+"/gateway/bot", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", constant.CONTENT_TYPE_JSON)
+	req.Header.Add("User-Agent", constant.USER_AGENT)
+	req.Header.Add("Authorization", "Bot "+m.token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to get gateway info: " + resp.Status)
+	}
+
+	var gatewayBot GatewayBot
+	if err := json.NewDecoder(resp.Body).Decode(&gatewayBot); err != nil {
+		return nil, err
+	}
+
+	return &gatewayBot, nil
 }

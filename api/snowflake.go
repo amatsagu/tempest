@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"os"
+	"qord/constant"
 	"strconv"
 	"time"
 )
@@ -25,7 +26,7 @@ func (s Snowflake) String() string {
 }
 
 func (s Snowflake) CreationTimestamp() time.Time {
-	return time.UnixMilli(int64(s>>22 + DISCORD_EPOCH))
+	return time.UnixMilli(int64(s>>22 + constant.DISCORD_EPOCH))
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {

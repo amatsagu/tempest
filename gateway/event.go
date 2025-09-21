@@ -8,8 +8,9 @@ import (
 type EventName string
 
 const (
-	READY_EVENT   EventName = "READY"
-	RESUMED_EVENT EventName = "RESUMED"
+	READY_EVENT              EventName = "READY"
+	RESUMED_EVENT            EventName = "RESUMED"
+	INTERACTION_CREATE_EVENT EventName = "INTERACTION_CREATE"
 )
 
 // In modern discord docs - otherwise known as generic gateway event.

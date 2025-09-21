@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"net/http"
+	"qord/rest"
 )
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
@@ -64,41 +64,27 @@ type Interaction struct {
 
 	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
 	// attachment_size_limit is also skipped - appears to have no use anywhere
+
+	ShardID uint16            `json:"-"`
+	Rest    *rest.RestManager `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
 	*Interaction
 	Data CommandInteractionData `json:"data"`
-
-	// Below fields are only public to be used in Client logic.
-	// You shouldn't
-
-	// Used only with WebhookClient. This field is used for library's command handling, please don't use it.
-	ResponseWriter http.ResponseWriter `json:"-"`
-	// Used only with WebhookClient. This field is used for library's command handling, please don't use it.
-	ResponseChan chan []byte `json:"-"`
-	// Used only with GatewayClient. This field is used for library's command handling, please don't use it.
-	ResponseShardID uint16 `json:"-"`
-	// Used only with GatewayClient. This field is used for library's command handling, please don't use it.
-	ResponseShardFn func(jsonPayload any) error `json:"-"`
-
-	responded bool `json:"-"`
-	deferred  bool `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
 	*Interaction
-	Data           ComponentInteractionData `json:"data"`
-	ResponseWriter http.ResponseWriter      `json:"-"`
+	Data ComponentInteractionData `json:"data"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
 	*Interaction
-	Data           ModalInteractionData `json:"data"`
-	ResponseWriter http.ResponseWriter  `json:"-"`
+	Data ModalInteractionData `json:"data"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data

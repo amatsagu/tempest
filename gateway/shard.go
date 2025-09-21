@@ -14,22 +14,22 @@ type ShardState uint8
 const (
 	// Represents any state that cannot be considered ready
 	// (offline, dead, zombie connection, just disconnected, etc.).
-	ShardStateOffline ShardState = iota
-	ShardStateConnecting
+	OFFLINE_SHARD_STATE ShardState = iota
+	CONNECTING_SHARD_STATE
 	// State where Shard's socket is connected but still in process of identifying or resuming session.
-	ShardStateAuthenticating
-	ShardStateOnline
+	AUTHENTICATING_SHARD_STATE
+	ONLINE_SHARD_STATE
 )
 
 func (s ShardState) String() string {
 	switch s {
-	case ShardStateOffline:
+	case OFFLINE_SHARD_STATE:
 		return "OFFLINE"
-	case ShardStateConnecting:
+	case CONNECTING_SHARD_STATE:
 		return "CONNECTING"
-	case ShardStateAuthenticating:
+	case AUTHENTICATING_SHARD_STATE:
 		return "AUTHENTICATING"
-	case ShardStateOnline:
+	case ONLINE_SHARD_STATE:
 		return "ONLINE"
 	default:
 		return "UNKNOWN"
@@ -46,7 +46,7 @@ type Shard struct {
 	intents      uint32
 	socket       *socket
 	traceLogger  *log.Logger // Inherited from the manager
-	eventHandler func(packet EventPacket)
+	eventHandler func(shardID uint16, packet EventPacket)
 
 	// State
 	mu                  sync.RWMutex
@@ -70,7 +70,7 @@ func NewShard(
 	token string,
 	intents uint32,
 	traceLogger *log.Logger,
-	eventHandler func(packet EventPacket),
+	eventHandler func(shardID uint16, packet EventPacket),
 ) *Shard {
 	return &Shard{
 		ID:           id,
@@ -84,8 +84,10 @@ func NewShard(
 	}
 }
 
-func (s *Shard) tracef(format string, v ...any) {
-	s.traceLogger.Printf("[SHARD %d (%s)] "+format, append([]any{s.ID, s.Status()}, v...)...)
+func (s *Shard) Status() ShardState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.state
 }
 
 // Start establishes a connection to the Discord Gateway and starts handling events.
@@ -99,14 +101,14 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			s.tracef("Context cancellation received. Exiting connection loop.")
 			s.socket.close() // Explicitly close the socket.
 			s.mu.Lock()
-			s.state = ShardStateOffline
+			s.state = OFFLINE_SHARD_STATE
 			s.mu.Unlock()
 			return
 		default:
 			s.socket.close()
 
 			s.mu.Lock()
-			s.state = ShardStateConnecting
+			s.state = CONNECTING_SHARD_STATE
 			s.mu.Unlock()
 			s.tracef("Changing state to %s.", s.state.String())
 
@@ -126,7 +128,7 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			s.tracef("WebSocket connection established.")
 
 			s.mu.Lock()
-			s.state = ShardStateAuthenticating
+			s.state = AUTHENTICATING_SHARD_STATE
 			s.mu.Unlock()
 			s.tracef("Changing state to %s.", s.state.String())
 
@@ -138,7 +140,7 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 
 			// If readLoop returns, it means we disconnected.
 			s.mu.Lock()
-			s.state = ShardStateOffline
+			s.state = OFFLINE_SHARD_STATE
 			s.mu.Unlock()
 			s.tracef("Disconnected from gateway: %v", err)
 
@@ -159,12 +161,16 @@ func (s *Shard) Close() {
 	s.tracef("Closing shard connection.")
 	s.socket.close()
 	s.mu.Lock()
-	s.state = ShardStateOffline
+	s.state = OFFLINE_SHARD_STATE
 	s.mu.Unlock()
 }
 
 func (s *Shard) Send(jsonPayload any) error {
 	return s.socket.writeJSON(jsonPayload)
+}
+
+func (s *Shard) tracef(format string, v ...any) {
+	s.traceLogger.Printf("[SHARD %d (%s)] "+format, append([]any{s.ID, s.Status()}, v...)...)
 }
 
 func (s *Shard) readLoop() error {
@@ -200,17 +206,17 @@ func (s *Shard) handleDispatchEvent(p EventPacket) error {
 		s.mu.Lock()
 		s.sessionID = ready.SessionID
 		s.resumeGatewayURL = ready.ResumeGatewayURL
-		s.state = ShardStateOnline
+		s.state = ONLINE_SHARD_STATE
 		s.mu.Unlock()
 		s.tracef("Successfully started new session with ID = %s.", ready.SessionID)
 	case RESUMED_EVENT:
 		s.mu.Lock()
-		s.state = ShardStateOnline
+		s.state = ONLINE_SHARD_STATE
 		s.mu.Unlock()
 		s.tracef("Successfully resumed session.")
 	default:
 		s.tracef("Received unknown dispatch event: %s (pushing to provided event handler)", p.Event)
-		s.eventHandler(p)
+		go s.eventHandler(s.ID, p)
 	}
 
 	return nil
@@ -377,10 +383,4 @@ func (s *Shard) sendHeartbeat() error {
 	}
 
 	return s.socket.writeJSON(payload)
-}
-
-func (s *Shard) Status() ShardState {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.state
 }

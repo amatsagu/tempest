@@ -3,26 +3,35 @@ package qord
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"log"
 	"net/http"
+	"os"
 	"qord/api"
 	"qord/gateway"
 	"qord/other"
+	"qord/rest"
 )
 
 // A building bot for final Gateway or HTTPS Clients.
 // It contains all shared fields & methods.
 // There's probably no reason for anyone to ever use it - use GatewayClient or WebhookClient instead.
 type Client struct {
-	ApplicationID api.Snowflake
-	ItxManager    *other.InteractionManager
-	Gateway       *gateway.ShardManager
-	Rest          *other.RestManager
+	ApplicationID      api.Snowflake
+	ItxManager         *other.InteractionManager
+	Gateway            *gateway.ShardManager
+	Rest               *rest.RestManager
+	traceLogger        *log.Logger
+	customEventHandler func(shardID uint16, packet gateway.EventPacket) // Provided from outside in ClientOptions
 }
 
 type ClientOptions struct {
 	other.InteractionManagerOptions
 	Token string
-	Trace bool // Whether to have ShardManager print debug logs.
+	// Client has own event handler for dealing with interactions but you can
+	// still attach your own logic. It will be used before Client's default handler.
+	EventHandler func(shardID uint16, packet gateway.EventPacket)
+	Trace        bool // Whether to have ShardManager print debug logs.
 }
 
 func NewClient(opt ClientOptions) *Client {
@@ -32,15 +41,43 @@ func NewClient(opt ClientOptions) *Client {
 	}
 
 	opt.ApplicationID = botUserID
-	return &Client{
+	self := Client{
 		ApplicationID: botUserID,
 		ItxManager:    other.NewInteractionManager(opt.InteractionManagerOptions),
-		Gateway:       gateway.NewShardManager(opt.Token, opt.Trace, nil),
-		Rest:          other.NewRestManager(opt.Token),
+		Rest:          rest.NewRestManager(opt.Token),
+		traceLogger:   log.New(io.Discard, "[QORD] ", log.LstdFlags),
 	}
+	self.Gateway = gateway.NewShardManager(opt.Token, opt.Trace, self.eventHandler)
+
+	if opt.Trace {
+		self.traceLogger.SetOutput(os.Stdout)
+		self.tracef("Main client tracing enabled.")
+	}
+	return &self
 }
 
-func (client *Client) SendMessage(channelID api.Snowflake, message api.Message, files []other.File) (api.Message, error) {
+func (client *Client) BulkSyncCommandsWithDiscord(guildIDs []api.Snowflake, whitelist []string, reverseMode bool) error {
+	raw, err := client.ItxManager.ExtractCommandDataForDiscordAPI(guildIDs, whitelist, reverseMode)
+	if err != nil {
+		return err
+	}
+
+	if len(guildIDs) == 0 {
+		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", raw)
+		return err
+	}
+
+	for _, guildID := range guildIDs {
+		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", raw)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (client *Client) SendMessage(channelID api.Snowflake, message api.Message, files []rest.File) (api.Message, error) {
 	raw, err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files)
 	if err != nil {
 		return api.Message{}, err
@@ -61,7 +98,7 @@ func (client *Client) SendLinearMessage(channelID api.Snowflake, content string)
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse api.Message#ChannelID whenever possible.
-func (client *Client) SendPrivateMessage(userID api.Snowflake, content api.Message, files []other.File) (api.Message, error) {
+func (client *Client) SendPrivateMessage(userID api.Snowflake, content api.Message, files []rest.File) (api.Message, error) {
 	res := make(map[string]interface{}, 0)
 	res["recipient_id"] = userID
 
@@ -190,4 +227,8 @@ func (client *Client) CreateTestEntitlement(payload api.TestEntitlementPayload) 
 func (client *Client) DeleteTestEntitlement(entitlementID api.Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	return err
+}
+
+func (client *Client) tracef(format string, v ...interface{}) {
+	client.traceLogger.Printf("[CLIENT] "+format, v...)
 }

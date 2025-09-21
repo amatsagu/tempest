@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"qord/api"
+	"qord/constant"
 	"strings"
 	"sync"
 )
@@ -282,7 +283,7 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, api.Command], whitel
 		}
 
 		group := make(map[string]api.Command, 0)
-		group[api.ROOT_PLACEHOLDER] = command
+		group[constant.ROOT_PLACEHOLDER] = command
 		tree[name] = group
 	}
 
@@ -302,11 +303,11 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, api.Command], whitel
 
 	// Use nested map to build final array with structs matching Discord API
 	for _, branch := range tree {
-		baseCommand := branch[api.ROOT_PLACEHOLDER]
+		baseCommand := branch[constant.ROOT_PLACEHOLDER]
 
 		if len(branch) > 1 {
 			for key, subCommand := range branch {
-				if key == api.ROOT_PLACEHOLDER {
+				if key == constant.ROOT_PLACEHOLDER {
 					continue
 				}
 

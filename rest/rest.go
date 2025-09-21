@@ -1,4 +1,4 @@
-package other
+package rest
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
-	"qord/api"
+	"qord/constant"
 	"strings"
 	"sync"
 	"time"
@@ -75,7 +75,7 @@ func (rest *RestManager) Request(method, route string, jsonPayload any) ([]byte,
 		body = &buf
 	}
 
-	return rest.execute(method, route, body, api.CONTENT_TYPE_JSON)
+	return rest.execute(method, route, body, constant.CONTENT_TYPE_JSON)
 }
 
 func (rest *RestManager) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
@@ -92,7 +92,7 @@ func (rest *RestManager) RequestWithFiles(method string, route string, jsonPaylo
 
 		jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
 			"Content-Disposition": []string{`form-data; name="payload_json"`},
-			"Content-Type":        []string{api.CONTENT_TYPE_JSON},
+			"Content-Type":        []string{constant.CONTENT_TYPE_JSON},
 		})
 		if err != nil {
 			pw.CloseWithError(fmt.Errorf("failed to create payload_json part: %w", err))
@@ -108,7 +108,7 @@ func (rest *RestManager) RequestWithFiles(method string, route string, jsonPaylo
 		for i, file := range files {
 			filePart, err := writer.CreatePart(textproto.MIMEHeader{
 				"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},
-				"Content-Type":        []string{api.CONTENT_TYPE_OCTET_STREAM},
+				"Content-Type":        []string{constant.CONTENT_TYPE_OCTET_STREAM},
 			})
 			if err != nil {
 				pw.CloseWithError(fmt.Errorf("failed to create file part [%d]: %w", i, err))
@@ -136,13 +136,13 @@ func (rest *RestManager) execute(method, route string, body io.Reader, contentTy
 			time.Sleep(sleepDuration)
 		}
 
-		req, err := http.NewRequest(method, api.DISCORD_API_URL+route, body)
+		req, err := http.NewRequest(method, constant.DISCORD_API_URL+route, body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
 		req.Header.Set("Content-Type", contentType)
-		req.Header.Set("User-Agent", api.USER_AGENT)
+		req.Header.Set("User-Agent", constant.USER_AGENT)
 		req.Header.Set("Authorization", rest.token)
 
 		res, err := rest.HTTPClient.Do(req)

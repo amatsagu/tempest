@@ -1,4 +1,4 @@
-package api
+package constant
 
 const (
 	LIBRARY_VERSION                    = "v2.0"
