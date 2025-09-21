@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/amatsagu/qord/api"
-	"github.com/amatsagu/qord/rest"
+	"github.com/amatsagu/tempest/api"
+	"github.com/amatsagu/tempest/rest"
 )
 
 var SendFile api.Command = api.Command{

@@ -1,6 +1,6 @@
 package command
 
-import "github.com/amatsagu/qord/api"
+import "github.com/amatsagu/tempest/api"
 
 var AutoComplete api.Command = api.Command{
 	Name:        "auto-complete",

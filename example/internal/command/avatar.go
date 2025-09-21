@@ -1,6 +1,6 @@
 package command
 
-import "github.com/amatsagu/qord/api"
+import "github.com/amatsagu/tempest/api"
 
 // This command will only appear when right clicking on user name or avatar in Discord.
 

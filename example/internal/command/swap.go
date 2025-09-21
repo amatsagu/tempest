@@ -3,7 +3,7 @@ package command
 import (
 	"time"
 
-	"github.com/amatsagu/qord/api"
+	"github.com/amatsagu/tempest/api"
 )
 
 var Swap api.Command = api.Command{

@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/amatsagu/qord/api"
+	"github.com/amatsagu/tempest/api"
 )
 
 var Add api.Command = api.Command{

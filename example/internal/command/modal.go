@@ -3,7 +3,7 @@ package command
 import (
 	"log"
 
-	"github.com/amatsagu/qord/api"
+	"github.com/amatsagu/tempest/api"
 )
 
 var Modal api.Command = api.Command{

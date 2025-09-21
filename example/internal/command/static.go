@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/amatsagu/qord/api"
+	"github.com/amatsagu/tempest/api"
 )
 
 var Static api.Command = api.Command{
