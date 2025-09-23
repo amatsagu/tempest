@@ -68,7 +68,7 @@ const (
 type User struct {
 	ID                   Snowflake         `json:"id"`
 	Username             string            `json:"username"`
-	GlobalName           string            `json:"global_name,omitempty"`  // User's display name, if it is set. For bots, this is the application name.
+	GlobalName           string            `json:"global_name,omitempty"`  // User's display name. Tempest lib will make it equal to user.Username if it was empty.
 	AvatarHash           string            `json:"avatar,omitempty"`       // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
 	Bot                  bool              `json:"bot"`                    // Whether it's bot/app account.
 	System               bool              `json:"system"`                 // Whether user is Discord System Message account.
@@ -78,6 +78,26 @@ type User struct {
 	PremiumType          NitroType         `json:"premium_type,omitempty"`
 	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
 	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
+}
+
+func (u *User) UnmarshalJSON(data []byte) error {
+	// Define a local type to avoid recursion
+	type Alias User
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(u),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if u.GlobalName == "" {
+		u.GlobalName = u.Username
+	}
+
+	return nil
 }
 
 func (user User) Mention() string {
