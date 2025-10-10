@@ -234,8 +234,8 @@ func (itx CommandInteraction) EditLinearFollowUp(messageID Snowflake, content st
 	})
 }
 
-func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake, content ResponseMessage) error {
-	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
+	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
 	return err
 }
 
