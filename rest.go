@@ -3,6 +3,7 @@ package tempest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -12,6 +13,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	errRetryable       = errors.New("a retryable error occurred")
+	errGlobalRateLimit = errors.New("hit global rate limit")
 )
 
 // Represents file you can attach to message on Discord.
@@ -40,30 +46,27 @@ func NewRest(token string) *Rest {
 		t = "Bot " + t
 	}
 
-	// This transport is aggressively tuned for low-latency communication with the Discord API.
-	// Rest.HTTPClient is exposed so if needed - developer can swap it for other solution after creation.
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   5 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		ForceAttemptHTTP2: false, // Discord's API runs on HTTP/1.1, disabling HTTP/2 may improve performance.
-		MaxConnsPerHost:   256,   // Allow a high number of concurrent connections to the API.
-		MaxIdleConns:      256,   // Keep a large pool of idle connections ready for reuse.
+		ForceAttemptHTTP2: false,
+		MaxConnsPerHost:   256,
+		MaxIdleConns:      256,
 		IdleConnTimeout:   90 * time.Second,
 	}
 
 	return &Rest{
 		HTTPClient: http.Client{Transport: transport, Timeout: 10 * time.Second},
 		token:      t,
-		MaxRetries: 3,
+		MaxRetries: 5,
 	}
 }
 
 func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error) {
-	var body io.Reader
-
+	var body io.ReadSeeker
 	if jsonPayload != nil {
 		var buf bytes.Buffer
 		encoder := json.NewEncoder(&buf)
@@ -71,10 +74,46 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 		if err := encoder.Encode(jsonPayload); err != nil {
 			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
 		}
-		body = &buf
+		body = bytes.NewReader(buf.Bytes())
 	}
 
-	return rest.execute(method, route, body, CONTENT_TYPE_JSON)
+	return rest.request(method, route, body, CONTENT_TYPE_JSON)
+}
+
+// Internal handler for buffered requests. It's used by Request and RequestWithFiles (for PATCH only).
+func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType string) ([]byte, error) {
+	var (
+		responseBody []byte
+		lastErr      error
+	)
+
+	for i := uint8(0); i < rest.MaxRetries; i++ {
+		if body != nil {
+			body.Seek(0, io.SeekStart)
+		}
+
+		req, err := http.NewRequest(method, DISCORD_API_URL+route, body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", contentType)
+
+		responseBody, err = rest.executeOnce(req)
+		if err != nil {
+			lastErr = err
+			if errors.Is(err, errGlobalRateLimit) {
+				continue
+			}
+			if errors.Is(err, errRetryable) {
+				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network/server errors
+				continue
+			}
+			return nil, err // Not a retryable error.
+		}
+		return responseBody, nil
+	}
+
+	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.MaxRetries, method, route, lastErr)
 }
 
 func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
@@ -82,115 +121,147 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 		return rest.Request(method, route, jsonPayload)
 	}
 
-	pr, pw := io.Pipe()
-	writer := multipart.NewWriter(pw)
-
-	go func() {
-		defer pw.Close()
-		defer writer.Close()
-
-		jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
-			"Content-Disposition": []string{`form-data; name="payload_json"`},
-			"Content-Type":        []string{CONTENT_TYPE_JSON},
-		})
-		if err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to create payload_json part: %w", err))
-			return
-		}
-		encoder := json.NewEncoder(jsonPart)
-		encoder.SetEscapeHTML(false)
-		if err := encoder.Encode(jsonPayload); err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to encode payload_json: %w", err))
-			return
+	// Discord API has an issue with chunked transfer encoding on PATCH requests for webhooks.
+	// To work around this, we pre-buffer the request into memory to set a Content-Length header,
+	// which avoids chunked encoding. For other methods, we can use memory-efficient streaming.
+	if method == http.MethodPatch {
+		var requestBody bytes.Buffer
+		writer := multipart.NewWriter(&requestBody)
+		if err := writeMultipart(writer, jsonPayload, files); err != nil {
+			return nil, err
 		}
 
-		for i, file := range files {
-			filePart, err := writer.CreatePart(textproto.MIMEHeader{
-				"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},
-				"Content-Type":        []string{CONTENT_TYPE_OCTET_STREAM},
-			})
-			if err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to create file part [%d]: %w", i, err))
-				return
-			}
-			if _, err := io.Copy(filePart, file.Reader); err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to stream file [%s]: %w", file.Name, err))
-				return
-			}
-		}
-	}()
+		return rest.request(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType())
+	}
 
-	return rest.execute(method, route, pr, writer.FormDataContentType())
-}
-
-// Handles the full lifecycle of a request, including global rate limiting and retries.
-func (rest *Rest) execute(method, route string, body io.Reader, contentType string) ([]byte, error) {
-	var lastErr error
+	// For non-PATCH requests, use memory-efficient streaming.
+	var (
+		responseBody []byte
+		lastErr      error
+	)
 
 	for i := uint8(0); i < rest.MaxRetries; i++ {
-		rest.globalMu.RLock()
-		sleepDuration := time.Until(rest.globalReset)
-		rest.globalMu.RUnlock()
-		if sleepDuration > 0 {
-			time.Sleep(sleepDuration)
-		}
+		pipeReader, pipeWriter := io.Pipe()
+		multipartWriter := multipart.NewWriter(pipeWriter)
 
-		req, err := http.NewRequest(method, DISCORD_API_URL+route, body)
+		go func() {
+			defer pipeWriter.Close()
+			if err := writeMultipart(multipartWriter, jsonPayload, files); err != nil {
+				pipeWriter.CloseWithError(err)
+			}
+		}()
+
+		req, err := http.NewRequest(method, DISCORD_API_URL+route, pipeReader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
+		req.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
-		req.Header.Set("Content-Type", contentType)
-		req.Header.Set("User-Agent", USER_AGENT)
-		req.Header.Set("Authorization", rest.token)
-
-		res, err := rest.HTTPClient.Do(req)
+		responseBody, err = rest.executeOnce(req)
 		if err != nil {
-			lastErr = fmt.Errorf("http request execution failed: %w", err)
-			time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network errors
-			continue
-		}
-		defer res.Body.Close()
-
-		responseBody, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
-			return responseBody, nil
-		}
-
-		if res.StatusCode == http.StatusTooManyRequests {
-			var rateErr rateLimitError
-			err = json.Unmarshal(responseBody, &rateErr)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse rate limit details: %w", err)
+			lastErr = err
+			if errors.Is(err, errGlobalRateLimit) {
+				continue
 			}
-
-			if rateErr.Global {
-				retryAfter := time.Duration(rateErr.RetryAfter * float64(time.Second))
-				rest.globalMu.Lock()
-				rest.globalReset = time.Now().Add(retryAfter)
-				rest.globalMu.Unlock()
-				lastErr = fmt.Errorf("hit global rate limit, retrying after: %s", retryAfter.String())
-				continue // Retry after the global cooldown.
+			if errors.Is(err, errRetryable) {
+				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network/server errors
+				continue
 			}
-
-			// For any other per-route rate limit, fail fast and return the error.
-			// The developer is responsible for handling this specific rate limit.
-			return nil, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", method, route, string(responseBody))
+			return nil, err // Not a retryable error.
 		}
-
-		if res.StatusCode >= http.StatusInternalServerError {
-			lastErr = fmt.Errorf("discord API internal server error: %s", res.Status)
-			time.Sleep(time.Millisecond * time.Duration(500*int64(i+1))) // Backoff on server errors
-			continue
-		}
-
-		// For any other client-side error (4xx), fail immediately.
-		return nil, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
+		return responseBody, nil
 	}
 
 	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.MaxRetries, method, route, lastErr)
+}
+
+// Writes the JSON payload and files to a multipart writer.
+func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) error {
+	defer writer.Close()
+
+	// Write JSON payload part.
+	jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": []string{`form-data; name="payload_json"`},
+		"Content-Type":        []string{CONTENT_TYPE_JSON},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create payload_json part: %w", err)
+	}
+	encoder := json.NewEncoder(jsonPart)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(jsonPayload); err != nil {
+		return fmt.Errorf("failed to encode payload_json: %w", err)
+	}
+
+	// Write file parts.
+	for i, file := range files {
+		if seeker, ok := file.Reader.(io.ReadSeeker); ok {
+			seeker.Seek(0, io.SeekStart)
+		}
+
+		filePart, err := writer.CreatePart(textproto.MIMEHeader{
+			"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},
+			"Content-Type":        []string{CONTENT_TYPE_OCTET_STREAM},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create file part [%d]: %w", i, err)
+		}
+		if _, err := io.Copy(filePart, file.Reader); err != nil {
+			return fmt.Errorf("failed to stream file [%s]: %w", file.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// executeOnce handles the lifecycle of a single request attempt.
+func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
+	rest.globalMu.RLock()
+	sleepDuration := time.Until(rest.globalReset)
+	rest.globalMu.RUnlock()
+	if sleepDuration > 0 {
+		time.Sleep(sleepDuration)
+	}
+
+	req.Header.Set("User-Agent", USER_AGENT)
+	req.Header.Set("Authorization", rest.token)
+
+	res, err := rest.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
+	}
+	defer res.Body.Close()
+
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
+		return responseBody, nil
+	}
+
+	if res.StatusCode == http.StatusTooManyRequests {
+		var rateErr rateLimitError
+		err = json.Unmarshal(responseBody, &rateErr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse rate limit details: %w", err)
+		}
+
+		if rateErr.Global {
+			retryAfter := time.Duration(rateErr.RetryAfter * float64(time.Second))
+			rest.globalMu.Lock()
+			rest.globalReset = time.Now().Add(retryAfter)
+			rest.globalMu.Unlock()
+			return nil, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
+		}
+
+		return nil, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", req.Method, req.URL.Path, string(responseBody))
+	}
+
+	if res.StatusCode >= http.StatusInternalServerError {
+		return nil, fmt.Errorf("%w: discord API internal server error: %s", errRetryable, res.Status)
+	}
+
+	return nil, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
 }
