@@ -121,58 +121,16 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 		return rest.Request(method, route, jsonPayload)
 	}
 
-	// Discord API has an issue with chunked transfer encoding on PATCH requests for webhooks.
-	// To work around this, we pre-buffer the request into memory to set a Content-Length header,
-	// which avoids chunked encoding. For other methods, we can use memory-efficient streaming.
-	if method == http.MethodPatch {
-		var requestBody bytes.Buffer
-		writer := multipart.NewWriter(&requestBody)
-		if err := writeMultipart(writer, jsonPayload, files); err != nil {
-			return nil, err
-		}
-
-		return rest.request(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType())
+	// To avoid issues with retrying requests that have streaming bodies (which can't be re-read),
+	// we pre-buffer the multipart request into memory. This ensures that the request body can be
+	// reliably sent multiple times in case of retries.
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+	if err := writeMultipart(writer, jsonPayload, files); err != nil {
+		return nil, err
 	}
 
-	// For non-PATCH requests, use memory-efficient streaming.
-	var (
-		responseBody []byte
-		lastErr      error
-	)
-
-	for i := uint8(0); i < rest.MaxRetries; i++ {
-		pipeReader, pipeWriter := io.Pipe()
-		multipartWriter := multipart.NewWriter(pipeWriter)
-
-		go func() {
-			defer pipeWriter.Close()
-			if err := writeMultipart(multipartWriter, jsonPayload, files); err != nil {
-				pipeWriter.CloseWithError(err)
-			}
-		}()
-
-		req, err := http.NewRequest(method, DISCORD_API_URL+route, pipeReader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.Header.Set("Content-Type", multipartWriter.FormDataContentType())
-
-		responseBody, err = rest.executeOnce(req)
-		if err != nil {
-			lastErr = err
-			if errors.Is(err, errGlobalRateLimit) {
-				continue
-			}
-			if errors.Is(err, errRetryable) {
-				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network/server errors
-				continue
-			}
-			return nil, err // Not a retryable error.
-		}
-		return responseBody, nil
-	}
-
-	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.MaxRetries, method, route, lastErr)
+	return rest.request(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType())
 }
 
 // Writes the JSON payload and files to a multipart writer.
