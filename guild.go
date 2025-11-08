@@ -1,5 +1,7 @@
 package tempest
 
+import "strings"
+
 // https://discord.com/developers/docs/resources/guild#unavailable-guild-object
 type UnavailableGuild struct {
 	ID          Snowflake `json:"id"`
@@ -57,7 +59,7 @@ const (
 type Guild struct {
 	ID                          Snowflake                `json:"id"`
 	Name                        string                   `json:"name"`
-	AvatarHash                  string                   `json:"icon,omitempty"`             // Hash code used to access guild's icon. Call Guild.IconURL to get direct url.
+	IconHash                    string                   `json:"icon,omitempty"`             // Hash code used to access guild's icon. Call Guild.IconURL to get direct url.
 	SplashHash                  string                   `json:"splash,omitempty"`           // Hash code used to access guild's splash background. Call Guild.SplashURL to get direct url.
 	DiscoverySplashHash         string                   `json:"discovery_splash,omitempty"` // Hash code used to access guild's special discovery splash background (only available for "DISCOVERABLE" guilds). Call Guild.DiscoverySplashURL to get direct url.
 	OwnerID                     Snowflake                `json:"owner_id"`
@@ -89,4 +91,48 @@ type Guild struct {
 	ApproximateMemberCount    uint32 `json:"approximate_member_count,omitempty"`
 	ApproximatePresenceCount  uint32 `json:"approximate_presence_count,omitempty"`
 	PremiumProgressBarEnabled bool   `json:"premium_progress_bar_enabled"`
+}
+
+// Returns a direct url to guild icon. It'll return empty string if there's no custom icon.
+func (guild Guild) IconURL() string {
+	if guild.IconHash == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(guild.IconHash, "a_") {
+		return DISCORD_CDN_URL + "/icons/" + guild.ID.String() + "/" + guild.IconHash + ".gif"
+	}
+
+	return DISCORD_CDN_URL + "/icons/" + guild.ID.String() + "/" + guild.IconHash
+}
+
+// Returns a direct url to guild splash background. It'll return empty string if there's no custom splash bg.
+func (guild Guild) SplashURL() string {
+	if guild.SplashHash == "" {
+		return ""
+	}
+
+	return DISCORD_CDN_URL + "/splashes/" + guild.ID.String() + "/" + guild.SplashHash
+}
+
+// Returns a direct url to guild discovery splash background. It'll return empty string if there's no discovery splash bg.
+func (guild Guild) DiscoverySplashURL() string {
+	if guild.DiscoverySplashHash == "" {
+		return ""
+	}
+
+	return DISCORD_CDN_URL + "/discovery-splashes/" + guild.ID.String() + "/" + guild.DiscoverySplashHash
+}
+
+// Returns a direct url to guild banner. It'll return empty string if there's no custom banner.
+func (guild Guild) BannerURL() string {
+	if guild.BannerHash == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(guild.BannerHash, "a_") {
+		return DISCORD_CDN_URL + "/banners/" + guild.ID.String() + "/" + guild.BannerHash + ".gif"
+	}
+
+	return DISCORD_CDN_URL + "/banners/" + guild.ID.String() + "/" + guild.BannerHash
 }
