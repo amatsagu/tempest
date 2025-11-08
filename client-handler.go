@@ -93,6 +93,73 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.Request) {
+	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
+	if !verified {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	limitedReader := http.MaxBytesReader(w, r.Body, MAX_REQUEST_BODY_SIZE)
+	rawData, err := io.ReadAll(limitedReader)
+	limitedReader.Close() // closes underlying r.Body
+	if err != nil {
+		http.Error(w, "bad request - failed to read body payload", http.StatusBadRequest)
+		return
+	}
+
+	var webhook WebhookEvent
+	if err := json.Unmarshal(rawData, &webhook); err != nil {
+		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
+		return
+	}
+
+	if webhook.Type == PING_WEBHOOK_TYPE || webhook.Event == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	switch webhook.Event.Type {
+	case APPLICATION_AUTHORIZED_EVENT_TYPE:
+		var event ApplicationAuthorizedEvent
+		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
+			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
+			return
+		}
+
+		if client.applicationAuthorizedEventHandler != nil {
+			event.Client = client
+			client.applicationAuthorizedEventHandler(&event)
+		}
+		return
+	case APPLICATION_DEAUTHORIZED_EVENT_TYPE:
+		var event ApplicationDeauthorizedEvent
+		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
+			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
+			return
+		}
+
+		if client.applicationDeauthorizedEventHandler != nil {
+			event.Client = client
+			client.applicationDeauthorizedEventHandler(&event)
+		}
+		return
+	case ENTITLEMENT_CREATE_EVENT_TYPE:
+		var event EntitlementCreationEvent
+		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
+			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
+			return
+		}
+
+		if client.entitlementCreationEventHandler != nil {
+			event.Client = client
+			client.entitlementCreationEventHandler(&event)
+		}
+		return
+	}
+
+}
+
 func (client *Client) commandInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
