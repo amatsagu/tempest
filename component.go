@@ -117,7 +117,7 @@ type TextInputComponent struct {
 	ID          uint32         `json:"id,omitempty"`
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
-	Label       string         `json:"label"`                 // Deprecated: use `label` and `description` on the Label component
+	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on the Label component
 	MinLength   uint16         `json:"min_length,omitempty"`  // min: 0, max: 4000 characters
 	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
 	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
