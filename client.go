@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
 // Client is the core tempest entrypoint
 type Client struct {
 	ApplicationID Snowflake
 	Rest          *Rest
+
+	traceLogger *log.Logger // Inherited from HTTPClient or GatewayClient
 
 	commands         *SharedMap[string, Command]
 	commandContexts  []InteractionContextType
@@ -66,6 +68,10 @@ func NewClient(opt ClientOptions) Client {
 	}
 }
 
+func (s *Client) tracef(format string, v ...any) {
+	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
+}
+
 // Makes client dynamically "listen" incoming component type interactions.
 // When component custom id matches - it'll send back interaction through channel.
 // Holder s responsible for calling cleanup function once done (check example app code for better understanding).
@@ -111,6 +117,7 @@ func (client *Client) AwaitComponent(customIDs []string) (<-chan *ComponentInter
 	}
 	client.queuedComponents.mu.Unlock()
 
+	client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
 	return signalChan, cleanup, nil
 }
 
@@ -155,14 +162,8 @@ func (client *Client) AwaitModal(customIDs []string) (<-chan *ModalInteraction, 
 	}
 	client.queuedModals.mu.Unlock()
 
+	client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
 	return signalChan, cleanup, nil
-}
-
-// Pings Discord API and returns time it took to get response.
-func (client *Client) Ping() time.Duration {
-	start := time.Now()
-	client.Rest.Request(http.MethodGet, "/gateway", nil)
-	return time.Since(start)
 }
 
 func (client *Client) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
@@ -177,6 +178,7 @@ func (client *Client) SendMessage(channelID Snowflake, message Message, files []
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
+	client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
 	return res, nil
 }
 
@@ -213,16 +215,25 @@ func (client *Client) SendPrivateMessage(userID Snowflake, content Message, file
 
 func (client *Client) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
 	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content)
+	if err == nil {
+		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
+	}
 	return err
 }
 
 func (client *Client) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil)
+	if err == nil {
+		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
+	}
 	return err
 }
 
 func (client *Client) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil)
+	if err == nil {
+		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
+	}
 	return err
 }
 
@@ -238,6 +249,7 @@ func (client *Client) FetchUser(id Snowflake) (User, error) {
 		return User{}, errors.New("failed to parse received data from discord")
 	}
 
+	client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
 	return res, nil
 }
 
@@ -253,6 +265,7 @@ func (client *Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member
 		return Member{}, errors.New("failed to parse received data from discord")
 	}
 
+	client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
 	return res, nil
 }
 
@@ -277,6 +290,7 @@ func (client *Client) FetchEntitlementsPage(queryFilter string) ([]Entitlement, 
 		return res, errors.New("failed to parse received data from discord")
 	}
 
+	client.tracef("Successfully fetched %d entitlement(s).", len(res))
 	return res, nil
 }
 
@@ -293,6 +307,7 @@ func (client *Client) FetchEntitlement(entitlementID Snowflake) (Entitlement, er
 		return Entitlement{}, errors.New("failed to parse received data from discord")
 	}
 
+	client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
 	return res, nil
 }
 
@@ -302,18 +317,27 @@ func (client *Client) FetchEntitlement(entitlementID Snowflake) (Entitlement, er
 // https://discord.com/developers/docs/resources/entitlement#consume-an-entitlement
 func (client *Client) ConsumeEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil)
+	if err != nil {
+		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
+	}
 	return err
 }
 
 // https://discord.com/developers/docs/resources/entitlement#create-test-entitlement
 func (client *Client) CreateTestEntitlement(payload TestEntitlementPayload) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload)
+	if err != nil {
+		client.tracef("Successfully created test entitlement.")
+	}
 	return err
 }
 
 // https://discord.com/developers/docs/resources/entitlement#delete-test-entitlement
 func (client *Client) DeleteTestEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
+	if err != nil {
+		client.tracef("Successfully deleted test entitlement.")
+	}
 	return err
 }
 
@@ -335,6 +359,7 @@ func (client *Client) RegisterCommand(cmd Command) error {
 	}
 
 	client.commands.Set(cmd.Name, cmd)
+	client.tracef("Registered %s command.", cmd.Name)
 	return nil
 }
 
@@ -361,6 +386,7 @@ func (client *Client) RegisterSubCommand(subCommand Command, parentCommandName s
 	}
 
 	client.commands.Set(finalName, subCommand)
+	client.tracef("Registered %s sub command (part of %s command).", finalName, parentCommandName)
 	return nil
 }
 
@@ -382,6 +408,7 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInt
 	}
 	client.queuedComponents.mu.Unlock()
 
+	client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
 	return nil
 }
 
@@ -396,6 +423,7 @@ func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) 
 	}
 
 	client.staticModals.Set(customID, fn)
+	client.tracef("Registered static component handler for custom ID = %s", customID)
 	return nil
 }
 
@@ -418,6 +446,7 @@ func (client *Client) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelist []
 		}
 	}
 
+	client.tracef("Successfully synced command data with discord.")
 	return nil
 }
 

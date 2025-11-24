@@ -6,24 +6,19 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 type HTTPClient struct {
 	Client
 	PublicKey ed25519.PublicKey
-
-	applicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)
-	applicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent)
-	entitlementCreationEventHandler     func(event *EntitlementCreationEvent)
 }
 
 type HTTPClientOptions struct {
 	ClientOptions
-	PublicKey                           string
-	ApplicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)   // Function that runs when app/bot is added by user or server.
-	ApplicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent) // Function that runs when app/bot is removed from user apps.
-	EntitlementCreationEventHandler     func(event *EntitlementCreationEvent)     // Function that runs when user purchases or is otherwise granted one of your app's SKUs.
+	PublicKey string
+	Trace     bool // Whether to enable basic logging for the client actions.
 }
 
 func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
@@ -32,7 +27,7 @@ func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
 	}
 
-	return HTTPClient{
+	client := HTTPClient{
 		Client: NewClient(ClientOptions{
 			Token:                      opt.Token,
 			DefaultInteractionContexts: opt.DefaultInteractionContexts,
@@ -41,11 +36,19 @@ func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
 			ComponentHandler:           opt.ComponentHandler,
 			ModalHandler:               opt.ModalHandler,
 		}),
-		PublicKey:                           discordPublicKey,
-		applicationAuthorizedEventHandler:   opt.ApplicationAuthorizedEventHandler,
-		applicationDeauthorizedEventHandler: opt.ApplicationDeauthorizedEventHandler,
-		entitlementCreationEventHandler:     opt.EntitlementCreationEventHandler,
+		PublicKey: discordPublicKey,
 	}
+
+	if opt.Trace {
+		client.traceLogger.SetOutput(os.Stdout)
+		client.tracef("HTTP Client tracing enabled.")
+	}
+
+	return client
+}
+
+func (m *HTTPClient) tracef(format string, v ...any) {
+	m.traceLogger.Printf("[(HTTP) CLIENT] "+format, v...)
 }
 
 func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,82 +136,17 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (client *HTTPClient) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.Request) {
-	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
-	if !verified {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	limitedReader := http.MaxBytesReader(w, r.Body, MAX_REQUEST_BODY_SIZE)
-	rawData, err := io.ReadAll(limitedReader)
-	limitedReader.Close() // closes underlying r.Body
-	if err != nil {
-		http.Error(w, "bad request - failed to read body payload", http.StatusBadRequest)
-		return
-	}
-
-	var webhook WebhookEvent
-	if err := json.Unmarshal(rawData, &webhook); err != nil {
-		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
-		return
-	}
-
-	if webhook.Type == PING_WEBHOOK_TYPE || webhook.Event == nil {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	switch webhook.Event.Type {
-	case APPLICATION_AUTHORIZED_EVENT_TYPE:
-		var event ApplicationAuthorizedEvent
-		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
-			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
-			return
-		}
-
-		if client.applicationAuthorizedEventHandler != nil {
-			event.Client = &client.Client
-			client.applicationAuthorizedEventHandler(&event)
-		}
-		return
-	case APPLICATION_DEAUTHORIZED_EVENT_TYPE:
-		var event ApplicationDeauthorizedEvent
-		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
-			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
-			return
-		}
-
-		if client.applicationDeauthorizedEventHandler != nil {
-			event.Client = &client.Client
-			client.applicationDeauthorizedEventHandler(&event)
-		}
-		return
-	case ENTITLEMENT_CREATE_EVENT_TYPE:
-		var event EntitlementCreationEvent
-		if err := json.Unmarshal(webhook.Event.Data, &event); err != nil {
-			http.Error(w, "bad request - failed to decode Webhook.Event.Data", http.StatusBadRequest)
-			return
-		}
-
-		if client.entitlementCreationEventHandler != nil {
-			event.Client = &client.Client
-			client.entitlementCreationEventHandler(&event)
-		}
-		return
-	}
-
-}
-
 func (client *HTTPClient) commandInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
+		client.tracef("Received command interaction but there's no matching command! (requested \"%s\")", interaction.Data.Name)
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyUnknownCommandResponse)
 		return
 	}
 
 	itx.Client = &client.Client
+	client.tracef("Received command interaction - moved to target command's handler.")
 
 	// Run command handler in goroutine
 	go func() {
@@ -241,10 +179,12 @@ func (client *HTTPClient) commandInteractionHandler(w http.ResponseWriter, inter
 func (client *HTTPClient) autoCompleteInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
+		client.tracef("Dropped auto complete interaction. You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
+	client.tracef("Received slash command's auto complete interaction - moved to target (sub) command auto complete handler.")
 	choices := command.AutoCompleteHandler(itx)
 	body, err := json.Marshal(ResponseAutoComplete{
 		Type: AUTOCOMPLETE_RESPONSE_TYPE,
@@ -264,11 +204,13 @@ func (client *HTTPClient) autoCompleteInteractionHandler(w http.ResponseWriter, 
 
 func (client *HTTPClient) componentInteractionHandler(w http.ResponseWriter, interaction ComponentInteraction) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
+		client.tracef("Received component interaction with matching custom ID for static handler - moved to registered handler.")
 		fn(interaction)
 		return
 	}
 
 	if signalChan, ok := client.queuedComponents.Get(interaction.Data.CustomID); ok && signalChan != nil {
+		client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
 		w.Header().Set("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyAcknowledgeResponse)
 
@@ -282,26 +224,41 @@ func (client *HTTPClient) componentInteractionHandler(w http.ResponseWriter, int
 	}
 
 	if client.componentHandler != nil {
+		client.tracef("Received component interaction - moved to defined component handler.")
 		client.componentHandler(&interaction)
+		return
 	}
+
+	client.tracef("Dropped component interaction. You see this trace message because client received component interaction but there's no defined handler for it.")
 }
 
 func (client *HTTPClient) modalInteractionHandler(w http.ResponseWriter, interaction ModalInteraction) {
 	fn, available := client.staticModals.Get(interaction.Data.CustomID)
 	if available {
+		client.tracef("Received modal interaction with matching custom ID for static handler - moved to registered handler.")
 		fn(interaction)
 		return
 	}
 
-	signalChannel, available := client.queuedModals.Get(interaction.Data.CustomID)
-	if available && signalChannel != nil {
+	if signalChan, ok := client.queuedModals.Get(interaction.Data.CustomID); ok && signalChan != nil {
+		client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyAcknowledgeResponse)
-		signalChannel <- &interaction
+
+		select {
+		case signalChan <- &interaction:
+			// Successfully sent
+		default:
+			// Receiver gone, drop silently
+		}
 		return
 	}
 
 	if client.modalHandler != nil {
+		client.tracef("Received modal interaction - moved to defined modal handler.")
 		client.modalHandler(&interaction)
+		return
 	}
+
+	client.tracef("Dropped modal interaction. You see this trace message because client received modal interaction but there's no defined handler for it.")
 }
