@@ -1,8 +1,6 @@
 package tempest
 
 import (
-	"crypto/ed25519"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +13,6 @@ import (
 // Client is the core tempest entrypoint
 type Client struct {
 	ApplicationID Snowflake
-	PublicKey     ed25519.PublicKey
 	Rest          *Rest
 
 	commands         *SharedMap[string, Command]
@@ -23,13 +20,10 @@ type Client struct {
 	staticComponents *SharedMap[string, func(ComponentInteraction)]
 	staticModals     *SharedMap[string, func(ModalInteraction)]
 
-	preCommandHandler                   func(cmd Command, itx *CommandInteraction) bool
-	postCommandHandler                  func(cmd Command, itx *CommandInteraction)
-	componentHandler                    func(itx *ComponentInteraction)
-	modalHandler                        func(itx *ModalInteraction)
-	applicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)
-	applicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent)
-	entitlementCreationEventHandler     func(event *EntitlementCreationEvent)
+	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
+	postCommandHandler func(cmd Command, itx *CommandInteraction)
+	componentHandler   func(itx *ComponentInteraction)
+	modalHandler       func(itx *ModalInteraction)
 
 	queuedComponents *SharedMap[string, chan *ComponentInteraction]
 	queuedModals     *SharedMap[string, chan *ModalInteraction]
@@ -37,24 +31,15 @@ type Client struct {
 
 type ClientOptions struct {
 	Token                      string
-	PublicKey                  string
 	DefaultInteractionContexts []InteractionContextType
 
-	PreCommandHook                      func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	PostCommandHook                     func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
-	ComponentHandler                    func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
-	ModalHandler                        func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
-	ApplicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)         // Function that runs when app/bot is added by user or server.
-	ApplicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent)       // Function that runs when app/bot is removed from user apps.
-	EntitlementCreationEventHandler     func(event *EntitlementCreationEvent)           // Function that runs when user purchases or is otherwise granted one of your app's SKUs.
+	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
+	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
+	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 }
 
 func NewClient(opt ClientOptions) Client {
-	discordPublicKey, err := hex.DecodeString(opt.PublicKey)
-	if err != nil {
-		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
-	}
-
 	botUserID, err := extractUserIDFromToken(opt.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
@@ -66,22 +51,18 @@ func NewClient(opt ClientOptions) Client {
 	}
 
 	return Client{
-		ApplicationID:                       botUserID,
-		PublicKey:                           discordPublicKey,
-		Rest:                                NewRest(opt.Token),
-		commands:                            NewSharedMap[string, Command](),
-		commandContexts:                     contexts,
-		staticComponents:                    NewSharedMap[string, func(ComponentInteraction)](),
-		staticModals:                        NewSharedMap[string, func(ModalInteraction)](),
-		preCommandHandler:                   opt.PreCommandHook,
-		postCommandHandler:                  opt.PostCommandHook,
-		componentHandler:                    opt.ComponentHandler,
-		modalHandler:                        opt.ModalHandler,
-		applicationAuthorizedEventHandler:   opt.ApplicationAuthorizedEventHandler,
-		applicationDeauthorizedEventHandler: opt.ApplicationDeauthorizedEventHandler,
-		entitlementCreationEventHandler:     opt.EntitlementCreationEventHandler,
-		queuedComponents:                    NewSharedMap[string, chan *ComponentInteraction](),
-		queuedModals:                        NewSharedMap[string, chan *ModalInteraction](),
+		ApplicationID:      botUserID,
+		Rest:               NewRest(opt.Token),
+		commands:           NewSharedMap[string, Command](),
+		commandContexts:    contexts,
+		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),
+		staticModals:       NewSharedMap[string, func(ModalInteraction)](),
+		preCommandHandler:  opt.PreCommandHook,
+		postCommandHandler: opt.PostCommandHook,
+		componentHandler:   opt.ComponentHandler,
+		modalHandler:       opt.ModalHandler,
+		queuedComponents:   NewSharedMap[string, chan *ComponentInteraction](),
+		queuedModals:       NewSharedMap[string, chan *ModalInteraction](),
 	}
 }
 

@@ -2,13 +2,53 @@ package tempest
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
 	"time"
 )
 
-func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
+type HTTPClient struct {
+	Client
+	PublicKey ed25519.PublicKey
+
+	applicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)
+	applicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent)
+	entitlementCreationEventHandler     func(event *EntitlementCreationEvent)
+}
+
+type HTTPClientOptions struct {
+	ClientOptions
+	PublicKey                           string
+	ApplicationAuthorizedEventHandler   func(event *ApplicationAuthorizedEvent)   // Function that runs when app/bot is added by user or server.
+	ApplicationDeauthorizedEventHandler func(event *ApplicationDeauthorizedEvent) // Function that runs when app/bot is removed from user apps.
+	EntitlementCreationEventHandler     func(event *EntitlementCreationEvent)     // Function that runs when user purchases or is otherwise granted one of your app's SKUs.
+}
+
+func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
+	discordPublicKey, err := hex.DecodeString(opt.PublicKey)
+	if err != nil {
+		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
+	}
+
+	return HTTPClient{
+		Client: NewClient(ClientOptions{
+			Token:                      opt.Token,
+			DefaultInteractionContexts: opt.DefaultInteractionContexts,
+			PreCommandHook:             opt.PreCommandHook,
+			PostCommandHook:            opt.PostCommandHook,
+			ComponentHandler:           opt.ComponentHandler,
+			ModalHandler:               opt.ModalHandler,
+		}),
+		PublicKey:                           discordPublicKey,
+		applicationAuthorizedEventHandler:   opt.ApplicationAuthorizedEventHandler,
+		applicationDeauthorizedEventHandler: opt.ApplicationDeauthorizedEventHandler,
+		entitlementCreationEventHandler:     opt.EntitlementCreationEventHandler,
+	}
+}
+
+func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -28,7 +68,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
-	interaction.Client = client
+	interaction.Client = &client.Client
 
 	switch interaction.Type {
 	case PING_INTERACTION_TYPE:
@@ -93,7 +133,7 @@ func (client *Client) DiscordRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.Request) {
+func (client *HTTPClient) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.Request) {
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -128,7 +168,7 @@ func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.
 		}
 
 		if client.applicationAuthorizedEventHandler != nil {
-			event.Client = client
+			event.Client = &client.Client
 			client.applicationAuthorizedEventHandler(&event)
 		}
 		return
@@ -140,7 +180,7 @@ func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.
 		}
 
 		if client.applicationDeauthorizedEventHandler != nil {
-			event.Client = client
+			event.Client = &client.Client
 			client.applicationDeauthorizedEventHandler(&event)
 		}
 		return
@@ -152,7 +192,7 @@ func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.
 		}
 
 		if client.entitlementCreationEventHandler != nil {
-			event.Client = client
+			event.Client = &client.Client
 			client.entitlementCreationEventHandler(&event)
 		}
 		return
@@ -160,7 +200,7 @@ func (client *Client) DiscordWebhookEventHandler(w http.ResponseWriter, r *http.
 
 }
 
-func (client *Client) commandInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
+func (client *HTTPClient) commandInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
@@ -168,7 +208,7 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 		return
 	}
 
-	itx.Client = client
+	itx.Client = &client.Client
 
 	// Run command handler in goroutine
 	go func() {
@@ -198,7 +238,7 @@ func (client *Client) commandInteractionHandler(w http.ResponseWriter, interacti
 	}
 }
 
-func (client *Client) autoCompleteInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
+func (client *HTTPClient) autoCompleteInteractionHandler(w http.ResponseWriter, interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
 		w.WriteHeader(http.StatusNoContent)
@@ -222,7 +262,7 @@ func (client *Client) autoCompleteInteractionHandler(w http.ResponseWriter, inte
 	w.Write(body)
 }
 
-func (client *Client) componentInteractionHandler(w http.ResponseWriter, interaction ComponentInteraction) {
+func (client *HTTPClient) componentInteractionHandler(w http.ResponseWriter, interaction ComponentInteraction) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
 		fn(interaction)
 		return
@@ -246,7 +286,7 @@ func (client *Client) componentInteractionHandler(w http.ResponseWriter, interac
 	}
 }
 
-func (client *Client) modalInteractionHandler(w http.ResponseWriter, interaction ModalInteraction) {
+func (client *HTTPClient) modalInteractionHandler(w http.ResponseWriter, interaction ModalInteraction) {
 	fn, available := client.staticModals.Get(interaction.Data.CustomID)
 	if available {
 		fn(interaction)
