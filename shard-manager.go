@@ -199,6 +199,44 @@ func (m *ShardManager) Broadcast(jsonStruct any) {
 	}
 }
 
+// Allows to update status (presence) of the bot.
+// Have generator function return nil to skip updating status for a specific shard.
+func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *UpdatePresencePayload) {
+	m.tracef("Setting status for selected online shards!")
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, shard := range m.shards {
+		if shard.Status() != ONLINE_SHARD_STATE {
+			continue
+		}
+
+		payload := statusGenerator(shard.ID)
+		if payload == nil {
+			continue
+		}
+
+		if payload.Opcode == 0 {
+			payload.Opcode = PRESENCE_UPDATE_OPCODE
+		}
+
+		go func(s *Shard, p *UpdatePresencePayload) {
+			if err := s.Send(p); err != nil {
+				m.tracef("Failed to update status for shard %d: %v", s.ID, err)
+			}
+		}(shard, payload)
+	}
+}
+
+// Returns ping value for each created shard (calculated based on shard heartbeat).
+func (m *ShardManager) ShardLatencies() []time.Duration {
+	res := make([]time.Duration, len(m.shards))
+	for _, shard := range m.shards {
+		res[shard.ID] = shard.Ping()
+	}
+	return res
+}
+
 func (m *ShardManager) tracef(format string, v ...any) {
 	m.traceLogger.Printf("[(GATEWAY) SHARD MANAGER] "+format, v...)
 }

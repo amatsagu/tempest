@@ -55,6 +55,8 @@ type Shard struct {
 	lastSequence        uint32
 	heartbeatInterval   time.Duration
 	heartbeatAckMissing bool
+	lastHeartbeatSend   time.Time
+	latency             time.Duration
 	state               ShardState // New field to track the shard's state
 }
 
@@ -88,6 +90,12 @@ func (s *Shard) Status() ShardState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state
+}
+
+func (s *Shard) Ping() time.Duration {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.latency
 }
 
 // Start establishes a connection to the Discord Gateway and starts handling events.
@@ -242,6 +250,7 @@ func (s *Shard) handlePacket(p EventPacket) error {
 	case HEARTBEAT_ACK_OPCODE:
 		s.mu.Lock()
 		s.heartbeatAckMissing = false
+		s.latency = time.Since(s.lastHeartbeatSend)
 		s.mu.Unlock()
 		s.tracef("HEARTBEAT ACK received.")
 	case HEARTBEAT_OPCODE:
@@ -372,9 +381,10 @@ func (s *Shard) heartbeatLoop(ctx context.Context) {
 }
 
 func (s *Shard) sendHeartbeat() error {
-	s.mu.RLock()
+	s.mu.Lock()
 	seq := s.lastSequence
-	s.mu.RUnlock()
+	s.lastHeartbeatSend = time.Now()
+	s.mu.Unlock()
 
 	s.tracef("Sending heartbeat with sequence = %d.", seq)
 
