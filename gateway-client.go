@@ -53,11 +53,10 @@ func (m *GatewayClient) tracef(format string, v ...any) {
 }
 
 func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
-	if client.customEventHandler != nil {
-		client.customEventHandler(shardID, packet)
-	}
-
 	if packet.Event != INTERACTION_CREATE_EVENT {
+		if client.customEventHandler != nil {
+			client.customEventHandler(shardID, packet)
+		}
 		return
 	}
 
