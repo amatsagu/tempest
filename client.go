@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -26,6 +27,8 @@ type Client struct {
 	postCommandHandler func(cmd Command, itx *CommandInteraction)
 	componentHandler   func(itx *ComponentInteraction)
 	modalHandler       func(itx *ModalInteraction)
+
+	interactionResponder func(itx *Interaction, resp Response) error
 
 	queuedComponents *SharedMap[string, chan *ComponentInteraction]
 	queuedModals     *SharedMap[string, chan *ModalInteraction]
@@ -55,6 +58,7 @@ func NewClient(opt ClientOptions) Client {
 	return Client{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.Token),
+		traceLogger:        log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),
 		commands:           NewSharedMap[string, Command](),
 		commandContexts:    contexts,
 		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),
@@ -103,10 +107,10 @@ func (client *Client) AwaitComponent(customIDs []string) (<-chan *ComponentInter
 	cleanup := func() {
 		once.Do(func() {
 			client.queuedComponents.mu.Lock()
+			defer client.queuedComponents.mu.Unlock()
 			for _, id := range customIDs {
 				delete(client.queuedComponents.cache, id)
 			}
-			client.queuedComponents.mu.Unlock()
 			close(signalChan)
 		})
 	}
@@ -148,10 +152,10 @@ func (client *Client) AwaitModal(customIDs []string) (<-chan *ModalInteraction, 
 	cleanup := func() {
 		once.Do(func() {
 			client.queuedModals.mu.Lock()
+			defer client.queuedModals.mu.Unlock()
 			for _, id := range customIDs {
 				delete(client.queuedModals.cache, id)
 			}
-			client.queuedModals.mu.Unlock()
 			close(signalChan)
 		})
 	}
@@ -412,7 +416,7 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInt
 	return nil
 }
 
-// Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
+// Bind function to modal with matching custom id. App will automatically run bound function whenever receiving component interaction with matching custom id.
 func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
 	if client.staticModals.Has(customID) {
 		return errors.New("client already has registered static modal with custom ID = " + customID + " (custom id already in use)")
@@ -423,7 +427,7 @@ func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) 
 	}
 
 	client.staticModals.Set(customID, fn)
-	client.tracef("Registered static component handler for custom ID = %s", customID)
+	client.tracef("Registered static modal handler for custom ID = %s", customID)
 	return nil
 }
 

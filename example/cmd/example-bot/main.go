@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"example-bot/internal/command"
 	"log"
-	"net/http"
 
 	// _ "net/http/pprof"
 	"os"
@@ -19,12 +19,28 @@ func main() {
 	}
 
 	log.Println("Creating new Tempest client...")
-	client := tempest.NewClient(tempest.ClientOptions{
-		Token:     os.Getenv("DISCORD_BOT_TOKEN"),
-		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
+	client := tempest.NewGatewayClient(tempest.GatewayClientOptions{
+		Trace: true,
+		ClientOptions: tempest.ClientOptions{
+			Token: os.Getenv("DISCORD_BOT_TOKEN"),
+		},
+		CustomEventHandler: func(shardID uint16, packet tempest.EventPacket) {
+			log.Printf("Received custom gateway packet on shard ID = %d, event = %s\n", shardID, packet.Event)
+
+			raw, _ := packet.Data.MarshalJSON()
+
+			log.Printf("Event's data: %s", string(raw))
+		},
 	})
 
-	addr := os.Getenv("DISCORD_APP_ADDRESS")
+	// client := tempest.NewHTTPClient(tempest.HTTPClientOptions{
+	// 	Trace: true,
+	// 	ClientOptions: tempest.ClientOptions{
+	// 		Token: os.Getenv("DISCORD_BOT_TOKEN"),
+	// 	},
+	// 	PublicKey: "9733f1741174cac2f4ab688ab7f47b3f5eb0576c93ba53f4f01e9099cdb2d8fa",
+	// })
+
 	testServerID, err := tempest.StringToSnowflake(os.Getenv("DISCORD_TEST_SERVER_ID")) // Register example commands only to this guild.
 	if err != nil {
 		log.Fatalln("failed to parse env variable to snowflake", err)
@@ -57,10 +73,15 @@ func main() {
 		log.Fatalln("failed to sync local commands storage with Discord API", err)
 	}
 
-	http.HandleFunc("POST /discord/callback", client.DiscordRequestHandler)
-
-	log.Printf("Serving application at: %s/discord/callback\n", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	if err := client.Gateway.Start(context.Background(), 0, 32); err != nil {
 		log.Fatalln("something went terribly wrong", err)
 	}
+
+	// addr := "0.0.0.0:80"
+	// http.HandleFunc("POST /", client.DiscordRequestHandler)
+
+	// log.Printf("Serving application at: %s/discord/callback\n", addr)
+	// if err := http.ListenAndServe(addr, nil); err != nil {
+	// 	log.Fatalln("something went terribly wrong", err)
+	// }
 }

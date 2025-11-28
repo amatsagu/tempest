@@ -1,9 +1,6 @@
 package tempest
 
-import (
-	"encoding/json"
-	"net/http"
-)
+import "encoding/json"
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
@@ -65,31 +62,28 @@ type Interaction struct {
 	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
 	// attachment_size_limit is also skipped - appears to have no use anywhere
 
-	Client *Client `json:"-"`
+	Client    *Client `json:"-"`
+	ShardID   uint16  `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	responded bool    `json:"-"`
+	deferred  bool    `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
 	*Interaction
-	Data         CommandInteractionData `json:"data"`
-	w            http.ResponseWriter    `json:"-"`
-	responseChan chan []byte            `json:"-"`
-	responded    bool                   `json:"-"`
-	deferred     bool                   `json:"-"`
+	Data CommandInteractionData `json:"data"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
 	*Interaction
 	Data ComponentInteractionData `json:"data"`
-	w    http.ResponseWriter      `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
 	*Interaction
 	Data ModalInteractionData `json:"data"`
-	w    http.ResponseWriter  `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data
@@ -142,3 +136,13 @@ type ModalInteractionData struct {
 	CustomID   string            `json:"custom_id"`
 	Components []LayoutComponent `json:"components,omitzero"`
 }
+
+// Unified response type for all interaction replies.
+// Data field holds one of three response data types (message/modal/auto-complete).
+// We're using "any" type because those types are not compatible with each other and will never be used at the same time.
+type Response struct {
+	Type  ResponseType `json:"type"`
+	Data  any          `json:"data,omitempty"`
+	Files []File       `json:"-"`
+}
+

@@ -33,7 +33,7 @@ func NewShardManager(token string, trace bool, eventHandler func(shardID uint16,
 	m := &ShardManager{
 		token:        token,
 		shards:       make(map[uint16]*Shard),
-		traceLogger:  log.New(io.Discard, "[QORD] ", log.LstdFlags),
+		traceLogger:  log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),
 		eventHandler: eventHandler,
 	}
 
@@ -200,7 +200,7 @@ func (m *ShardManager) Broadcast(jsonStruct any) {
 }
 
 func (m *ShardManager) tracef(format string, v ...any) {
-	m.traceLogger.Printf("[MANAGER] "+format, v...)
+	m.traceLogger.Printf("[(GATEWAY) SHARD MANAGER] "+format, v...)
 }
 
 func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {

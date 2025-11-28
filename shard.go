@@ -132,19 +132,22 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			s.mu.Unlock()
 			s.tracef("Changing state to %s.", s.state.String())
 
-			// Start the heartbeat loop
-			go s.heartbeatLoop(ctx)
+			// Create a context for this connection lifecycle to manage the heartbeat loop.
+			connCtx, cancelConn := context.WithCancel(ctx)
+
+			go s.heartbeatLoop(connCtx)
 
 			// Start the read loop. This is blocking.
 			err := s.readLoop()
 
-			// If readLoop returns, it means we disconnected.
+			// Stop the heartbeat loop immediately upon disconnection.
+			cancelConn()
+
 			s.mu.Lock()
 			s.state = OFFLINE_SHARD_STATE
 			s.mu.Unlock()
 			s.tracef("Disconnected from gateway: %v", err)
 
-			// Check if we should stop trying to reconnect.
 			select {
 			case <-ctx.Done():
 				s.tracef("Context cancellation received. Not reconnecting.")
@@ -156,7 +159,6 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 	}
 }
 
-// Close gracefully disconnects the shard from the gateway.
 func (s *Shard) Close() {
 	s.tracef("Closing shard connection.")
 	s.socket.close()
