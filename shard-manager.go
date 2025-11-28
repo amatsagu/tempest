@@ -201,7 +201,7 @@ func (m *ShardManager) Broadcast(jsonStruct any) {
 
 // Allows to update status (presence) of the bot.
 // Have generator function return nil to skip updating status for a specific shard.
-func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *UpdatePresencePayload) {
+func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *UpdatePresenceEvent) {
 	m.tracef("Setting status for selected online shards!")
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -220,7 +220,7 @@ func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *Update
 			payload.Opcode = PRESENCE_UPDATE_OPCODE
 		}
 
-		go func(s *Shard, p *UpdatePresencePayload) {
+		go func(s *Shard, p *UpdatePresenceEvent) {
 			if err := s.Send(p); err != nil {
 				m.tracef("Failed to update status for shard %d: %v", s.ID, err)
 			}
