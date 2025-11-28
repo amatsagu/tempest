@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 
@@ -35,7 +34,7 @@ Uptime: **%s**
 		)
 
 		itx.SendLinearReply(reply, false)
-		log.Println(time.Since(now).String())
+		itx.EditLinearReply(fmt.Sprintf("%s\nAPI Latency: **%s**", reply, time.Since(now).String()), false)
 	},
 }
 

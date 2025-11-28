@@ -217,7 +217,6 @@ func (s *Shard) handleDispatchEvent(p EventPacket) error {
 		s.mu.Unlock()
 		s.tracef("Successfully resumed session.")
 	default:
-		s.tracef("Received unknown dispatch event: %s (pushing to provided event handler)", p.Event)
 		go s.eventHandler(s.ID, p)
 	}
 
