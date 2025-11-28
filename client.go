@@ -11,8 +11,9 @@ import (
 	"sync"
 )
 
-// Client is the core tempest entrypoint
-type Client struct {
+// BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
+// You should avoid using base version unless you know what you're doing.
+type BaseClient struct {
 	ApplicationID Snowflake
 	Rest          *Rest
 
@@ -34,7 +35,7 @@ type Client struct {
 	queuedModals     *SharedMap[string, chan *ModalInteraction]
 }
 
-type ClientOptions struct {
+type BaseClientOptions struct {
 	Token                      string
 	DefaultInteractionContexts []InteractionContextType
 
@@ -44,7 +45,7 @@ type ClientOptions struct {
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 }
 
-func NewClient(opt ClientOptions) Client {
+func NewBaseClient(opt BaseClientOptions) BaseClient {
 	botUserID, err := extractUserIDFromToken(opt.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
@@ -55,7 +56,7 @@ func NewClient(opt ClientOptions) Client {
 		contexts = opt.DefaultInteractionContexts
 	}
 
-	return Client{
+	return BaseClient{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.Token),
 		traceLogger:        log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),
@@ -72,7 +73,7 @@ func NewClient(opt ClientOptions) Client {
 	}
 }
 
-func (s *Client) tracef(format string, v ...any) {
+func (s *BaseClient) tracef(format string, v ...any) {
 	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
 }
 
@@ -82,7 +83,7 @@ func (s *Client) tracef(format string, v ...any) {
 // You can use context to control timeout - Discord API allows to reply to interaction for max 15 minutes.
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *Client) AwaitComponent(customIDs []string) (<-chan *ComponentInteraction, func(), error) {
+func (client *BaseClient) AwaitComponent(customIDs []string) (<-chan *ComponentInteraction, func(), error) {
 	client.staticComponents.mu.RLock()
 	for _, id := range customIDs {
 		if client.staticComponents.cache[id] != nil {
@@ -127,7 +128,7 @@ func (client *Client) AwaitComponent(customIDs []string) (<-chan *ComponentInter
 
 // Mirror method to Client.AwaitComponent but for handling modal interactions.
 // Look comment on Client.AwaitComponent and see example bot/app code for more.
-func (client *Client) AwaitModal(customIDs []string) (<-chan *ModalInteraction, func(), error) {
+func (client *BaseClient) AwaitModal(customIDs []string) (<-chan *ModalInteraction, func(), error) {
 	client.staticModals.mu.RLock()
 	for _, id := range customIDs {
 		if client.staticModals.cache[id] != nil {
@@ -170,7 +171,7 @@ func (client *Client) AwaitModal(customIDs []string) (<-chan *ModalInteraction, 
 	return signalChan, cleanup, nil
 }
 
-func (client *Client) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
+func (client *BaseClient) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
 	raw, err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files)
 	if err != nil {
 		return Message{}, err
@@ -186,13 +187,13 @@ func (client *Client) SendMessage(channelID Snowflake, message Message, files []
 	return res, nil
 }
 
-func (client *Client) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
+func (client *BaseClient) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
 	return client.SendMessage(channelID, Message{Content: content}, nil)
 }
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
-func (client *Client) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
+func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
 	res := make(map[string]interface{}, 0)
 	res["recipient_id"] = userID
 
@@ -217,7 +218,7 @@ func (client *Client) SendPrivateMessage(userID Snowflake, content Message, file
 	return msg, err
 }
 
-func (client *Client) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
+func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
 	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content)
 	if err == nil {
 		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
@@ -225,7 +226,7 @@ func (client *Client) EditMessage(channelID Snowflake, messageID Snowflake, cont
 	return err
 }
 
-func (client *Client) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
+func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil)
 	if err == nil {
 		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
@@ -233,7 +234,7 @@ func (client *Client) DeleteMessage(channelID Snowflake, messageID Snowflake) er
 	return err
 }
 
-func (client *Client) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
+func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil)
 	if err == nil {
 		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
@@ -241,7 +242,7 @@ func (client *Client) CrosspostMessage(channelID Snowflake, messageID Snowflake)
 	return err
 }
 
-func (client *Client) FetchUser(id Snowflake) (User, error) {
+func (client *BaseClient) FetchUser(id Snowflake) (User, error) {
 	raw, err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil)
 	if err != nil {
 		return User{}, err
@@ -257,7 +258,7 @@ func (client *Client) FetchUser(id Snowflake) (User, error) {
 	return res, nil
 }
 
-func (client *Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
+func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
 	raw, err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil)
 	if err != nil {
 		return Member{}, err
@@ -278,7 +279,7 @@ func (client *Client) FetchMember(guildID Snowflake, memberID Snowflake) (Member
 // By default it will attempt to return all, existing entitlements - provide query filter to control this behavior.
 //
 // https://discord.com/developers/docs/resources/entitlement#list-entitlements
-func (client *Client) FetchEntitlementsPage(queryFilter string) ([]Entitlement, error) {
+func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitlement, error) {
 	if queryFilter[0] != '?' {
 		queryFilter = "?" + queryFilter
 	}
@@ -299,7 +300,7 @@ func (client *Client) FetchEntitlementsPage(queryFilter string) ([]Entitlement, 
 }
 
 // https://discord.com/developers/docs/resources/entitlement#get-entitlement
-func (client *Client) FetchEntitlement(entitlementID Snowflake) (Entitlement, error) {
+func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement, error) {
 	raw, err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	if err != nil {
 		return Entitlement{}, err
@@ -319,7 +320,7 @@ func (client *Client) FetchEntitlement(entitlementID Snowflake) (Entitlement, er
 // The entitlement will have consumed: true when using Client.FetchEntitlements.
 //
 // https://discord.com/developers/docs/resources/entitlement#consume-an-entitlement
-func (client *Client) ConsumeEntitlement(entitlementID Snowflake) error {
+func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil)
 	if err != nil {
 		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
@@ -328,7 +329,7 @@ func (client *Client) ConsumeEntitlement(entitlementID Snowflake) error {
 }
 
 // https://discord.com/developers/docs/resources/entitlement#create-test-entitlement
-func (client *Client) CreateTestEntitlement(payload TestEntitlementPayload) error {
+func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload)
 	if err != nil {
 		client.tracef("Successfully created test entitlement.")
@@ -337,7 +338,7 @@ func (client *Client) CreateTestEntitlement(payload TestEntitlementPayload) erro
 }
 
 // https://discord.com/developers/docs/resources/entitlement#delete-test-entitlement
-func (client *Client) DeleteTestEntitlement(entitlementID Snowflake) error {
+func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	if err != nil {
 		client.tracef("Successfully deleted test entitlement.")
@@ -345,7 +346,7 @@ func (client *Client) DeleteTestEntitlement(entitlementID Snowflake) error {
 	return err
 }
 
-func (client *Client) RegisterCommand(cmd Command) error {
+func (client *BaseClient) RegisterCommand(cmd Command) error {
 	if client.commands.Has(cmd.Name) {
 		return errors.New("client already has registered \"" + cmd.Name + "\" slash command (name already in use)")
 	}
@@ -367,7 +368,7 @@ func (client *Client) RegisterCommand(cmd Command) error {
 	return nil
 }
 
-func (client *Client) RegisterSubCommand(subCommand Command, parentCommandName string) error {
+func (client *BaseClient) RegisterSubCommand(subCommand Command, parentCommandName string) error {
 	if !client.commands.Has(parentCommandName) {
 		return errors.New("missing \"" + parentCommandName + "\" slash command in registry (parent command needs to be registered in client before adding subcommands)")
 	}
@@ -395,7 +396,7 @@ func (client *Client) RegisterSubCommand(subCommand Command, parentCommandName s
 }
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
-func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
+func (client *BaseClient) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
 	for _, ID := range customIDs {
 		if client.staticComponents.Has(ID) {
 			return errors.New("client already has registered static component with custom ID = " + ID + " (custom id already in use)")
@@ -417,7 +418,7 @@ func (client *Client) RegisterComponent(customIDs []string, fn func(ComponentInt
 }
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving component interaction with matching custom id.
-func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) error {
+func (client *BaseClient) RegisterModal(customID string, fn func(ModalInteraction)) error {
 	if client.staticModals.Has(customID) {
 		return errors.New("client already has registered static modal with custom ID = " + customID + " (custom id already in use)")
 	}
@@ -431,11 +432,11 @@ func (client *Client) RegisterModal(customID string, fn func(ModalInteraction)) 
 	return nil
 }
 
-func (client *Client) FindCommand(cmdName string) (Command, bool) {
+func (client *BaseClient) FindCommand(cmdName string) (Command, bool) {
 	return client.commands.Get(cmdName)
 }
 
-func (client *Client) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelist []string, reverseMode bool) error {
+func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelist []string, reverseMode bool) error {
 	commands := parseCommandsForDiscordAPI(client.commands, whitelist, reverseMode)
 
 	if len(guildIDs) == 0 {
@@ -454,7 +455,7 @@ func (client *Client) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelist []
 	return nil
 }
 
-func (client *Client) handleInteraction(itx CommandInteraction) (CommandInteraction, Command, bool) {
+func (client *BaseClient) handleInteraction(itx CommandInteraction) (CommandInteraction, Command, bool) {
 	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == SUB_OPTION_TYPE {
 		finalName := itx.Data.Name + "@" + itx.Data.Options[0].Name
 		subCommand, available := client.commands.Get(finalName)

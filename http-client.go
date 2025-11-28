@@ -12,12 +12,12 @@ import (
 )
 
 type HTTPClient struct {
-	Client
+	BaseClient
 	PublicKey ed25519.PublicKey
 }
 
 type HTTPClientOptions struct {
-	ClientOptions
+	BaseClientOptions
 	PublicKey string
 	Trace     bool // Whether to enable basic logging for the client actions.
 }
@@ -29,7 +29,7 @@ func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
 	}
 
 	client := HTTPClient{
-		Client: NewClient(ClientOptions{
+		BaseClient: NewBaseClient(BaseClientOptions{
 			Token:                      opt.Token,
 			DefaultInteractionContexts: opt.DefaultInteractionContexts,
 			PreCommandHook:             opt.PreCommandHook,
@@ -75,7 +75,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 	// Optimization: Create a shallow copy of the client to inject a custom interactionResponder
 	// that captures the response channel for this specific request.
-	clientCopy := client.Client
+	clientCopy := client.BaseClient
 	interaction.Client = &clientCopy
 
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.

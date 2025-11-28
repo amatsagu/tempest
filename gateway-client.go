@@ -7,13 +7,13 @@ import (
 )
 
 type GatewayClient struct {
-	Client
+	BaseClient
 	Gateway            *ShardManager
 	customEventHandler func(shardID uint16, packet EventPacket)
 }
 
 type GatewayClientOptions struct {
-	ClientOptions
+	BaseClientOptions
 	PublicKey          string
 	Trace              bool // Whether to enable detailed logging for shard manager and basic client actions.
 	CustomEventHandler func(shardID uint16, packet EventPacket)
@@ -21,7 +21,7 @@ type GatewayClientOptions struct {
 
 func NewGatewayClient(opt GatewayClientOptions) GatewayClient {
 	client := GatewayClient{
-		Client: NewClient(ClientOptions{
+		BaseClient: NewBaseClient(BaseClientOptions{
 			Token:                      opt.Token,
 			DefaultInteractionContexts: opt.DefaultInteractionContexts,
 			PreCommandHook:             opt.PreCommandHook,
@@ -68,7 +68,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	}
 
 	interaction.ShardID = shardID
-	interaction.Client = &client.Client
+	interaction.Client = &client.BaseClient
 
 	switch interaction.Type {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
@@ -147,7 +147,7 @@ func (client *GatewayClient) commandInteractionHandler(interaction CommandIntera
 		return
 	}
 
-	itx.Client = &client.Client
+	itx.Client = &client.BaseClient
 	client.tracef("Received command interaction - moved to target command's handler.")
 
 	// Run command handler in goroutine
@@ -215,7 +215,7 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 	}
 
 	isQueued := client.queuedModals.Has(interaction.Data.CustomID)
-hasGlobal := client.modalHandler != nil
+	hasGlobal := client.modalHandler != nil
 
 	if isQueued || hasGlobal {
 		if isQueued {

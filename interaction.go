@@ -62,10 +62,10 @@ type Interaction struct {
 	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
 	// attachment_size_limit is also skipped - appears to have no use anywhere
 
-	Client    *Client `json:"-"`
-	ShardID   uint16  `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
-	responded bool    `json:"-"`
-	deferred  bool    `json:"-"`
+	Client    *BaseClient `json:"-"`
+	ShardID   uint16      `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	responded bool        `json:"-"`
+	deferred  bool        `json:"-"`
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
@@ -145,4 +145,3 @@ type Response struct {
 	Data  any          `json:"data,omitempty"`
 	Files []File       `json:"-"`
 }
-
