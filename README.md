@@ -73,7 +73,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
 
 There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTPS\**. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly reduced number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
 
-\** Since v2 - Tempest can also run same code over gateway, simply swap `HTTPClient` to `GatewayClient`. Your existing bot/app code should be backward compatible. This option exists for large Discord Applications that outgrow initial plans and now require more reliable connection / lower latency for its users. Check usage at `example/cmd/example-bot/main.go`.
+> \** Since v2 - Tempest can also run same code over gateway, simply swap `HTTPClient` to `GatewayClient`. Your existing bot/app code should be backward compatible. This option exists for large Discord Applications that outgrow initial plans and now require more reliable connection / lower latency for its users. Check usage at `example/cmd/example-bot/main.go`.
 
 
 
