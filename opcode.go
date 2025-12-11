@@ -1,0 +1,20 @@
+package tempest
+
+// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
+type Opcode uint8
+
+const (
+	DISPATCH_OPCODE Opcode = iota
+	HEARTBEAT_OPCODE
+	IDENTIFY_OPCODE
+	PRESENCE_UPDATE_OPCODE
+	VOICE_STATUS_UPDATE_OPCODE
+	_
+	RESUME_OPCODE
+	RECONNECT_OPCODE
+	REQUEST_GUILD_MEMBERS_OPCODE
+	INVALID_SESSION_OPCODE
+	HELLO_OPCODE
+	HEARTBEAT_ACK_OPCODE
+	REQUEST_SOUNDBOARD_SOUNDS_OPCODE Opcode = 31
+)

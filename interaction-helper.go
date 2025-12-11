@@ -62,39 +62,23 @@ func (itx CommandInteraction) ResolveAttachment(id Snowflake) Attachment {
 // Use to let user/member know that bot is processing command.
 // Make ephemeral = true to make notification visible only to target.
 func (itx *CommandInteraction) Defer(ephemeral bool) error {
-	var flags MessageFlags = 0
+	if itx.deferred || itx.responded {
+		return errors.New("interaction has already been responded to or deferred")
+	}
 
+	var flags MessageFlags = 0
 	if ephemeral {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	err := itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{Flags: flags},
 	})
-	if err != nil {
-		return err
-	}
-
-	// Send response via channel for fast HTTP return
-	if itx.responseChan != nil {
-		select {
-		case itx.responseChan <- body:
-			itx.deferred = true
-			return nil
-		default:
-			// Channel full, fall back to direct write
-		}
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	_, werr := itx.w.Write(body)
-
-	if werr == nil {
+	if err == nil {
 		itx.deferred = true
 	}
-
-	return werr
+	return err
 }
 
 // Acknowledges the interaction with a message. Set ephemeral = true to make message visible only to target.
@@ -103,48 +87,51 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	// If files are present, defer fast and then edit original with files
-	if len(files) > 0 {
-		if !itx.deferred && !itx.responded {
-			if derr := itx.Defer(ephemeral); derr != nil {
-				return derr
-			}
-		}
-		_, err := itx.Client.Rest.RequestWithFiles(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", reply, files)
-		return err
-	}
-
-	// If we've already responded once, send a follow-up
 	if itx.responded {
-		_, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, reply)
-		return err
+		return errors.New("interaction has already been responded to")
 	}
 
-	// First response goes through the initial HTTP response
-	body, err := json.Marshal(ResponseMessage{Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE, Data: &reply})
-	if err != nil {
-		return err
-	}
+	endpoint := "/webhooks/" + itx.ApplicationID.String() + "/" + itx.Token
 
-	// Send response via channel for fast HTTP return
-	if itx.responseChan != nil {
-		select {
-		case itx.responseChan <- body:
+	// If deferred, we must edit the original deferred response.
+	if itx.deferred {
+		_, err := itx.Client.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		if err == nil {
 			itx.responded = true
-			return nil
-		default:
-			// Channel full, fall back to direct write
 		}
+		return err
 	}
 
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	_, werr := itx.w.Write(body)
+	// For a new response, we can't send files with the initial callback.
+	// We must defer first, then patch.
+	if len(files) > 0 {
+		// Since we're about to respond, we can't use the regular defer which checks for prior responses.
+		// We manually call the responder with a defer type.
+		err := itx.Client.interactionResponder(itx.Interaction, Response{
+			Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+			Data: &ResponseMessageData{Flags: reply.Flags},
+		})
+		if err != nil {
+			return err
+		}
+		itx.deferred = true // Manually set state
 
-	if werr == nil {
+		_, err = itx.Client.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		if err == nil {
+			itx.responded = true
+		}
+		return err
+	}
+
+	// Standard, initial, file-less response.
+	err := itx.Client.interactionResponder(itx.Interaction, Response{
+		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
+		Data: &reply,
+	})
+	if err == nil {
 		itx.responded = true
 	}
-
-	return werr
+	return err
 }
 
 func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) error {
@@ -154,28 +141,10 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
-	body, err := json.Marshal(ResponseModal{Type: MODAL_RESPONSE_TYPE, Data: &modal})
-	if err != nil {
-		return err
-	}
-
-	// Send response via channel for fast HTTP return
-	if itx.responseChan != nil {
-		select {
-		case itx.responseChan <- body:
-			itx.responded = true
-			return nil
-		default:
-			// Channel full, fall back to direct write
-		}
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	_, werr := itx.w.Write(body)
-	if werr == nil {
-		itx.responded = true
-	}
-	return werr
+	return itx.Client.interactionResponder(itx.Interaction, Response{
+		Type: MODAL_RESPONSE_TYPE,
+		Data: &modal,
+	})
 }
 
 func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
@@ -223,6 +192,31 @@ func (itx CommandInteraction) SendLinearFollowUp(content string, ephemeral bool)
 	}, ephemeral)
 }
 
+func (itx CommandInteraction) SendFollowUpWithFiles(content ResponseMessageData, ephemeral bool, files []File) (Message, error) {
+	if ephemeral {
+		content.Flags |= EPHEMERAL_MESSAGE_FLAG
+	}
+
+	raw, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
+	if err != nil {
+		return Message{}, err
+	}
+
+	res := Message{}
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return Message{}, errors.New("failed to parse received data from discord")
+	}
+
+	return res, nil
+}
+
+func (itx CommandInteraction) SendLinearFollowUpWithFiles(content string, ephemeral bool, files []File) (Message, error) {
+	return itx.SendFollowUpWithFiles(ResponseMessageData{
+		Content: content,
+	}, ephemeral, files)
+}
+
 func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessageData) error {
 	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
@@ -242,9 +236,7 @@ func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
 // Warning! This method is only for handling auto complete interaction which is a part of command logic.
 // Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
 func (itx CommandInteraction) GetFocusedValue() (string, any) {
-	options := itx.Data.Options
-
-	for _, option := range options {
+	for _, option := range itx.Data.Options {
 		if option.Focused {
 			return option.Name, option.Value
 		}
@@ -255,17 +247,9 @@ func (itx CommandInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
-	body, err := json.Marshal(ResponseMessage{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 func (itx ComponentInteraction) AcknowledgeWithMessage(reply ResponseMessageData, ephemeral bool) error {
@@ -273,18 +257,10 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(reply ResponseMessageData
 		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
@@ -294,18 +270,10 @@ func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, eph
 }
 
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	body, err := json.Marshal(ResponseModal{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 // Returns value of any type. It will return empty string on no value or empty value.
@@ -329,17 +297,9 @@ func (itx ModalInteraction) GetInputValue(customID string) string {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ModalInteraction) Acknowledge() error {
-	body, err := json.Marshal(ResponseMessage{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData, ephemeral bool) error {
@@ -347,18 +307,10 @@ func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData,
 		response.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	body, err := json.Marshal(ResponseMessage{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &response,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 func (itx ModalInteraction) AcknowledgeWithLinearMessage(content string, ephemeral bool) error {
@@ -368,18 +320,10 @@ func (itx ModalInteraction) AcknowledgeWithLinearMessage(content string, ephemer
 }
 
 func (itx ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	body, err := json.Marshal(ResponseModal{
+	return itx.Client.interactionResponder(itx.Interaction, Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	itx.w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-	itx.w.Write(body)
-	return err
 }
 
 // Used to let user/member know that the bot is processing the modal submission,
@@ -398,6 +342,10 @@ func (itx ModalInteraction) Defer(ephemeral bool) error {
 			Flags: flags,
 		},
 	})
+
+	if err == nil {
+		itx.deferred = true
+	}
 
 	return err
 }

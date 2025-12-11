@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 
@@ -27,17 +26,15 @@ Current memory usage: **%.2fMB**
 Finished GC cycles: **%d**
 Goroutines: **%d**
 Uptime: **%s**
-Ping (to Discord API): **%dms**
 `,
 			mb(m.Alloc),
 			m.NumGC,
 			runtime.NumGoroutine(),
 			time.Since(startedAt).String(),
-			itx.Client.Ping().Milliseconds(),
 		)
 
 		itx.SendLinearReply(reply, false)
-		log.Println(time.Since(now).String())
+		itx.EditLinearReply(fmt.Sprintf("%s\nAPI Latency: **%s**", reply, time.Since(now).String()), false)
 	},
 }
 
