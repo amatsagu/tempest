@@ -52,6 +52,9 @@ func (m *HTTPClient) tracef(format string, v ...any) {
 	m.traceLogger.Printf("[(HTTP) CLIENT] "+format, v...)
 }
 
+// This handler already runs in dedicated goroutine (from std http server behavior).
+// Due to default HTTP server behavior, this goroutine cannot block for more than 3s,
+// to achieve that we use client interaction responder trick.
 func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
 	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
 	if !verified {
@@ -73,14 +76,13 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Optimization: Create a shallow copy of the client to inject a custom interactionResponder
+	// Create a shallow copy of the client to inject a custom interactionResponder
 	// that captures the response channel for this specific request.
 	clientCopy := client.BaseClient
 	interaction.Client = &clientCopy
 
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
 	responseCh := make(chan []byte, 1)
-
 	clientCopy.interactionResponder = func(itx *Interaction, resp Response) error {
 		body, err := json.Marshal(resp)
 		if err != nil {
@@ -107,7 +109,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 			return
 		}
 
-		client.commandInteractionHandler(CommandInteraction{
+		// Move to extra goroutine in case modal handler needs more than 3s.
+		go client.commandInteractionHandler(CommandInteraction{
 			Interaction: &interaction,
 			Data:        data,
 		}, responseCh)
@@ -121,7 +124,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 			return
 		}
 
-		client.componentInteractionHandler(ComponentInteraction{
+		// Move to extra goroutine in case modal handler needs more than 3s.
+		go client.componentInteractionHandler(ComponentInteraction{
 			Interaction: &interaction,
 			Data:        data,
 		}, responseCh)
@@ -162,7 +166,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 			return
 		}
 
-		client.modalInteractionHandler(ModalInteraction{
+		// Move to extra goroutine in case modal handler needs more than 3s.
+		go client.modalInteractionHandler(ModalInteraction{
 			Interaction: &interaction,
 			Data:        data,
 		}, responseCh)
@@ -183,32 +188,29 @@ func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
 }
 
 func (client *HTTPClient) commandInteractionHandler(interaction CommandInteraction, responseCh chan []byte) {
-	go func() {
-		itx, command, available := client.handleInteraction(interaction)
-		if !available {
-			client.tracef("Received command interaction but there's no matching command! (requested \"%s\")", interaction.Data.Name)
-			responseCh <- bodyUnknownCommandResponse
-			return
-		}
+	itx, command, available := client.handleInteraction(interaction)
+	if !available {
+		client.tracef("Received command interaction but there's no matching command! (requested \"%s\")", itx.Data.Name)
+		responseCh <- bodyUnknownCommandResponse
+		return
+	}
 
-		itx.Client = interaction.Client
-		client.tracef("Received command interaction - moved to target command's handler.")
+	client.tracef("Received command interaction - moved to target command's handler.")
 
-		if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
-			return
-		}
+	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
+		return
+	}
 
-		command.SlashCommandHandler(&itx)
+	command.SlashCommandHandler(&itx)
 
-		if client.postCommandHandler != nil {
-			client.postCommandHandler(command, &itx)
-		}
-	}()
+	if client.postCommandHandler != nil {
+		client.postCommandHandler(command, &itx)
+	}
 }
 
 func (client *HTTPClient) autoCompleteInteractionHandler(interaction CommandInteraction) []CommandOptionChoice {
 	itx, command, available := client.handleInteraction(interaction)
-	if !available {
+	if !available || command.AutoCompleteHandler == nil {
 		client.tracef("Dropped auto complete interaction. You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.")
 		return nil
 	}
@@ -220,7 +222,7 @@ func (client *HTTPClient) autoCompleteInteractionHandler(interaction CommandInte
 func (client *HTTPClient) componentInteractionHandler(interaction ComponentInteraction, responseCh chan []byte) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received component interaction with matching custom ID for static handler - moved to registered handler.")
-		go fn(interaction)
+		fn(interaction)
 		return
 	}
 
@@ -241,24 +243,22 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 
 		interaction.deferred = true
 
-		go func() {
-			if isQueued {
-				client.queuedComponents.mu.RLock()
-				if signalChan, ok := client.queuedComponents.cache[interaction.Data.CustomID]; ok {
-					select {
-					case signalChan <- &interaction:
-					default:
-					}
-					client.queuedComponents.mu.RUnlock()
-					return
+		if isQueued {
+			client.queuedComponents.mu.RLock()
+			if signalChan, ok := client.queuedComponents.cache[interaction.Data.CustomID]; ok {
+				select {
+				case signalChan <- &interaction:
+				default:
 				}
 				client.queuedComponents.mu.RUnlock()
+				return
 			}
+			client.queuedComponents.mu.RUnlock()
+		}
 
-			if client.componentHandler != nil {
-				client.componentHandler(&interaction)
-			}
-		}()
+		if client.componentHandler != nil {
+			client.componentHandler(&interaction)
+		}
 		return
 	}
 
@@ -268,7 +268,7 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, responseCh chan []byte) {
 	if fn, ok := client.staticModals.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received modal interaction with matching custom ID for static handler - moved to registered handler.")
-		go fn(interaction)
+		fn(interaction)
 		return
 	}
 
@@ -289,24 +289,22 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 
 		interaction.deferred = true
 
-		go func() {
-			if isQueued {
-				client.queuedModals.mu.RLock()
-				if signalChan, ok := client.queuedModals.cache[interaction.Data.CustomID]; ok {
-					select {
-					case signalChan <- &interaction:
-					default:
-					}
-					client.queuedModals.mu.RUnlock()
-					return
+		if isQueued {
+			client.queuedModals.mu.RLock()
+			if signalChan, ok := client.queuedModals.cache[interaction.Data.CustomID]; ok {
+				select {
+				case signalChan <- &interaction:
+				default:
 				}
 				client.queuedModals.mu.RUnlock()
+				return
 			}
+			client.queuedModals.mu.RUnlock()
+		}
 
-			if client.modalHandler != nil {
-				client.modalHandler(&interaction)
-			}
-		}()
+		if client.modalHandler != nil {
+			client.modalHandler(&interaction)
+		}
 		return
 	}
 

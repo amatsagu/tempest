@@ -3,7 +3,6 @@ package tempest
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -237,10 +236,7 @@ func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
 // Warning! This method is only for handling auto complete interaction which is a part of command logic.
 // Returns option name and its value of triggered option. Option name is always of string type but you'll need to check type of value.
 func (itx CommandInteraction) GetFocusedValue() (string, any) {
-	options := itx.Data.Options
-
-	fmt.Printf("%+v\n", itx.Data.Options)
-	for _, option := range options {
+	for _, option := range itx.Data.Options {
 		if option.Focused {
 			return option.Name, option.Value
 		}

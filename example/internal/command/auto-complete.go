@@ -1,8 +1,6 @@
 package command
 
 import (
-	"fmt"
-
 	tempest "github.com/amatsagu/tempest"
 )
 
@@ -33,9 +31,6 @@ var AutoComplete tempest.Command = tempest.Command{
 				Value: "third option",
 			},
 		}
-
-		fieldName, value := itx.GetFocusedValue()
-		fmt.Printf("Received autocomplete field \"%s\": %+v\n", fieldName, value)
 
 		// Do some logic that returns slice of choices...
 
