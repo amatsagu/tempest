@@ -105,7 +105,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		}
 
 		_, command, available := client.handleInteraction(cmdInteraction)
-		if !available {
+		if !available || command.AutoCompleteHandler == nil {
 			client.tracef("Dropped auto complete interaction. You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.")
 			return
 		}

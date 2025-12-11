@@ -3,6 +3,7 @@ package tempest
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -238,6 +239,7 @@ func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
 func (itx CommandInteraction) GetFocusedValue() (string, any) {
 	options := itx.Data.Options
 
+	fmt.Printf("%+v\n", itx.Data.Options)
 	for _, option := range options {
 		if option.Focused {
 			return option.Name, option.Value

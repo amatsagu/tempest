@@ -88,12 +88,12 @@ func main() {
 	log.Println("Creating new Tempest client...")
 
 	// Use proper context in real code, this is just an example!
-	// if err := startGateway(context.Background(), true); err != nil {
-	// 	log.Panicln(err)
-	// }
-
-	// Use http(s) reverse server for easy scalling, low maintenance costs, etc. (requires public ip and proper domain setup).
-	if err := startHTTP(os.Getenv("APP_ADDRESS"), true); err != nil {
+	if err := startGateway(context.Background(), false); err != nil {
 		log.Panicln(err)
 	}
+
+	// Use http(s) reverse server for easy scalling, low maintenance costs, etc. (requires public ip and proper domain setup).
+	// if err := startHTTP(os.Getenv("APP_ADDRESS"), true); err != nil {
+	// 	log.Panicln(err)
+	// }
 }
