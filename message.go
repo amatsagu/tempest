@@ -210,30 +210,30 @@ type EmbedProvider struct {
 
 // https://discord.com/developers/docs/resources/message#message-object-message-structure
 type Message struct {
-	ID                Snowflake           `json:"id"`
-	ChannelID         Snowflake           `json:"channel_id"`
-	Author            *User               `json:"author,omitempty"`
-	Content           string              `json:"content,omitempty"`
-	Timestamp         *time.Time          `json:"timestamp"`
-	EditedTimestamp   *time.Time          `json:"edited_timestamp,omitempty"`
-	TTS               bool                `json:"tts"`
-	MentionEveryone   bool                `json:"mention_everyone"`
-	Mentions          []User              `json:"mentions"`
-	MentionRoles      []Snowflake         `json:"mention_roles"`
-	MentionChannels   []ChannelMention    `json:"mention_channels,omitzero"`
-	Attachments       []Attachment        `json:"attachments"`
-	Embeds            []Embed             `json:"embeds"`
-	Reactions         []Reaction          `json:"reactions,omitzero"`
-	Pinned            bool                `json:"pinned"`
-	WebhookID         Snowflake           `json:"webhook_id,omitempty"`
-	Type              BitSet              `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
-	ApplicationID     Snowflake           `json:"application_id,omitempty"`
-	MessageReference  *MessageReference   `json:"message_reference,omitempty"`
-	Flags             MessageFlags        `json:"flags,omitempty"`
-	ReferencedMessage *Message            `json:"referenced_message,omitempty"`
-	Interaction       *MessageInteraction `json:"interaction,omitempty"`
-	Components        []LayoutComponent   `json:"components,omitzero"`
-	StickerItems      []StickerItem       `json:"sticker_items,omitzero"`
+	ID                  Snowflake                   `json:"id"`
+	ChannelID           Snowflake                   `json:"channel_id"`
+	Author              *User                       `json:"author,omitempty"`
+	Content             string                      `json:"content,omitempty"`
+	Timestamp           *time.Time                  `json:"timestamp"`
+	EditedTimestamp     *time.Time                  `json:"edited_timestamp,omitempty"`
+	TTS                 bool                        `json:"tts"`
+	MentionEveryone     bool                        `json:"mention_everyone"`
+	Mentions            []User                      `json:"mentions"`
+	MentionRoles        []Snowflake                 `json:"mention_roles"`
+	MentionChannels     []ChannelMention            `json:"mention_channels,omitzero"`
+	Attachments         []Attachment                `json:"attachments"`
+	Embeds              []Embed                     `json:"embeds"`
+	Reactions           []Reaction                  `json:"reactions,omitzero"`
+	Pinned              bool                        `json:"pinned"`
+	WebhookID           Snowflake                   `json:"webhook_id,omitempty"`
+	Type                BitSet                      `json:"type,omitempty"` // https://discord.com/developers/docs/resources/channel#message-object-message-types
+	ApplicationID       Snowflake                   `json:"application_id,omitempty"`
+	MessageReference    *MessageReference           `json:"message_reference,omitempty"`
+	Flags               MessageFlags                `json:"flags,omitempty"`
+	ReferencedMessage   *Message                    `json:"referenced_message,omitempty"`
+	InteractionMetadata *MessageInteractionMetadata `json:"interaction_metadata,omitempty"`
+	Components          []LayoutComponent           `json:"components,omitzero"`
+	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
 }
 
 // https://discord.com/developers/docs/resources/channel#message-reference-object-message-reference-structure
@@ -244,13 +244,13 @@ type MessageReference struct {
 	FailIfNotExists bool      `json:"fail_if_not_exists"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
-type MessageInteraction struct {
-	ID     Snowflake       `json:"id"`
-	Type   InteractionType `json:"type"`
-	Name   string          `json:"name"`
-	User   User            `json:"user"`
-	Member *Member         `json:"member,omitempty"`
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-application-command-interaction-metadata-structure
+type MessageInteractionMetadata struct {
+	ID              Snowflake       `json:"id"`
+	Type            InteractionType `json:"type"`
+	User            User            `json:"user"`
+	TargetUser      *User           `json:"target_user,omitempty"`
+	TargetMessageID Snowflake       `json:"target_message_id,omitempty"`
 }
 
 // https://discord.com/developers/docs/resources/channel#attachment-object
