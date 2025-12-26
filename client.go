@@ -403,7 +403,7 @@ func (client *BaseClient) RegisterComponent(customIDs []string, fn func(Componen
 		}
 
 		if client.queuedComponents.Has(ID) {
-			return errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use)")
+			return errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use elsewhere)")
 		}
 	}
 
@@ -424,11 +424,55 @@ func (client *BaseClient) RegisterModal(customID string, fn func(ModalInteractio
 	}
 
 	if client.queuedModals.Has(customID) {
-		return errors.New("client already has registered dynamic (queued) modal with custom ID = " + customID + " (custom id already in use)")
+		return errors.New("client already has registered dynamic (queued) modal with custom ID = " + customID + " (custom id already in use elsewhere)")
 	}
 
 	client.staticModals.Set(customID, fn)
 	client.tracef("Registered static modal handler for custom ID = %s", customID)
+	return nil
+}
+
+// Removes previously registered, static components that match any of provided custom IDs.
+func (client *BaseClient) DeleteComponent(customIDs []string) error {
+	for _, ID := range customIDs {
+		if !client.staticComponents.Has(ID) {
+			return errors.New("client has no tracking data about static component with custom ID = " + ID + " (custom id already in use)")
+		}
+
+		if client.queuedComponents.Has(ID) {
+			return errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use elsewhere)")
+		}
+	}
+
+	client.queuedComponents.mu.Lock()
+	for _, key := range customIDs {
+		delete(client.staticComponents.cache, key)
+	}
+	client.queuedComponents.mu.Unlock()
+
+	client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
+	return nil
+}
+
+// Removes previously registered, static modals that match any of provided custom IDs.
+func (client *BaseClient) DeleteModal(customIDs []string) error {
+	for _, ID := range customIDs {
+		if !client.staticModals.Has(ID) {
+			return errors.New("client has no tracking data about static modal with custom ID = " + ID + " (custom id already in use)")
+		}
+
+		if client.queuedModals.Has(ID) {
+			return errors.New("client already has registered dynamic (queued) modal with custom ID = " + ID + " (custom id already in use elsewhere)")
+		}
+	}
+
+	client.queuedComponents.mu.Lock()
+	for _, key := range customIDs {
+		delete(client.staticModals.cache, key)
+	}
+	client.queuedComponents.mu.Unlock()
+
+	client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
 	return nil
 }
 
