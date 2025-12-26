@@ -8,7 +8,7 @@ import (
 )
 
 var FetchUser tempest.Command = tempest.Command{
-	Name:        "fetch-user",
+	Name:        "user",
 	Description: "Tries to grab and display user data. It only works in guild channels.",
 	Options: []tempest.CommandOption{
 		{

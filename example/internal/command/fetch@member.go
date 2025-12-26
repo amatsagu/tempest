@@ -8,7 +8,7 @@ import (
 )
 
 var FetchMember tempest.Command = tempest.Command{
-	Name:        "fetch-member",
+	Name:        "member",
 	Description: "Tries to grab and display guild member data. It only works in guild channels.",
 	Options: []tempest.CommandOption{
 		{
