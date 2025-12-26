@@ -182,3 +182,12 @@ func (sm *SharedMap[K, V]) ExportValues() []V {
 	sm.mu.Unlock()
 	return res
 }
+
+// Runs provided function on every map entry.
+func (sm *SharedMap[K, V]) Apply(fn func(key K, value V)) {
+	sm.mu.Lock()
+	for key, value := range sm.cache {
+		fn(key, value)
+	}
+	sm.mu.Unlock()
+}
