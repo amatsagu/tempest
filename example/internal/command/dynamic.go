@@ -40,7 +40,7 @@ var Dynamic tempest.Command = tempest.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
 		defer cancel()
 
-		signalChan, cleanupFunc, err := itx.BaseClient().AwaitComponent([]string{uniqueButtonID})
+		signalChan, cleanupFunc, err := itx.BaseClient.AwaitComponent([]string{uniqueButtonID})
 		if err != nil {
 			log.Println("failed to create component listener:", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)

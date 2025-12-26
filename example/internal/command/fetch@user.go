@@ -27,7 +27,7 @@ var FetchUser tempest.Command = tempest.Command{
 				return
 			}
 
-			target, err = itx.BaseClient().FetchUser(targetID)
+			target, err = itx.BaseClient.FetchUser(targetID)
 			if err != nil {
 				log.Println("failed to fetch user data", err)
 				itx.SendLinearReply("Failed to fetch user data.", false)
