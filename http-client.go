@@ -76,15 +76,13 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Create a shallow copy of the client to inject a custom interactionResponder
-	// that captures the response channel for this specific request.
-	clientCopy := client
-	interaction.HTTPClient = clientCopy
+	interaction.BaseClient = client.BaseClient
+	interaction.HTTPClient = client
 
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
 	responseCh := make(chan []byte, 1)
-	clientCopy.interactionResponder = func(itx *Interaction, resp Response) error {
-		body, err := json.Marshal(resp)
+	interaction.responder = func(res Response) error {
+		body, err := json.Marshal(res)
 		if err != nil {
 			return err
 		}

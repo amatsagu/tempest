@@ -31,12 +31,6 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 		customEventHandler: opt.CustomEventHandler,
 	}
 
-	// Gateway always responds via rest api.
-	client.interactionResponder = func(itx *Interaction, resp Response) error {
-		_, err := client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", resp)
-		return err
-	}
-
 	client.Gateway = NewShardManager(opt.Token, opt.Trace, client.eventHandler)
 
 	if opt.Trace {
@@ -47,8 +41,8 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 	return &client
 }
 
-func (m *GatewayClient) tracef(format string, v ...any) {
-	m.traceLogger.Printf("[(GATEWAY) CLIENT] "+format, v...)
+func (client *GatewayClient) tracef(format string, v ...any) {
+	client.traceLogger.Printf("[(GATEWAY) CLIENT] "+format, v...)
 }
 
 // This handler already runs in dedicated goroutine (from shard).
@@ -66,8 +60,13 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		return
 	}
 
+	interaction.BaseClient = client.BaseClient
 	interaction.GatewayClient = client
 	interaction.ShardID = shardID
+	interaction.responder = func(res Response) error {
+		_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
+		return err
+	}
 
 	switch interaction.Type {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
@@ -146,7 +145,7 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 
 	client.tracef("Received slash command's auto complete interaction - moved to target (sub) command auto complete handler.")
 	choices := command.AutoCompleteHandler(itx)
-	err := itx.GatewayClient.interactionResponder(itx.Interaction, Response{
+	err := itx.responder(Response{
 		Type: AUTOCOMPLETE_RESPONSE_TYPE,
 		Data: &ResponseAutoCompleteData{
 			Choices: choices,
@@ -175,7 +174,7 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 			client.tracef("Received component interaction - moved to defined component handler.")
 		}
 
-		interaction.GatewayClient.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
 
 		if isQueued {
 			client.queuedComponents.mu.RLock()
@@ -216,7 +215,7 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 			client.tracef("Received modal interaction - moved to defined modal handler.")
 		}
 
-		interaction.GatewayClient.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
 
 		if isQueued {
 			client.queuedModals.mu.RLock()

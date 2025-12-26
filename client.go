@@ -29,8 +29,6 @@ type BaseClient struct {
 	componentHandler   func(itx *ComponentInteraction)
 	modalHandler       func(itx *ModalInteraction)
 
-	interactionResponder func(itx *Interaction, resp Response) error
-
 	queuedComponents *SharedMap[string, chan *ComponentInteraction]
 	queuedModals     *SharedMap[string, chan *ModalInteraction]
 }

@@ -24,7 +24,7 @@ type AvatarDecoration struct {
 }
 
 // Returns a direct url to targets's avatar decoration. It'll return empty string if target doesn't use avatar decoration.
-func (adc AvatarDecoration) DecorationURL() string {
+func (adc *AvatarDecoration) DecorationURL() string {
 	if adc.AssetHash == "" {
 		return ""
 	}
@@ -101,12 +101,12 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (user User) Mention() string {
+func (user *User) Mention() string {
 	return "<@" + user.ID.String() + ">"
 }
 
 // Returns a direct url to user's avatar. It'll return url to default Discord's avatar if targeted user don't use avatar.
-func (user User) AvatarURL() string {
+func (user *User) AvatarURL() string {
 	if user.AvatarHash == "" {
 		return DISCORD_CDN_URL + "/embed/avatars/" + strconv.FormatUint(uint64(user.ID>>22)%6, 10) + ".png"
 	}
@@ -119,7 +119,7 @@ func (user User) AvatarURL() string {
 }
 
 // Returns a direct url to user's banner. It'll return empty string if targeted user don't use avatar.
-func (user User) BannerURL() string {
+func (user *User) BannerURL() string {
 	if user.BannerHash == "" {
 		return ""
 	}
@@ -170,7 +170,7 @@ type Member struct {
 
 // Returns a direct url to members's guild specific avatar.
 // It'll return empty string if targeted member don't use custom avatar for that server.
-func (member Member) GuildAvatarURL() string {
+func (member *Member) GuildAvatarURL() string {
 	if member.GuildAvatarHash == "" {
 		return ""
 	}
@@ -188,7 +188,7 @@ func (member Member) GuildAvatarURL() string {
 
 // Returns a direct url to members's guild specific banner.
 // It'll return empty string if targeted member don't use custom banner for that server.
-func (member Member) GuildBannerURL() string {
+func (member *Member) GuildBannerURL() string {
 	if member.GuildBannerHash == "" {
 		return ""
 	}
@@ -220,12 +220,12 @@ type Role struct {
 	Flags           BitSet          `json:"flags"` // https://discord.com/developers/docs/topics/permissions#role-object-role-flags
 }
 
-func (role Role) Mention() string {
+func (role *Role) Mention() string {
 	return "<@&" + role.ID.String() + ">"
 }
 
 // Returns a direct url to role icon. It'll return empty string if there's no custom icon.
-func (role Role) IconURL() string {
+func (role *Role) IconURL() string {
 	if role.IconHash == "" {
 		return ""
 	}
