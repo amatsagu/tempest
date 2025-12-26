@@ -183,8 +183,8 @@ func (sm *SharedMap[K, V]) ExportValues() []V {
 	return res
 }
 
-// Runs provided function on every map entry.
-func (sm *SharedMap[K, V]) Apply(fn func(key K, value V)) {
+// Runs provided function on every map entry. Map contents stays locked for entire duration of this function call.
+func (sm *SharedMap[K, V]) ReadRange(fn func(key K, value V)) {
 	sm.mu.Lock()
 	for key, value := range sm.cache {
 		fn(key, value)
