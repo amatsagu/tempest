@@ -94,7 +94,7 @@ type Guild struct {
 }
 
 // Returns a direct url to guild icon. It'll return empty string if there's no custom icon.
-func (guild Guild) IconURL() string {
+func (guild *Guild) IconURL() string {
 	if guild.IconHash == "" {
 		return ""
 	}
@@ -107,7 +107,7 @@ func (guild Guild) IconURL() string {
 }
 
 // Returns a direct url to guild splash background. It'll return empty string if there's no custom splash bg.
-func (guild Guild) SplashURL() string {
+func (guild *Guild) SplashURL() string {
 	if guild.SplashHash == "" {
 		return ""
 	}
@@ -116,7 +116,7 @@ func (guild Guild) SplashURL() string {
 }
 
 // Returns a direct url to guild discovery splash background. It'll return empty string if there's no discovery splash bg.
-func (guild Guild) DiscoverySplashURL() string {
+func (guild *Guild) DiscoverySplashURL() string {
 	if guild.DiscoverySplashHash == "" {
 		return ""
 	}
@@ -125,7 +125,7 @@ func (guild Guild) DiscoverySplashURL() string {
 }
 
 // Returns a direct url to guild banner. It'll return empty string if there's no custom banner.
-func (guild Guild) BannerURL() string {
+func (guild *Guild) BannerURL() string {
 	if guild.BannerHash == "" {
 		return ""
 	}
