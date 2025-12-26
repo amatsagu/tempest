@@ -24,7 +24,7 @@
         <img src="https://img.shields.io/github/license/Amatsagu/tempest" alt="License">
     </a>
     <a href="https://github.com/amatsagu/tempest">
-        <img src="https://img.shields.io/maintenance/yes/2025" alt="Maintenance Status">
+        <img src="https://img.shields.io/maintenance/yes/2026" alt="Maintenance Status">
     </a>
     <a href="https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql">
         <img src="https://github.com/amatsagu/tempest/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master" alt="CodeQL">
