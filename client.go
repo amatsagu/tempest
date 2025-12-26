@@ -45,7 +45,7 @@ type BaseClientOptions struct {
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 }
 
-func NewBaseClient(opt BaseClientOptions) BaseClient {
+func NewBaseClient(opt BaseClientOptions) *BaseClient {
 	botUserID, err := extractUserIDFromToken(opt.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
@@ -56,7 +56,7 @@ func NewBaseClient(opt BaseClientOptions) BaseClient {
 		contexts = opt.DefaultInteractionContexts
 	}
 
-	return BaseClient{
+	return &BaseClient{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.Token),
 		traceLogger:        log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),

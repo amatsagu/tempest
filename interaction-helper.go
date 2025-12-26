@@ -6,6 +6,24 @@ import (
 	"net/http"
 )
 
+// Return base client from either HTTP or Gateway client depending what's available.
+func (itx Interaction) BaseClient() *BaseClient {
+	if itx.HTTPClient != nil {
+		return itx.HTTPClient.BaseClient
+	}
+
+	return itx.GatewayClient.BaseClient
+}
+
+// Return user data either from member or from user (depending if interaction was used in a server).
+func (itx Interaction) BaseUser() *User {
+	if itx.GuildID == 0 {
+		return itx.User
+	} else {
+		return itx.Member.User
+	}
+}
+
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
 func (itx CommandInteraction) GetOptionValue(name string) (any, bool) {
 	options := itx.Data.Options
@@ -71,7 +89,7 @@ func (itx *CommandInteraction) Defer(ephemeral bool) error {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	err := itx.Client.interactionResponder(itx.Interaction, Response{
+	err := itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{Flags: flags},
 	})
@@ -95,7 +113,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 
 	// If deferred, we must edit the original deferred response.
 	if itx.deferred {
-		_, err := itx.Client.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		_, err := itx.BaseClient().Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
 		if err == nil {
 			itx.responded = true
 		}
@@ -107,7 +125,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 	if len(files) > 0 {
 		// Since we're about to respond, we can't use the regular defer which checks for prior responses.
 		// We manually call the responder with a defer type.
-		err := itx.Client.interactionResponder(itx.Interaction, Response{
+		err := itx.BaseClient().interactionResponder(itx.Interaction, Response{
 			Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 			Data: &ResponseMessageData{Flags: reply.Flags},
 		})
@@ -116,7 +134,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 		}
 		itx.deferred = true // Manually set state
 
-		_, err = itx.Client.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		_, err = itx.BaseClient().Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
 		if err == nil {
 			itx.responded = true
 		}
@@ -124,7 +142,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 	}
 
 	// Standard, initial, file-less response.
-	err := itx.Client.interactionResponder(itx.Interaction, Response{
+	err := itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
 	})
@@ -141,7 +159,7 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -152,7 +170,7 @@ func (itx CommandInteraction) EditReply(content ResponseMessageData, ephemeral b
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
+	_, err := itx.BaseClient().Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
@@ -163,7 +181,7 @@ func (itx CommandInteraction) EditLinearReply(content string, ephemeral bool) er
 }
 
 func (itx CommandInteraction) DeleteReply() error {
-	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
+	_, err := itx.BaseClient().Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
 	return err
 }
 
@@ -172,7 +190,7 @@ func (itx CommandInteraction) SendFollowUp(content ResponseMessageData, ephemera
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.BaseClient().Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -197,7 +215,7 @@ func (itx CommandInteraction) SendFollowUpWithFiles(content ResponseMessageData,
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.Client.Rest.RequestWithFiles(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
+	raw, err := itx.BaseClient().Rest.RequestWithFiles(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
 	if err != nil {
 		return Message{}, err
 	}
@@ -218,7 +236,7 @@ func (itx CommandInteraction) SendLinearFollowUpWithFiles(content string, epheme
 }
 
 func (itx CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessageData) error {
-	_, err := itx.Client.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.BaseClient().Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
@@ -229,7 +247,7 @@ func (itx CommandInteraction) EditLinearFollowUp(messageID Snowflake, content st
 }
 
 func (itx CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
-	_, err := itx.Client.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
+	_, err := itx.BaseClient().Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
 	return err
 }
 
@@ -247,7 +265,7 @@ func (itx CommandInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ComponentInteraction) Acknowledge() error {
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 }
@@ -257,7 +275,7 @@ func (itx ComponentInteraction) AcknowledgeWithMessage(reply ResponseMessageData
 		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
 	})
@@ -270,7 +288,7 @@ func (itx ComponentInteraction) AcknowledgeWithLinearMessage(content string, eph
 }
 
 func (itx ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -297,7 +315,7 @@ func (itx ModalInteraction) GetInputValue(customID string) string {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx ModalInteraction) Acknowledge() error {
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 }
@@ -307,7 +325,7 @@ func (itx ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData,
 		response.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &response,
 	})
@@ -320,7 +338,7 @@ func (itx ModalInteraction) AcknowledgeWithLinearMessage(content string, ephemer
 }
 
 func (itx ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	return itx.Client.interactionResponder(itx.Interaction, Response{
+	return itx.BaseClient().interactionResponder(itx.Interaction, Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -336,7 +354,7 @@ func (itx ModalInteraction) Defer(ephemeral bool) error {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.Client.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	_, err := itx.BaseClient().Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Flags: flags,
@@ -357,7 +375,7 @@ func (itx ModalInteraction) SendFollowUp(content ResponseMessageData, ephemeral 
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.Client.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.BaseClient().Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}

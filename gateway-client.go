@@ -7,7 +7,7 @@ import (
 )
 
 type GatewayClient struct {
-	BaseClient
+	*BaseClient
 	Gateway            *ShardManager
 	customEventHandler func(shardID uint16, packet EventPacket)
 }
@@ -18,7 +18,7 @@ type GatewayClientOptions struct {
 	CustomEventHandler func(shardID uint16, packet EventPacket)
 }
 
-func NewGatewayClient(opt GatewayClientOptions) GatewayClient {
+func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 	client := GatewayClient{
 		BaseClient: NewBaseClient(BaseClientOptions{
 			Token:                      opt.Token,
@@ -44,7 +44,7 @@ func NewGatewayClient(opt GatewayClientOptions) GatewayClient {
 		client.tracef("Gateway Client tracing enabled.")
 	}
 
-	return client
+	return &client
 }
 
 func (m *GatewayClient) tracef(format string, v ...any) {
@@ -66,8 +66,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		return
 	}
 
+	interaction.GatewayClient = client
 	interaction.ShardID = shardID
-	interaction.Client = &client.BaseClient
 
 	switch interaction.Type {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
@@ -146,7 +146,7 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 
 	client.tracef("Received slash command's auto complete interaction - moved to target (sub) command auto complete handler.")
 	choices := command.AutoCompleteHandler(itx)
-	err := itx.Client.interactionResponder(itx.Interaction, Response{
+	err := itx.GatewayClient.interactionResponder(itx.Interaction, Response{
 		Type: AUTOCOMPLETE_RESPONSE_TYPE,
 		Data: &ResponseAutoCompleteData{
 			Choices: choices,
@@ -175,7 +175,7 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 			client.tracef("Received component interaction - moved to defined component handler.")
 		}
 
-		interaction.Client.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		interaction.GatewayClient.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
 
 		if isQueued {
 			client.queuedComponents.mu.RLock()
@@ -216,7 +216,7 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 			client.tracef("Received modal interaction - moved to defined modal handler.")
 		}
 
-		interaction.Client.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		interaction.GatewayClient.interactionResponder(interaction.Interaction, Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
 
 		if isQueued {
 			client.queuedModals.mu.RLock()

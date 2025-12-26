@@ -28,6 +28,7 @@ func loadCommands(client *tempest.BaseClient) {
 	client.RegisterSubCommand(command.FetchMember, "fetch")
 	client.RegisterSubCommand(command.FetchUser, "fetch")
 	client.RegisterCommand(command.MemoryUsage)
+	client.RegisterCommand(command.Ping)
 	client.RegisterCommand(command.Modal)
 	client.RegisterCommand(command.SendFile)
 	client.RegisterCommand(command.Static)
@@ -56,7 +57,7 @@ func startGateway(ctx context.Context, trace bool) error {
 		},
 	})
 
-	loadCommands(&client.BaseClient)
+	loadCommands(client.BaseClient)
 
 	// Spawn recommended amount of shards for your bot/app.
 	// You may specify your own intents and then listen to custom events to handle them yourself.
@@ -73,7 +74,7 @@ func startHTTP(addr string, trace bool) error {
 		PublicKey: os.Getenv("DISCORD_PUBLIC_KEY"),
 	})
 
-	loadCommands(&client.BaseClient)
+	loadCommands(client.BaseClient)
 
 	http.HandleFunc("POST /", client.DiscordRequestHandler)
 	return http.ListenAndServe(addr, nil)

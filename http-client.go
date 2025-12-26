@@ -12,7 +12,7 @@ import (
 )
 
 type HTTPClient struct {
-	BaseClient
+	*BaseClient
 	PublicKey ed25519.PublicKey
 }
 
@@ -22,7 +22,7 @@ type HTTPClientOptions struct {
 	Trace     bool // Whether to enable basic logging for the client actions.
 }
 
-func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
+func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 	discordPublicKey, err := hex.DecodeString(opt.PublicKey)
 	if err != nil {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
@@ -45,7 +45,7 @@ func NewHTTPClient(opt HTTPClientOptions) HTTPClient {
 		client.tracef("HTTP Client tracing enabled.")
 	}
 
-	return client
+	return &client
 }
 
 func (m *HTTPClient) tracef(format string, v ...any) {
@@ -78,8 +78,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 	// Create a shallow copy of the client to inject a custom interactionResponder
 	// that captures the response channel for this specific request.
-	clientCopy := client.BaseClient
-	interaction.Client = &clientCopy
+	clientCopy := client
+	interaction.HTTPClient = clientCopy
 
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
 	responseCh := make(chan []byte, 1)

@@ -27,7 +27,7 @@ var FetchMember tempest.Command = tempest.Command{
 				return
 			}
 
-			target, err = itx.Client.FetchMember(itx.GuildID, targetID)
+			target, err = itx.BaseClient().FetchMember(itx.GuildID, targetID)
 			if err != nil {
 				log.Println("failed to fetch member", err)
 				itx.SendLinearReply("Failed to fetch member data.", false)

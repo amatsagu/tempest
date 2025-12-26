@@ -18,10 +18,7 @@ var MemoryUsage tempest.Command = tempest.Command{
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
-		//runtime.GC()
-
-		now := time.Now()
-		reply := fmt.Sprintf(`
+		itx.SendLinearReply(fmt.Sprintf(`
 Current memory usage: **%.2fMB**
 Finished GC cycles: **%d**
 Goroutines: **%d**
@@ -31,10 +28,7 @@ Uptime: **%s**
 			m.NumGC,
 			runtime.NumGoroutine(),
 			time.Since(startedAt).String(),
-		)
-
-		itx.SendLinearReply(reply, false)
-		itx.EditLinearReply(fmt.Sprintf("%s\nAPI Latency: **%s**", reply, time.Since(now).String()), false)
+		), false)
 	},
 }
 
