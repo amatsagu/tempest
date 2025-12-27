@@ -57,7 +57,8 @@ func NewShardManager(token string, trace bool, eventHandler func(shardID uint16,
 //
 // Note: Normally Manager will ask Discord API for recommended number of shards and use that.
 // You can manually change that by setting forcedShardCount param to value larger than 0.
-func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16) error {
+// There's also option to provide on ready function callback to detect once all shards are online.
+func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16, readyCallback func()) error {
 	m.mu.Lock()
 	if len(m.shards) != 0 {
 		m.mu.Unlock()
@@ -116,6 +117,10 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 	}
 
 	spawnWg.Wait() // Wait for all shards to be launched before proceeding.
+	if readyCallback != nil {
+		readyCallback()
+	}
+
 	m.tracef("All shards have been launched.")
 	m.wg.Wait() // This makes Start() a blocking function.
 	m.tracef("All shards have stopped.")
@@ -228,13 +233,34 @@ func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *Update
 	}
 }
 
-// Returns ping value for each created shard (calculated based on shard heartbeat).
-func (m *ShardManager) ShardLatencies() []time.Duration {
-	res := make([]time.Duration, len(m.shards))
+// Returns shard status and ping value (calculated based on shard heartbeat) for each started shard.
+func (m *ShardManager) AllShardDetails() ([]ShardState, []time.Duration) {
+	m.tracef("Requested for ping value from all shards.")
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	resState := make([]ShardState, len(m.shards))
+	resPing := make([]time.Duration, len(m.shards))
 	for _, shard := range m.shards {
-		res[shard.ID] = shard.Ping()
+		resState[shard.ID] = shard.Status()
+		resPing[shard.ID] = shard.Ping()
 	}
-	return res
+	return resState, resPing
+}
+
+// Returns shard status and ping value (calculated based on shard heartbeat).
+func (m *ShardManager) ShardDetails(shardID uint16) (ShardState, time.Duration, error) {
+	m.tracef("Requested shard state & ping value from %d shard.", shardID)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if int(shardID) > len(m.shards)-1 {
+		m.tracef("Requested invalid shard ID - request for %d shard details will return error.", shardID)
+		return OFFLINE_SHARD_STATE, 0, errors.New("invalid shard ID")
+	}
+
+	s := m.shards[shardID]
+	return s.Status(), s.Ping(), nil
 }
 
 func (m *ShardManager) tracef(format string, v ...any) {
