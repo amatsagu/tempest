@@ -61,7 +61,9 @@ func startGateway(ctx context.Context, trace bool) error {
 
 	// Spawn recommended amount of shards for your bot/app.
 	// You may specify your own intents and then listen to custom events to handle them yourself.
-	return client.Gateway.Start(ctx, 0, 0)
+	return client.Gateway.Start(ctx, 0, 0, func() {
+		log.Println("All shard(s) started! Application is ready.")
+	})
 }
 
 // Example implementation how to run app as reverse http server for easy scalling.

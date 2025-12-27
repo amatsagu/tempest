@@ -1,6 +1,7 @@
 package command
 
 import (
+	"log"
 	"time"
 
 	tempest "github.com/amatsagu/tempest"
@@ -12,18 +13,14 @@ var Ping tempest.Command = tempest.Command{
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		// When using gateway client, calculate average latency from all active shards.
 		if itx.GatewayClient != nil {
-			latencies := itx.GatewayClient.Gateway.ShardLatencies()
-			var finalLatency time.Duration
-
-			// Add latency value from all inside of all shards.
-			for _, dur := range latencies {
-				finalLatency += dur
+			_, latency, err := itx.GatewayClient.Gateway.ShardDetails(itx.ShardID)
+			if err != nil {
+				log.Println("failed to fetch current shard details", err)
+				itx.SendLinearReply("Failed to fetch shard details.", false)
+				return
 			}
 
-			// Divide by number of shards.
-			finalLatency /= time.Duration(len(latencies))
-
-			itx.SendLinearReply("Current, average latency: "+finalLatency.String(), false)
+			itx.SendLinearReply("Current, average latency: "+latency.String(), false)
 			return
 		}
 
