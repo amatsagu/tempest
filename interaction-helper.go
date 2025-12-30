@@ -6,7 +6,12 @@ import (
 	"net/http"
 )
 
-// Return user data either from member or from user (depending if interaction was used in a server).
+// Returns whether this interaction already was responded to.
+func (itx *Interaction) Responded() bool {
+	return itx.responded
+}
+
+// Returns user data either from member or from user (depending if interaction was used in a server).
 func (itx *Interaction) BaseUser() *User {
 	if itx.GuildID == 0 {
 		return itx.User
