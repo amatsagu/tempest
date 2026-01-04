@@ -7,15 +7,15 @@ import (
 type EventName string
 
 const (
-	READY_EVENT              EventName = "READY"
-	RESUMED_EVENT            EventName = "RESUMED"
-	INTERACTION_CREATE_EVENT EventName = "INTERACTION_CREATE"
-	MESSAGE_CREATE           EventName = "MESSAGE_CREATE"
-	MESSAGE_UPDATE           EventName = "MESSAGE_UPDATE"
-	MESSAGE_DELETE           EventName = "MESSAGE_DELETE"
-	MESSAGE_DELETE_BULK      EventName = "MESSAGE_DELETE_BULK"
-	GUILD_CREATE             EventName = "GUILD_CREATE"
-	GUILD_DELETE             EventName = "GUILD_DELETE"
+	READY_EVENT               EventName = "READY"
+	RESUMED_EVENT             EventName = "RESUMED"
+	INTERACTION_CREATE_EVENT  EventName = "INTERACTION_CREATE"
+	MESSAGE_CREATE_EVENT      EventName = "MESSAGE_CREATE"
+	MESSAGE_UPDATE_EVENT      EventName = "MESSAGE_UPDATE"
+	MESSAGE_DELETE_EVENT      EventName = "MESSAGE_DELETE"
+	MESSAGE_DELETE_BULK_EVENT EventName = "MESSAGE_DELETE_BULK"
+	GUILD_CREATE_EVENT        EventName = "GUILD_CREATE"
+	GUILD_DELETE_EVENT        EventName = "GUILD_DELETE"
 )
 
 // In modern discord docs - otherwise known as generic gateway event.
