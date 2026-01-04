@@ -144,3 +144,20 @@ type UpdatePresenceEventData struct {
 	Emoji      Emoji      `json:"emoji"`
 	AFK        bool       `json:"afk"`
 }
+
+// Represents the payload for the GUILD_CREATE gateway event.
+// It embeds the base Guild object and adds fields unique to this event.
+//
+// https://discord.com/developers/docs/events/gateway-events#guild-create
+type CreateGuildEventData struct {
+	*Guild
+
+	JoinedAt    *time.Time   `json:"joined_at"`
+	Large       bool        `json:"large"`
+	Unavailable bool        `json:"unavailable,omitempty"`
+	MemberCount uint32      `json:"member_count"`
+
+	Members  []Member         `json:"members"`
+	Channels []PartialChannel `json:"channels"`
+	Threads  []PartialChannel  `json:"threads"`
+}
