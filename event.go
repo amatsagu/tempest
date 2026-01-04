@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"encoding/json"
+	"time"
 )
 
 type EventName string
