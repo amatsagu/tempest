@@ -29,17 +29,21 @@ func (s Snowflake) CreationTimestamp() time.Time {
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
-	b := strconv.FormatUint(uint64(s), 10)
-	return json.Marshal(b)
+	return json.Marshal(strconv.FormatUint(uint64(s), 10))
 }
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {
-	str, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
+	if len(b) == 4 && b[0] == 'n' { // "null"
+		*s = 0
+		return nil
 	}
 
-	i, err := strconv.ParseUint(str, 10, 64)
+	// Trim quotes without allocation
+	if b[0] == '"' && b[len(b)-1] == '"' {
+		b = b[1:len(b)-1]
+	}
+
+	i, err := strconv.ParseUint(string(b), 10, 64)
 	if err != nil {
 		return err
 	}
