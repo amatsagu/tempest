@@ -14,6 +14,8 @@ const (
 	MESSAGE_UPDATE           EventName = "MESSAGE_UPDATE"
 	MESSAGE_DELETE           EventName = "MESSAGE_DELETE"
 	MESSAGE_DELETE_BULK      EventName = "MESSAGE_DELETE_BULK"
+	GUILD_CREATE             EventName = "GUILD_CREATE"
+	GUILD_DELETE             EventName = "GUILD_DELETE"
 )
 
 // In modern discord docs - otherwise known as generic gateway event.
