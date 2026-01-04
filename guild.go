@@ -60,8 +60,8 @@ type Guild struct {
 	ID                          Snowflake                `json:"id"`
 	Name                        string                   `json:"name"`
 	IconHash                    string                   `json:"icon,omitempty"`             // Hash code used to access guild's icon. Call Guild.IconURL to get direct url.
-	SplashHash                  string                   `json:"splash,omitempty"`           // Hash code used to access guild's splash background. Call Guild.SplashURL to get direct url.
-	DiscoverySplashHash         string                   `json:"discovery_splash,omitempty"` // Hash code used to access guild's special discovery splash background (only available for "DISCOVERABLE" guilds). Call Guild.DiscoverySplashURL to get direct url.
+	SplashHash                  NullableString           `json:"splash,omitempty"`           // Hash code used to access guild's splash background. Call Guild.SplashURL to get direct url.
+	DiscoverySplashHash         NullableString           `json:"discovery_splash,omitempty"` // Hash code used to access guild's special discovery splash background (only available for "DISCOVERABLE" guilds). Call Guild.DiscoverySplashURL to get direct url.
 	OwnerID                     Snowflake                `json:"owner_id"`
 	AFKChannelID                Snowflake                `json:"afk_channel_id,omitempty"`
 	AFKChannelTimeout           uint32                   `json:"afk_timeout"`                 // AFK timeout value in seconds.
@@ -77,11 +77,11 @@ type Guild struct {
 	SystemChannelID             Snowflake                `json:"system_channel_id,omitempty"`
 	SystemChannelFlags          SystemChannelFlags       `json:"system_channel_flags"`
 	RulesChannelID              Snowflake                `json:"rules_channel_id,omitempty"`
-	MaxPresences                uint32                   `json:"max_presences,omitempty"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
+	MaxPresences                NullableUint32           `json:"max_presences,omitempty"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
 	MaxMembers                  uint32                   `json:"max_members,omitempty"`
-	VanityURL                   string                   `json:"vanity_url_code,omitempty"`
-	Description                 string                   `json:"description,omitempty"`
-	BannerHash                  string                   `json:"banner,omitempty"` // Hash code used to access guild's icon. Call Guild.BannerURL to get direct url.
+	VanityURL                   NullableString           `json:"vanity_url_code,omitempty"`
+	Description                 NullableString           `json:"description,omitempty"`
+	BannerHash                  NullableString           `json:"banner,omitempty"` // Hash code used to access guild's icon. Call Guild.BannerURL to get direct url.
 	PremiumTier                 PremiumTier              `json:"premium_tier"`
 	PremiumSubscriptionCount    uint32                   `json:"premium_subscription_count,omitempty"` // The number of boosts this guild currently has.
 	PrefferedLocale             string                   `json:"preferred_locale,omitempty"`
