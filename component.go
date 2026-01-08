@@ -111,6 +111,8 @@ type SelectMenuOption struct {
 	Default     bool   `json:"default"`               // Whether to render this option as selected by default.
 }
 
+// Component responsible for presenting a text input field to the user. 
+//
 // https://discord.com/developers/docs/components/reference#text-input
 type TextInputComponent struct {
 	Type        ComponentType  `json:"type"` // Always = TEXT_INPUT_COMPONENT_TYPE (4)
@@ -122,7 +124,7 @@ type TextInputComponent struct {
 	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
 	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
 	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component, max 4000 characters.
-	Placeholder string         `json:"placeholder,omitempty"` // max: 100 characters
+	Placeholder string         `json:"placeholder,omitempty"` // The placeholder text to display when no text is present; max: 100 characters
 }
 
 // This component can be used for User, Role, Mentionable & Channel select components.
@@ -240,5 +242,5 @@ type LabelComponent struct {
 	ID          uint32              `json:"id,omitempty"`          // Optional identifier for component
 	Label       string              `json:"label"`                 // Text that appears on the label, max 45 characters.
 	Description string              `json:"description,omitempty"` // Additional description for the label, max 100 characters.
-	Component   LabelChildComponent `json:"component"`             // The component within the label/
+	Component   LabelChildComponent `json:"component"`             // The component within the label.
 }
