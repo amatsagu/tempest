@@ -36,26 +36,30 @@ type ResponseModal struct {
 	Data *ResponseModalData `json:"data,omitempty"`
 }
 
+// ResponseMessageData represents the data sent for message responses.
+//
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
 type ResponseMessageData struct {
-	TTS             bool              `json:"tts"`
-	Content         string            `json:"content,omitempty"`
-	Embeds          []Embed           `json:"embeds,omitzero"`
-	AllowedMentions *AllowedMentions  `json:"allowed_mentions,omitempty"`
-	Flags           MessageFlags      `json:"flags,omitempty"`
-	Components      []LayoutComponent `json:"components,omitzero"`
-	Attachments     []Attachment      `json:"attachments,omitzero"`
-	Poll            *Poll             `json:"poll,omitempty"`
+	TTS             bool               `json:"tts"`                        // Whether the message is a TTS message.
+	Content         string             `json:"content,omitempty"`          // The message content.
+	Embeds          []Embed            `json:"embeds,omitzero"`            // Up to 10 rich content embeds to include.
+	AllowedMentions *AllowedMentions   `json:"allowed_mentions,omitempty"` // Data pertaining to the message's allowed mentions.
+	Flags           MessageFlags       `json:"flags,omitempty"`            // A bitfield containing message flags. Note that only [SUPPRESS_EMBEDS_MESSAGE_FLAG], [EPHEMERAL_MESSAGE_FLAG], [IS_COMPONENTS_V2_MESSAGE_FLAG], [IS_VOICE_MESSAGE_MESSAGE_FLAG] and [SUPPRESS_NOTIFICATIONS_MESSAGE_FLAG] can be set.
+	Components      []MessageComponent `json:"components,omitzero"`        // Any components to send alongside the message.
+	Attachments     []Attachment       `json:"attachments,omitzero"`       // Any attachments to send alongside the message.
+	Poll            *Poll              `json:"poll,omitempty"`             // An optional poll to include in the message.
 }
 
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-autocomplete
 type ResponseAutoCompleteData struct {
-	Choices []CommandOptionChoice `json:"choices,omitzero"`
+	Choices []CommandOptionChoice `json:"choices,omitzero"` // The autocomplete choices to show, up to 25 in total.
 }
 
+// ResponseModalData represents the data sent for modal responses.
+//
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
-	CustomID   string            `json:"custom_id"`
-	Title      string            `json:"title"`
-	Components []LayoutComponent `json:"components,omitzero"`
+	CustomID   string           `json:"custom_id"`           // A custom identifier for the modal. Must be non-empty and between 1-100 characters.
+	Title      string           `json:"title"`               // The title of the modal. Must be under 45 characters.
+	Components []ModalComponent `json:"components,omitzero"` // 1-5 components that will make up the modal's body. Will be returned populated with user-filled data.
 }

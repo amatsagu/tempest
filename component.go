@@ -117,12 +117,12 @@ type TextInputComponent struct {
 	ID          uint32         `json:"id,omitempty"`
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
-	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on the Label component
+	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on a Label component insteda
 	MinLength   uint16         `json:"min_length,omitempty"`  // min: 0, max: 4000 characters
 	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
 	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
-	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component, max 4000 characters.
-	Placeholder string         `json:"placeholder,omitempty"` // max: 100 characters
+	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component, max 4000 characters. Once the user submits the modal, this will be populated with their input.
+	Placeholder string         `json:"placeholder,omitempty"` // Placeholder text to display when the input is empty. Max: 100 characters
 }
 
 // This component can be used for User, Role, Mentionable & Channel select components.
@@ -229,16 +229,19 @@ type ContainerComponent struct {
 	Type        ComponentType  `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (15)
 	ID          uint32         `json:"id,omitempty"`
 	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator or file.
-	AccentColor uint32         `json:"accent_color,omitempty"` // Color for the accent on the container as RGB from 0x000000 to 0xFFFFFF.
+	AccentColor uint32         `json:"accent_color,omitempty"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
 	Spoiler     bool           `json:"spoiler"`
 }
 
-// A top-level layout component that wraps modal components with text as a label and optional description
+// A top-level layout component that wraps certain components with text and an optional description.
+//
+// Only valid inside modals.
+//
 // https://discord.com/developers/docs/components/reference#label
 type LabelComponent struct {
 	Type        ComponentType       `json:"type"`                  // Always = LABEL_COMPONENT_TYPE (18)
 	ID          uint32              `json:"id,omitempty"`          // Optional identifier for component
 	Label       string              `json:"label"`                 // Text that appears on the label, max 45 characters.
 	Description string              `json:"description,omitempty"` // Additional description for the label, max 100 characters.
-	Component   LabelChildComponent `json:"component"`             // The component within the label/
+	Component   LabelChildComponent `json:"component"`             // The component within the label.
 }

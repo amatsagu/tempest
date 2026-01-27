@@ -20,7 +20,9 @@ func (msd *ModalInteractionData) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		if cmp, ok := parsed.(LayoutComponent); ok {
+		// TODO: This should always implement ModalComponent, as Discord silently rejects payloads with invalid components;
+		// we should arguably return an error of some sort here
+		if cmp, ok := parsed.(ModalComponent); ok {
 			msd.Components = append(msd.Components, cmp)
 		}
 	}

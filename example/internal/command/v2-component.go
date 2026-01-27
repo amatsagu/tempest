@@ -12,7 +12,7 @@ var V2Component tempest.Command = tempest.Command{
 	SlashCommandHandler: func(itx *tempest.CommandInteraction) {
 		err := itx.SendReply(tempest.ResponseMessageData{
 			Flags: tempest.IS_COMPONENTS_V2_MESSAGE_FLAG,
-			Components: []tempest.LayoutComponent{
+			Components: []tempest.MessageComponent{
 				tempest.SectionComponent{
 					Type: tempest.SECTION_COMPONENT_TYPE,
 					Components: []tempest.TextDisplayComponent{

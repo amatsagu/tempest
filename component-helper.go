@@ -1,12 +1,13 @@
 package tempest
 
-// Scans components you may have received from component or modal interaction and returns first interactive component that satisfies filter function.
+// FindInteractiveComponent recursively scans the components array for the first interactive component that satisfies filter.
 //
-// Warning - This function may work recursively for deeply nested components & uses type casting so it's not exactly light to use everywhere.
-// Try using it only for massive interactions and do manual check for interactions with just 1 or 2 attached interactive components.
+// Warning - This function can traverse arbitrarily deep nested component trees & uses frequent type assertions, reducing overall performance.
+// Prefer checking individual components for interactions with smaller numbers of components.
 func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](components []CC, filter func(T) bool) (T, bool) {
 	var zero T
 
+	// TODO: Can this use a type switch?
 	for _, cmp := range components {
 		switch cmp._kind() {
 		case BUTTON_COMPONENT_TYPE,

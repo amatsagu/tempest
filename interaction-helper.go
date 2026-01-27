@@ -155,6 +155,7 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
+	// TODO: Add validation for modal data (1-5 components, title length, non-empty customID)
 	return itx.responder(Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
@@ -290,18 +291,28 @@ func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) e
 	})
 }
 
-// Returns value of any type. It will return empty string on no value or empty value.
+// GetInputValue retrieves the contents of the first [TextInputComponent] with the given customID,
+// possibly nested inside a [LabelComponent].
+//
+// If no such component exists, an empty string is returned instead.
 func (itx *ModalInteraction) GetInputValue(customID string) string {
-	rows := itx.Data.Components
-	if len(rows) == 0 {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetInputValue was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
 		return ""
 	}
 
-	for _, row := range rows {
-		for _, component := range row.(ActionRowComponent).Components {
-			scmp := component.(TextInputComponent)
-			if scmp.CustomID == customID {
-				return scmp.Value
+	for _, row := range itx.Data.Components {
+		if input, ok := row.(TextInputComponent); ok && input.CustomID == customID {
+			return input.Value
+		}
+
+		if label, ok := row.(LabelComponent); ok {
+			if input, ok := label.Component.(TextInputComponent); ok && input.CustomID == customID {
+				return input.Value
 			}
 		}
 	}

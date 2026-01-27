@@ -212,13 +212,13 @@ type EmbedProvider struct {
 type Message struct {
 	ID                  Snowflake                   `json:"id"`
 	ChannelID           Snowflake                   `json:"channel_id"`
-	Author              *User                       `json:"author,omitempty"`
-	Content             string                      `json:"content,omitempty"`
+	Author              *User                       `json:"author,omitempty"`  // The author of this message.
+	Content             string                      `json:"content,omitempty"` // The message's content.
 	Timestamp           *time.Time                  `json:"timestamp"`
 	EditedTimestamp     *time.Time                  `json:"edited_timestamp,omitempty"`
-	TTS                 bool                        `json:"tts"`
-	MentionEveryone     bool                        `json:"mention_everyone"`
-	Mentions            []User                      `json:"mentions"`
+	TTS                 bool                        `json:"tts"`              // Whether this was a TTS message.
+	MentionEveryone     bool                        `json:"mention_everyone"` // Whether this message mentions everyone.
+	Mentions            []User                      `json:"mentions"`         // All users specifically mentioned in the message.
 	MentionRoles        []Snowflake                 `json:"mention_roles"`
 	MentionChannels     []ChannelMention            `json:"mention_channels,omitzero"`
 	Attachments         []Attachment                `json:"attachments"`
@@ -232,7 +232,7 @@ type Message struct {
 	Flags               MessageFlags                `json:"flags,omitempty"`
 	ReferencedMessage   *Message                    `json:"referenced_message,omitempty"`
 	InteractionMetadata *MessageInteractionMetadata `json:"interaction_metadata,omitempty"`
-	Components          []LayoutComponent           `json:"components,omitzero"`
+	Components          []MessageComponent          `json:"components,omitzero"` // All components included in the message.
 	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
 }
 
