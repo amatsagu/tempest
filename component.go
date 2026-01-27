@@ -111,6 +111,8 @@ type SelectMenuOption struct {
 	Default     bool   `json:"default"`               // Whether to render this option as selected by default.
 }
 
+// Component responsible for presenting a text input field to the user.
+//
 // https://discord.com/developers/docs/components/reference#text-input
 type TextInputComponent struct {
 	Type        ComponentType  `json:"type"` // Always = TEXT_INPUT_COMPONENT_TYPE (4)
@@ -121,8 +123,8 @@ type TextInputComponent struct {
 	MinLength   uint16         `json:"min_length,omitempty"`  // min: 0, max: 4000 characters
 	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
 	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
-	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component, max 4000 characters. Once the user submits the modal, this will be populated with their input.
-	Placeholder string         `json:"placeholder,omitempty"` // Placeholder text to display when the input is empty. Max: 100 characters
+	Value       string         `json:"value,omitempty"`       // Pre-filled value for this component; max 4000 characters. Once the user submits the modal, this will be populated with their input.
+	Placeholder string         `json:"placeholder,omitempty"` // Placeholder text to display when no text is present. Max: 100 characters
 }
 
 // This component can be used for User, Role, Mentionable & Channel select components.
