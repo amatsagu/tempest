@@ -28,7 +28,7 @@ type ShardManager struct {
 }
 
 // Creates a new gateway connection manager.
-// Set trace to true to enable detailed logging for the manager & all shards under it control.
+// Set trace to true to enable detailed logging for the manager & all shards under its control.
 func NewShardManager(token string, trace bool, eventHandler func(shardID uint16, packet EventPacket)) *ShardManager {
 	m := &ShardManager{
 		token:        token,

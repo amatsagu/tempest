@@ -19,7 +19,7 @@ var Dynamic tempest.Command = tempest.Command{
 
 		msg := tempest.ResponseMessageData{
 			Content: "Click below button *(only you can do it)*:",
-			Components: []tempest.LayoutComponent{
+			Components: []tempest.MessageComponent{
 				tempest.ActionRowComponent{
 					Type: tempest.ACTION_ROW_COMPONENT_TYPE,
 					Components: []tempest.InteractiveComponent{
