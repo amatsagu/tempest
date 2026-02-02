@@ -57,7 +57,7 @@ const (
 type ActionRowComponent struct {
 	Type       ComponentType          `json:"type"` // Always = ACTION_ROW_COMPONENT_TYPE (1)
 	ID         uint32                 `json:"id,omitempty"`
-	Components []InteractiveComponent `json:"components"` // Up to 5 interactive button components or a single select component
+	Components []ActionRowChildComponent `json:"components"` // Up to 5 interactive [ButtonComponent]s or a single [SelectComponent]
 }
 
 // https://discord.com/developers/docs/components/reference#anatomy-of-a-component
@@ -84,6 +84,11 @@ type ButtonComponent struct {
 	Disabled bool          `json:"disabled"`
 }
 
+// A StringSelectComponent is an interactive component that allows users to select one or more provided options.
+//
+// String Selects are available in both messages and modals, but
+// must be placed inside an [ActionRowComponent]/[LabelComponent] respectively.
+//
 // https://discord.com/developers/docs/components/reference#string-select
 type StringSelectComponent struct {
 	Type        ComponentType      `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3). For responses, only provided for modal interactions
@@ -226,13 +231,16 @@ type SeparatorComponent struct {
 	Spacing uint8         `json:"spacing,omitempty"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
 }
 
+// A ContainerComponent is a top-level layout component that offers the ability to visually encapsulate a collection of components
+// with an optional accent color bar.
+//
 // https://discord.com/developers/docs/components/reference#container-container-structure
 type ContainerComponent struct {
-	Type        ComponentType  `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (15)
-	ID          uint32         `json:"id,omitempty"`
-	Components  []AnyComponent `json:"components,omitzero"`    // Components of the type action row, text display, section, media gallery, separator or file.
-	AccentColor uint32         `json:"accent_color,omitempty"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
-	Spoiler     bool           `json:"spoiler"`
+	Type        ComponentType             `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (15)
+	ID          uint32                    `json:"id,omitempty"`
+	Components  []ContainerChildComponent `json:"components,omitzero"`    // Child components to nest within the container.
+	AccentColor uint32                    `json:"accent_color,omitempty"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
+	Spoiler     bool                      `json:"spoiler"`
 }
 
 // A top-level layout component that wraps certain components with text and an optional description.

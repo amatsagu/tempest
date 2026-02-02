@@ -24,6 +24,22 @@ type LabelChildComponent interface {
 	_lblcmp()
 }
 
+// ContainerChildComponent represents components that can be used as the child of a [ContainerComponent].
+//
+// Currently valid types: [ActionRowComponent], [TextDisplayComponent], [SectionComponent], [MediaGalleryComponent], [SeparatorComponent] and [FileComponent].
+type ContainerChildComponent interface {
+	AnyComponent
+	_containercmp()
+}
+
+// ActionRowChildComponent represents components that can be used inside an [ActionRowComponent].
+//
+// Currently valid types: [ButtonComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
+type ActionRowChildComponent interface {
+	AnyComponent
+	_arowcmp()
+}
+
 // ModalComponent represents components that can be used inside the top level of modals, such as Text Displays and Labels.
 //
 // See https://discord.com/developers/docs/components/reference#component-object-component-types for a complete list of valid types.
@@ -32,7 +48,7 @@ type ModalComponent interface {
 	_modalcmp()
 }
 
-// MessageComponent represents components that can be used inside the top level of messages, such as Action Rows and Buttons.
+// MessageComponent represents components that can be used inside the top level of messages, such as Action Rows and Sections.
 //
 // See https://discord.com/developers/docs/components/reference#component-object-component-types for a complete list of valid types.
 type MessageComponent interface {
@@ -63,10 +79,10 @@ type ContentComponent interface {
 	_ccmp()
 }
 
-// AccessoryComponent is a special subset of components that can be used as an accessory inside SectionComponent.
+// AccessoryComponent is a special subset of components that can be used as [SectionComponent] accessories.
 // Only one accessory is allowed per section.
 //
-// Currently valid types: ButtonComponent & ThumbnailComponent.
+// Currently valid types: [ButtonComponent] & [ThumbnailComponent].
 //
 // https://discord.com/developers/docs/components/reference#section-section-structure
 type AccessoryComponent interface {
@@ -77,17 +93,16 @@ type AccessoryComponent interface {
 func (cmp ActionRowComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ActionRowComponent) _lcmp()               {}
 func (cmp ActionRowComponent) _messagecmp()         {}
+func (cmp ActionRowComponent) _containercmp()       {}
 
 func (cmp ButtonComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ButtonComponent) _icmp()               {}
 func (cmp ButtonComponent) _acmp()               {}
-func (cmp ButtonComponent) _messagecmp()         {}
 
 func (cmp StringSelectComponent) _kind() ComponentType { return cmp.Type }
 func (cmp StringSelectComponent) _icmp()               {}
 func (cmp StringSelectComponent) _lblcmp()             {}
-func (cmp StringSelectComponent) _messagecmp()         {}
-func (cmp StringSelectComponent) _modalcmp()           {}
+func (cmp StringSelectComponent) _arowcmp()           {}
 
 func (cmp TextInputComponent) _kind() ComponentType { return cmp.Type }
 func (cmp TextInputComponent) _icmp()               {}
@@ -102,11 +117,13 @@ func (cmp SelectComponent) _modalcmp()           {}
 func (cmp SectionComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SectionComponent) _lcmp()               {}
 func (cmp SectionComponent) _messagecmp()         {}
+func (cmp SectionComponent) _containercmp()       {}
 
 func (cmp TextDisplayComponent) _kind() ComponentType { return cmp.Type }
 func (cmp TextDisplayComponent) _ccmp()               {}
 func (cmp TextDisplayComponent) _messagecmp()         {}
 func (cmp TextDisplayComponent) _modalcmp()           {}
+func (cmp TextDisplayComponent) _containercmp()       {}
 
 func (cmp ThumbnailComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ThumbnailComponent) _ccmp()               {}
@@ -116,14 +133,17 @@ func (cmp ThumbnailComponent) _messagecmp()         {}
 func (cmp MediaGalleryComponent) _kind() ComponentType { return cmp.Type }
 func (cmp MediaGalleryComponent) _ccmp()               {}
 func (cmp MediaGalleryComponent) _messagecmp()         {}
+func (cmp MediaGalleryComponent) _containercmp()       {}
 
 func (cmp FileComponent) _kind() ComponentType { return cmp.Type }
 func (cmp FileComponent) _ccmp()               {}
 func (cmp FileComponent) _messagecmp()         {}
+func (cmp FileComponent) _containercmp()       {}
 
 func (cmp SeparatorComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SeparatorComponent) _lcmp()               {}
 func (cmp SeparatorComponent) _messagecmp()         {}
+func (cmp SeparatorComponent) _containercmp()       {}
 
 func (cmp ContainerComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ContainerComponent) _lcmp()               {}
