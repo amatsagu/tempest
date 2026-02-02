@@ -40,7 +40,7 @@ func (s *Snowflake) UnmarshalJSON(b []byte) error {
 
 	// Trim quotes without allocation
 	if b[0] == '"' && b[len(b)-1] == '"' {
-		b = b[1:len(b)-1]
+		b = b[1 : len(b)-1]
 	}
 
 	i, err := strconv.ParseUint(string(b), 10, 64)

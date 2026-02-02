@@ -19,7 +19,7 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 				}
 			}
 		case SectionComponent:
-			// Only button is InteractiveComponent for Accessory type.
+			// Only valid interactive component inside section accessories are buttons
 			if c.Accessory._kind() == THUMBNAIL_COMPONENT_TYPE {
 				continue
 			}
