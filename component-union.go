@@ -91,7 +91,6 @@ type ActionRowChildComponent interface {
 	_arowcmp()
 }
 
-
 // AccessoryComponent is a special subset of components that can be used as [SectionComponent] accessories.
 // Only one accessory is allowed per section.
 //
