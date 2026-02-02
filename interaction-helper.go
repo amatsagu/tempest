@@ -291,8 +291,7 @@ func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) e
 	})
 }
 
-// GetInputValue retrieves the contents of the first [TextInputComponent] with the given customID,
-// possibly nested inside a [LabelComponent].
+// GetInputValue retrieves the contents of the first [TextInputComponent] within a [LabelComponent] with the given customID,
 //
 // If no such component exists, an empty string is returned instead.
 func (itx *ModalInteraction) GetInputValue(customID string) string {
@@ -306,10 +305,6 @@ func (itx *ModalInteraction) GetInputValue(customID string) string {
 	}
 
 	for _, row := range itx.Data.Components {
-		if input, ok := row.(TextInputComponent); ok && input.CustomID == customID {
-			return input.Value
-		}
-
 		if label, ok := row.(LabelComponent); ok {
 			if input, ok := label.Component.(TextInputComponent); ok && input.CustomID == customID {
 				return input.Value

@@ -16,7 +16,7 @@ var Static tempest.Command = tempest.Command{
 			Components: []tempest.MessageComponent{
 				tempest.ActionRowComponent{
 					Type: tempest.ACTION_ROW_COMPONENT_TYPE,
-					Components: []tempest.InteractiveComponent{
+					Components: []tempest.ActionRowChildComponent{
 						tempest.ButtonComponent{
 							Type:     tempest.BUTTON_COMPONENT_TYPE,
 							CustomID: "button-hello",
