@@ -53,6 +53,8 @@ const (
 	CHANNEL_DEFAULT_VALUE DefaultValueType = "channel"
 )
 
+// An ActionRowComponent groups other related components within a message or modal.
+//
 // https://discord.com/developers/docs/components/reference#action-row-action-row-structure
 type ActionRowComponent struct {
 	Type       ComponentType             `json:"type"` // Always = ACTION_ROW_COMPONENT_TYPE (1)
@@ -108,6 +110,8 @@ type StringSelectComponent struct {
 	Values        []string      `json:"values,omitzero"`          // This field is ignored and provided by the API as part of the response.
 }
 
+// A SelectMenuOption represents a single option within a [StringSelectComponent].
+//
 // https://discord.com/developers/docs/components/reference#string-select-select-option-structure
 type SelectMenuOption struct {
 	Label       string `json:"label"`                 // Text label that appears on the option label, max 80 characters.
@@ -155,8 +159,6 @@ type SelectComponent struct {
 	MinValues     uint8                `json:"min_values,omitempty"`    // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25
 	MaxValues     uint8                `json:"max_values,omitempty"`    // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25
 	Disabled      bool                 `json:"disabled"`                // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
-
-	// TODO: Add Required field used in modals
 }
 
 // https://discord.com/developers/docs/components/reference#user-select-select-default-value-structure
