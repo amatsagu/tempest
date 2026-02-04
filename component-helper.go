@@ -5,7 +5,6 @@ package tempest
 // Warning - This function can traverse arbitrarily deep nested component trees & uses frequent type assertions, reducing overall performance.
 // Prefer checking individual components for interactions with smaller numbers of components.
 func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](components []CC, filter func(T) bool) (component T, found bool) {
-	// TODO: Can this use a type switch?
 	for _, cmp := range components {
 		switch c := any(cmp).(type) {
 		case T:
