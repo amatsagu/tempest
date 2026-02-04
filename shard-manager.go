@@ -268,7 +268,7 @@ func (m *ShardManager) tracef(format string, v ...any) {
 }
 
 func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {
-	req, err := http.NewRequest(http.MethodGet, DISCORD_API_URL+"/gateway/bot", nil)
+	req, err := http.NewRequest(http.MethodGet, DiscordAPIBaseURL()+"/gateway/bot", nil)
 	if err != nil {
 		return nil, err
 	}

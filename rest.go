@@ -92,7 +92,7 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 			body.Seek(0, io.SeekStart)
 		}
 
-		req, err := http.NewRequest(method, DISCORD_API_URL+route, body)
+		req, err := http.NewRequest(method, DiscordAPIBaseURL()+route, body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}

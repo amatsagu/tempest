@@ -100,10 +100,10 @@ func (guild *Guild) IconURL() string {
 	}
 
 	if strings.HasPrefix(guild.IconHash, "a_") {
-		return DISCORD_CDN_URL + "/icons/" + guild.ID.String() + "/" + guild.IconHash + ".gif"
+		return DiscordCDNBaseURL() + "/icons/" + guild.ID.String() + "/" + guild.IconHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/icons/" + guild.ID.String() + "/" + guild.IconHash
+	return DiscordCDNBaseURL() + "/icons/" + guild.ID.String() + "/" + guild.IconHash
 }
 
 // Returns a direct url to guild splash background. It'll return empty string if there's no custom splash bg.
@@ -112,7 +112,7 @@ func (guild *Guild) SplashURL() string {
 		return ""
 	}
 
-	return DISCORD_CDN_URL + "/splashes/" + guild.ID.String() + "/" + guild.SplashHash
+	return DiscordCDNBaseURL() + "/splashes/" + guild.ID.String() + "/" + guild.SplashHash
 }
 
 // Returns a direct url to guild discovery splash background. It'll return empty string if there's no discovery splash bg.
@@ -121,7 +121,7 @@ func (guild *Guild) DiscoverySplashURL() string {
 		return ""
 	}
 
-	return DISCORD_CDN_URL + "/discovery-splashes/" + guild.ID.String() + "/" + guild.DiscoverySplashHash
+	return DiscordCDNBaseURL() + "/discovery-splashes/" + guild.ID.String() + "/" + guild.DiscoverySplashHash
 }
 
 // Returns a direct url to guild banner. It'll return empty string if there's no custom banner.
@@ -131,8 +131,8 @@ func (guild *Guild) BannerURL() string {
 	}
 
 	if strings.HasPrefix(guild.BannerHash, "a_") {
-		return DISCORD_CDN_URL + "/banners/" + guild.ID.String() + "/" + guild.BannerHash + ".gif"
+		return DiscordCDNBaseURL() + "/banners/" + guild.ID.String() + "/" + guild.BannerHash + ".gif"
 	}
 
-	return DISCORD_CDN_URL + "/banners/" + guild.ID.String() + "/" + guild.BannerHash
+	return DiscordCDNBaseURL() + "/banners/" + guild.ID.String() + "/" + guild.BannerHash
 }
