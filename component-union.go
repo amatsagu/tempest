@@ -8,41 +8,38 @@ package tempest
 //
 // Avoid using this interface directly;
 // instead look at its child interfaces -
-// [MessageComponent], [ModalComponent], [LayoutComponent], [InteractiveComponent], [ContentComponent] and [AccessoryComponent].
+// [MessageComponent], [ModalComponent], [InteractiveComponent], [LabelChildComponent], etc.
 type AnyComponent interface {
 	_kind() ComponentType
 }
 
-// LabelChildComponent represents components that can be used as the child of a [LabelComponent].
-// Only one child component is allowed per label.
+// MessageComponent represents components that can be used inside the top level of messages,
+// such as [ActionRowComponent] and [SectionComponent]s.
 //
-// Currently valid types: [TextInputComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
+// A list of all valid types can be found on [Discord's website],
+// though this interface intentionally excludes certain components that cannot appear by themselves (such as [SelectComponent]s).
 //
-// https://discord.com/developers/docs/components/reference#label-label-child-components
-type LabelChildComponent interface {
-	AnyComponent
-	_lblcmp()
-}
-
-// ModalComponent represents components that can be used inside the top level of modals, such as Text Displays and Labels.
-//
-// See https://discord.com/developers/docs/components/reference#component-object-component-types for a complete list of valid types.
-type ModalComponent interface {
-	AnyComponent
-	_modalcmp()
-}
-
-// MessageComponent represents components that can be used inside the top level of messages, such as Action Rows and Buttons.
-//
-// See https://discord.com/developers/docs/components/reference#component-object-component-types for a complete list of valid types.
+// [Discord's website]: https://discord.com/developers/docs/components/reference#component-object-component-types
 type MessageComponent interface {
 	AnyComponent
 	_messagecmp()
 }
 
+// ModalComponent represents components that can be used inside the top level of modals,
+// such as [TextDisplayComponent]s and [LabelComponent]s.
+//
+// A list of all valid types can be found on [Discord's website],
+// though this interface intentionally excludes certain components that cannot appear by themselves (such as [SelectComponent]s).
+//
+// [Discord's website]: https://discord.com/developers/docs/components/reference#component-object-component-types
+type ModalComponent interface {
+	AnyComponent
+	_modalcmp()
+}
+
 // LayoutComponent represents message layout containers like Action Rows, Sections, Separators & Containers.
 //
-// These are used to control the final look of your custom message/embed.
+// These are used to control the final look of your custom message/modal.
 type LayoutComponent interface {
 	AnyComponent
 	_lcmp()
@@ -63,10 +60,41 @@ type ContentComponent interface {
 	_ccmp()
 }
 
-// AccessoryComponent is a special subset of components that can be used as an accessory inside SectionComponent.
+// LabelChildComponent represents components that can be used as the child of a [LabelComponent].
+// Only one child component is allowed per label.
+//
+// Currently valid types: [TextInputComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
+//
+// https://discord.com/developers/docs/components/reference#label-label-child-components
+type LabelChildComponent interface {
+	AnyComponent
+	_lblcmp()
+}
+
+// ContainerChildComponent represents components that can be used as the child of a [ContainerComponent].
+//
+// Currently valid types: [ActionRowComponent], [TextDisplayComponent], [SectionComponent], [MediaGalleryComponent], [SeparatorComponent] and [FileComponent].
+//
+// https://discord.com/developers/docs/components/reference#container-container-child-components
+type ContainerChildComponent interface {
+	AnyComponent
+	_containercmp()
+}
+
+// ActionRowChildComponent represents components that can be used inside an [ActionRowComponent].
+//
+// Currently valid types: [ButtonComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
+//
+// https://discord.com/developers/docs/components/reference#action-row-action-row-child-components
+type ActionRowChildComponent interface {
+	AnyComponent
+	_arowcmp()
+}
+
+// AccessoryComponent is a special subset of components that can be used as [SectionComponent] accessories.
 // Only one accessory is allowed per section.
 //
-// Currently valid types: ButtonComponent & ThumbnailComponent.
+// Currently valid types: [ButtonComponent] & [ThumbnailComponent].
 //
 // https://discord.com/developers/docs/components/reference#section-section-structure
 type AccessoryComponent interface {
@@ -77,53 +105,56 @@ type AccessoryComponent interface {
 func (cmp ActionRowComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ActionRowComponent) _lcmp()               {}
 func (cmp ActionRowComponent) _messagecmp()         {}
+func (cmp ActionRowComponent) _containercmp()       {}
 
 func (cmp ButtonComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ButtonComponent) _icmp()               {}
 func (cmp ButtonComponent) _acmp()               {}
-func (cmp ButtonComponent) _messagecmp()         {}
+func (cmp ButtonComponent) _arowcmp()            {}
 
 func (cmp StringSelectComponent) _kind() ComponentType { return cmp.Type }
 func (cmp StringSelectComponent) _icmp()               {}
 func (cmp StringSelectComponent) _lblcmp()             {}
-func (cmp StringSelectComponent) _messagecmp()         {}
-func (cmp StringSelectComponent) _modalcmp()           {}
+func (cmp StringSelectComponent) _arowcmp()            {}
 
 func (cmp TextInputComponent) _kind() ComponentType { return cmp.Type }
 func (cmp TextInputComponent) _icmp()               {}
 func (cmp TextInputComponent) _lblcmp()             {}
-func (cmp TextInputComponent) _modalcmp()           {}
 
 func (cmp SelectComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SelectComponent) _icmp()               {}
-func (cmp SelectComponent) _messagecmp()         {}
-func (cmp SelectComponent) _modalcmp()           {}
+func (cmp SelectComponent) _lblcmp()             {}
+func (cmp SelectComponent) _arowcmp()            {}
 
 func (cmp SectionComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SectionComponent) _lcmp()               {}
 func (cmp SectionComponent) _messagecmp()         {}
+func (cmp SectionComponent) _containercmp()       {}
 
 func (cmp TextDisplayComponent) _kind() ComponentType { return cmp.Type }
 func (cmp TextDisplayComponent) _ccmp()               {}
 func (cmp TextDisplayComponent) _messagecmp()         {}
 func (cmp TextDisplayComponent) _modalcmp()           {}
+func (cmp TextDisplayComponent) _containercmp()       {}
 
 func (cmp ThumbnailComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ThumbnailComponent) _ccmp()               {}
 func (cmp ThumbnailComponent) _acmp()               {}
-func (cmp ThumbnailComponent) _messagecmp()         {}
 
 func (cmp MediaGalleryComponent) _kind() ComponentType { return cmp.Type }
 func (cmp MediaGalleryComponent) _ccmp()               {}
 func (cmp MediaGalleryComponent) _messagecmp()         {}
+func (cmp MediaGalleryComponent) _containercmp()       {}
 
 func (cmp FileComponent) _kind() ComponentType { return cmp.Type }
 func (cmp FileComponent) _ccmp()               {}
 func (cmp FileComponent) _messagecmp()         {}
+func (cmp FileComponent) _containercmp()       {}
 
 func (cmp SeparatorComponent) _kind() ComponentType { return cmp.Type }
 func (cmp SeparatorComponent) _lcmp()               {}
 func (cmp SeparatorComponent) _messagecmp()         {}
+func (cmp SeparatorComponent) _containercmp()       {}
 
 func (cmp ContainerComponent) _kind() ComponentType { return cmp.Type }
 func (cmp ContainerComponent) _lcmp()               {}

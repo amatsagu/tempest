@@ -143,7 +143,7 @@ func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		if cmp, ok := parsed.(InteractiveComponent); ok {
+		if cmp, ok := parsed.(ActionRowChildComponent); ok {
 			c.Components = append(c.Components, cmp)
 		}
 	}
@@ -170,7 +170,9 @@ func (c *ContainerComponent) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		c.Components = append(c.Components, parsed)
+		if cmp, ok := parsed.(ContainerChildComponent); ok {
+			c.Components = append(c.Components, cmp)
+		}
 	}
 
 	raw.Components = nil
