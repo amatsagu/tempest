@@ -291,7 +291,7 @@ func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) e
 	})
 }
 
-// GetInputValue retrieves the contents of the first [TextInputComponent] within a [LabelComponent] with the given customID,
+// GetInputValue retrieves the contents of the first [TextInputComponent] inside the modal (at any depth) with the given customID.
 //
 // If no such component exists, an empty string is returned instead.
 func (itx *ModalInteraction) GetInputValue(customID string) string {
@@ -304,6 +304,7 @@ func (itx *ModalInteraction) GetInputValue(customID string) string {
 		return ""
 	}
 
+	// Currently, text inputs can only legally be placed inside LabelComponents, so we only need to check there
 	for _, row := range itx.Data.Components {
 		if label, ok := row.(LabelComponent); ok {
 			if input, ok := label.Component.(TextInputComponent); ok && input.CustomID == customID {
