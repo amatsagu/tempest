@@ -3,6 +3,7 @@ package tempest
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 )
 
 type GatewayClient struct {
@@ -31,11 +32,14 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 		customEventHandler: opt.CustomEventHandler,
 	}
 
-	client.Gateway = NewShardManager(opt.Token, opt.Trace, client.eventHandler, client.traceLogger)
-
 	if opt.Trace {
+		if client.traceLogger.Writer() == nil {
+			client.traceLogger.SetOutput(os.Stdout)
+		}
 		client.tracef("Gateway Client tracing enabled.")
 	}
+
+	client.Gateway = NewShardManager(opt.Token, opt.Trace, client.eventHandler, client.traceLogger)
 
 	return &client
 }

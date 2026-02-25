@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -41,6 +42,9 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 	}
 
 	if opt.Trace {
+		if client.traceLogger.Writer() == nil {
+			client.traceLogger.SetOutput(os.Stdout)
+		}
 		client.tracef("HTTP Client tracing enabled.")
 	}
 

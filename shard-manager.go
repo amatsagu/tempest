@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -42,6 +43,9 @@ func NewShardManager(token string, trace bool, eventHandler func(shardID uint16,
 	}
 
 	if trace {
+		if logger.Writer() == nil {
+			logger.SetOutput(os.Stdout)
+		}
 		m.tracef("Shard Manager tracing enabled.")
 	}
 
