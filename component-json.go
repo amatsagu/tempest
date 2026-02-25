@@ -97,6 +97,30 @@ func UnmarshalComponent(data []byte) (AnyComponent, error) {
 			return nil, err
 		}
 		return cmp, nil
+	case FILE_UPLOAD_COMPONENT_TYPE:
+		var cmp FileUploadComponent
+		if err := json.Unmarshal(data, &cmp); err != nil {
+			return nil, err
+		}
+		return cmp, nil
+	case RADIO_GROUP_COMPONENT_TYPE:
+		var cmp RadioGroupComponent
+		if err := json.Unmarshal(data, &cmp); err != nil {
+			return nil, err
+		}
+		return cmp, nil
+	case CHECKBOX_GROUP_COMPONENT_TYPE:
+		var cmp CheckboxGroupComponent
+		if err := json.Unmarshal(data, &cmp); err != nil {
+			return nil, err
+		}
+		return cmp, nil
+	case CHECKBOX_COMPONENT_TYPE:
+		var cmp CheckboxComponent
+		if err := json.Unmarshal(data, &cmp); err != nil {
+			return nil, err
+		}
+		return cmp, nil
 	}
 
 	return nil, fmt.Errorf("unknown component type: %d", partial.Type)

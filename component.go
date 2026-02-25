@@ -1,6 +1,6 @@
 package tempest
 
-// https://discord.com/developers/docs/components/reference#button-button-styles
+// https://docs.discord.com/developers/components/reference#button-button-styles
 type ButtonStyle uint8
 
 const (
@@ -14,7 +14,7 @@ const (
 
 type ComponentType uint8
 
-// https://discord.com/developers/docs/interactions/message-components#component-object-component-types
+// https://docs.discord.com/developers/components/reference#component-object
 const (
 	ACTION_ROW_COMPONENT_TYPE         ComponentType = iota + 1 // Layout component for Messages
 	BUTTON_COMPONENT_TYPE                                      // Interactive component for Messages
@@ -34,9 +34,14 @@ const (
 	_                                                          //
 	CONTAINER_COMPONENT_TYPE                                   // Layout component for Messages
 	LABEL_COMPONENT_TYPE                                       // Layout component for Modals
+	FILE_UPLOAD_COMPONENT_TYPE                                 // Layout component for Modals
+	_                                                          //
+	RADIO_GROUP_COMPONENT_TYPE                                 // Interactive component for Modals
+	CHECKBOX_GROUP_COMPONENT_TYPE                              // Interactive component for Modals
+	CHECKBOX_COMPONENT_TYPE                                    // Interactive component for Modals
 )
 
-// https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-styles
+// https://docs.discord.com/developers/components/reference#text-input-text-input-styles
 type TextInputStyle uint8
 
 const (
@@ -44,7 +49,7 @@ const (
 	PARAGRAPH_TEXT_INPUT_STYLE                           // A multi-line input.
 )
 
-// https://discord.com/developers/docs/components/reference#user-select-select-default-value-structure
+// https://docs.discord.com/developers/components/reference#user-select-select-default-value-structure
 type DefaultValueType string
 
 const (
@@ -55,14 +60,14 @@ const (
 
 // An ActionRowComponent groups other related components within a message or modal.
 //
-// https://discord.com/developers/docs/components/reference#action-row-action-row-structure
+// https://docs.discord.com/developers/components/reference#action-row-action-row-structure
 type ActionRowComponent struct {
 	Type       ComponentType             `json:"type"` // Always = ACTION_ROW_COMPONENT_TYPE (1)
 	ID         uint32                    `json:"id,omitempty"`
-	Components []ActionRowChildComponent `json:"components"` // Up to 5 interactive [ButtonComponent]s or a single [SelectComponent]
+	Components []ActionRowChildComponent `json:"components,omitzero"` // Up to 5 interactive [ButtonComponent]s or a single [SelectComponent]
 }
 
-// https://discord.com/developers/docs/components/reference#anatomy-of-a-component
+// https://docs.discord.com/developers/components/reference#anatomy-of-a-component
 // type UnknownComponent struct {
 // 	Type ComponentType `json:"type"`
 // 	ID   uint32        `json:"id,omitempty"`
@@ -74,7 +79,7 @@ type ActionRowComponent struct {
 // They must be placed within an [ActionRowComponent] or a [SectionComponent]'s accessory field,
 // both of which are only valid inside messages.
 //
-// https://discord.com/developers/docs/components/reference#button
+// https://docs.discord.com/developers/components/reference#button
 type ButtonComponent struct {
 	Type     ComponentType `json:"type"` // Always = BUTTON_COMPONENT_TYPE (2)
 	ID       uint32        `json:"id,omitempty"`
@@ -92,7 +97,7 @@ type ButtonComponent struct {
 // They are available in both messages and modals, but
 // must be placed inside an [ActionRowComponent] or [LabelComponent] respectively.
 //
-// https://discord.com/developers/docs/components/reference#string-select
+// https://docs.discord.com/developers/components/reference#string-select
 type StringSelectComponent struct {
 	Type        ComponentType      `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3). For responses, only provided for modal interactions
 	ID          uint32             `json:"id,omitempty"`
@@ -105,14 +110,14 @@ type StringSelectComponent struct {
 	Required    bool               `json:"required"`
 
 	// Below 2 fields are controlled by API and should be readonly for us, developers.
-	// https://discord.com/developers/docs/components/reference#string-select-string-select-interaction-response-structure
+	// https://docs.discord.com/developers/components/reference#string-select-string-select-interaction-response-structure
 	ComponentType ComponentType `json:"component_type,omitempty"` // This field is ignored and provided by the API as part of the response (only provided for message interaction)
 	Values        []string      `json:"values,omitzero"`          // This field is ignored and provided by the API as part of the response.
 }
 
 // A SelectMenuOption represents a single option within a [StringSelectComponent].
 //
-// https://discord.com/developers/docs/components/reference#string-select-select-option-structure
+// https://docs.discord.com/developers/components/reference#string-select-select-option-structure
 type SelectMenuOption struct {
 	Label       string `json:"label"`                 // Text label that appears on the option label, max 80 characters.
 	Value       string `json:"value"`                 // Value to return back to app once clicked, max 100 characters.
@@ -125,13 +130,13 @@ type SelectMenuOption struct {
 //
 // They can only be used inside [LabelComponents] within modals.
 //
-// https://discord.com/developers/docs/components/reference#text-input
+// https://docs.discord.com/developers/components/reference#text-input
 type TextInputComponent struct {
 	Type        ComponentType  `json:"type"` // Always = TEXT_INPUT_COMPONENT_TYPE (4)
 	ID          uint32         `json:"id,omitempty"`
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
-	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on a Label component insteda
+	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on a Label component instead
 	MinLength   uint16         `json:"min_length,omitempty"`  // min: 0, max: 4000 characters
 	MaxLength   uint16         `json:"max_length,omitempty"`  // min: 1, max: 4000 characters
 	Required    bool           `json:"required"`              // Whether this component is required to be filled, defaults to true
@@ -145,10 +150,10 @@ type TextInputComponent struct {
 // They are available in both messages and modals, but
 // must be placed inside an [ActionRowComponent] or [LabelComponent] respectively.
 //
-// [User Select]: https://discord.com/developers/docs/components/reference#user-select-user-select-structure
-// [Role Select]: https://discord.com/developers/docs/components/reference#role-select-role-select-structure
-// [Mentionable Select]: https://discord.com/developers/docs/components/reference#mentionable-select-mentionable-select-structure
-// [Channel Select]: https://discord.com/developers/docs/components/reference#channel-select-channel-select-structure
+// [User Select]: https://docs.discord.com/developers/components/reference#user-select-user-select-structure
+// [Role Select]: https://docs.discord.com/developers/components/reference#role-select-role-select-structure
+// [Mentionable Select]: https://docs.discord.com/developers/components/reference#mentionable-select-mentionable-select-structure
+// [Channel Select]: https://docs.discord.com/developers/components/reference#channel-select-channel-select-structure
 type SelectComponent struct {
 	Type          ComponentType        `json:"type"` // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
 	ID            uint32               `json:"id,omitempty"`
@@ -161,7 +166,7 @@ type SelectComponent struct {
 	Disabled      bool                 `json:"disabled"`                // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
-// https://discord.com/developers/docs/components/reference#user-select-select-default-value-structure
+// https://docs.discord.com/developers/components/reference#user-select-select-default-value-structure
 type DefaultValueOption struct {
 	ID   Snowflake        `json:"id"`   // Snowflake ID of a user, role, or channel
 	Type DefaultValueType `json:"type"` // The type of value that the option represents. Should be consistent across all default value options.
@@ -171,7 +176,7 @@ type DefaultValueOption struct {
 //
 // They can only be used inside messages.
 //
-// https://discord.com/developers/docs/components/reference#section-section-structure
+// https://docs.discord.com/developers/components/reference#section-section-structure
 type SectionComponent struct {
 	Type       ComponentType          `json:"type"` // Always = SECTION_COMPONENT_TYPE (9)
 	ID         uint32                 `json:"id,omitempty"`
@@ -182,7 +187,7 @@ type SectionComponent struct {
 // A TextDisplayComponent displays Markdown-formatted text content within a message or modal,
 // similar to the 'content' field of a message.
 //
-// https://discord.com/developers/docs/components/reference#text-display-text-display-structure
+// https://docs.discord.com/developers/components/reference#text-display-text-display-structure
 type TextDisplayComponent struct {
 	Type    ComponentType `json:"type"` // Always = TEXT_DISPLAY_COMPONENT_TYPE (10)
 	ID      uint32        `json:"id,omitempty"`
@@ -193,7 +198,7 @@ type TextDisplayComponent struct {
 //
 // They are only available as accessories inside [SectionComponent]s.
 //
-// https://discord.com/developers/docs/components/reference#thumbnail-thumbnail-structure
+// https://docs.discord.com/developers/components/reference#thumbnail-thumbnail-structure
 type ThumbnailComponent struct {
 	Type        ComponentType     `json:"type"` // Always = THUMBNAIL_COMPONENT_TYPE (11)
 	ID          uint32            `json:"id,omitempty"`
@@ -202,7 +207,7 @@ type ThumbnailComponent struct {
 	Spoiler     bool              `json:"spoiler"`
 }
 
-// https://discord.com/developers/docs/components/reference#unfurled-media-item-structure
+// https://docs.discord.com/developers/components/reference#unfurled-media-item-structure
 type UnfurledMediaItem struct {
 	URL          string    `json:"url"` // 	Supports arbitrary urls and attachment://<filename> references
 	ProxyURL     string    `json:"proxy_url,omitempty"`
@@ -212,21 +217,21 @@ type UnfurledMediaItem struct {
 	AttachmentID Snowflake `json:"attachment_id,omitempty"` // This field is ignored and provided by the API as part of the response
 }
 
-// https://discord.com/developers/docs/components/reference#media-gallery-media-gallery-structure
+// https://docs.discord.com/developers/components/reference#media-gallery-media-gallery-structure
 type MediaGalleryComponent struct {
 	Type  ComponentType      `json:"type"` // Always = MEDIA_GALLERY_COMPONENT_TYPE (12)
 	ID    uint32             `json:"id,omitempty"`
 	Items []MediaGalleryItem `json:"items,omitzero"` // 1 to 10 media gallery items
 }
 
-// https://discord.com/developers/docs/components/reference#media-gallery-media-gallery-item-structure
+// https://docs.discord.com/developers/components/reference#media-gallery-media-gallery-item-structure
 type MediaGalleryItem struct {
 	Media       UnfurledMediaItem `json:"media"`
 	Description string            `json:"description,omitempty"` // Alt text for the media, max 1024 characters
 	Spoiler     bool              `json:"spoiler"`
 }
 
-// https://discord.com/developers/docs/components/reference#file-file-structure
+// https://docs.discord.com/developers/components/reference#file-file-structure
 type FileComponent struct {
 	Type    ComponentType     `json:"type"` // Always = FILE_COMPONENT_TYPE (13)
 	ID      uint32            `json:"id,omitempty"`
@@ -239,7 +244,7 @@ type FileComponent struct {
 	Size uint32 `json:"size,omitempty"` // The size of the file in bytes. This field is ignored and provided by the API as part of the response.
 }
 
-// https://discord.com/developers/docs/components/reference#separator-separator-structure
+// https://docs.discord.com/developers/components/reference#separator-separator-structure
 type SeparatorComponent struct {
 	Type    ComponentType `json:"type"` // Always = SEPARATOR_COMPONENT_TYPE (14)
 	ID      uint32        `json:"id,omitempty"`
@@ -252,9 +257,9 @@ type SeparatorComponent struct {
 //
 // They can only be used inside messages.
 //
-// https://discord.com/developers/docs/components/reference#container-container-structure
+// https://docs.discord.com/developers/components/reference#container-container-structure
 type ContainerComponent struct {
-	Type        ComponentType             `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (15)
+	Type        ComponentType             `json:"type"` // Always = CONTAINER_COMPONENT_TYPE (17)
 	ID          uint32                    `json:"id,omitempty"`
 	Components  []ContainerChildComponent `json:"components,omitzero"`    // Child components to nest within the container.
 	AccentColor uint32                    `json:"accent_color,omitempty"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
@@ -265,11 +270,81 @@ type ContainerComponent struct {
 //
 // They can only be used inside modals.
 //
-// https://discord.com/developers/docs/components/reference#label
+// https://docs.discord.com/developers/components/reference#label
 type LabelComponent struct {
 	Type        ComponentType       `json:"type"`                  // Always = LABEL_COMPONENT_TYPE (18)
 	ID          uint32              `json:"id,omitempty"`          // Optional identifier for component
 	Label       string              `json:"label"`                 // The header text to show on the label; max 45 characters.
 	Description string              `json:"description,omitempty"` // An additional description for the label; max 100 characters.
 	Component   LabelChildComponent `json:"component"`             // The component nested within the label.
+}
+
+// File Upload is an interactive component that allows users to upload files in modals.
+// File Uploads can be configured to have a minimum and maximum number of files between 0 and 10,
+// along with required for if the upload is required to submit the modal.
+// The max file size a user can upload is based on the user’s upload limit in that channel.
+//
+// File Uploads are available on modals. They must be placed inside a Label Component(s).
+//
+// https://docs.discord.com/developers/components/reference#file-upload
+type FileUploadComponent struct {
+	Type      ComponentType `json:"type"`         // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
+	ID        uint32        `json:"id,omitempty"` // Optional identifier for component
+	CustomID  string        `json:"custom_id,omitempty"`
+	MinValues uint8         `json:"min_values,omitempty"`
+	MaxValues uint8         `json:"max_values,omitempty"`
+	Required  bool          `json:"required"`
+}
+
+// A Radio Group is an interactive component for selecting exactly one option from a defined list.
+// Radio Groups are available in modals and must be placed inside a Label Component(s).
+//
+// https://docs.discord.com/developers/components/reference#radio-group
+type RadioGroupComponent struct {
+	Type     ComponentType      `json:"type"`         // Always = RADIO_GROUP_COMPONENT_TYPE (21)
+	ID       uint32             `json:"id,omitempty"` // Optional identifier for component
+	CustomID string             `json:"custom_id,omitempty"`
+	Options  []RadioGroupOption `json:"options,omitzero"` // List of options to show; min 2, max 10
+	Required bool               `json:"required"`         // Whether a selection is required to submit the modal (defaults to true)
+}
+
+// https://docs.discord.com/developers/components/reference#radio-group-option-structure
+type RadioGroupOption struct {
+	Value       string `json:"value"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default"` // Whether to render this option as selected by default.
+}
+
+// A Checkbox Group is an interactive component for selecting one or many options via checkboxes.
+// Checkbox Groups are available in modals and must be placed inside a Label Component(s).
+//
+// https://docs.discord.com/developers/components/reference#checkbox-group
+type CheckboxGroupComponent struct {
+	Type      ComponentType         `json:"type"`         // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
+	ID        uint32                `json:"id,omitempty"` // Optional identifier for component
+	CustomID  string                `json:"custom_id,omitempty"`
+	Options   []CheckboxGroupOption `json:"options,omitzero"`
+	MinValues uint8                 `json:"min_values,omitempty"`
+	MaxValues uint8                 `json:"max_values,omitempty"`
+	Required  bool                  `json:"required"`
+}
+
+// https://docs.discord.com/developers/components/reference#checkbox-group-option-structure
+type CheckboxGroupOption struct {
+	Value       string `json:"value"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default"` // Whether to render this option as selected by default.
+}
+
+// A Checkbox is a single interactive component for simple yes/no style questions.
+// Checkboxes are available in modals and must be placed inside a Label Component(s).
+//
+// https://docs.discord.com/developers/components/reference#checkbox
+type CheckboxComponent struct {
+	Type     ComponentType `json:"type"`         // Always = CHECKBOX_COMPONENT_TYPE (23)
+	ID       uint32        `json:"id,omitempty"` // Optional identifier for component
+	CustomID string        `json:"custom_id,omitempty"`
+	Default  bool          `json:"default"` // Whether to render this option as selected by default.
 }

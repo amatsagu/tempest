@@ -63,9 +63,9 @@ type ContentComponent interface {
 // LabelChildComponent represents components that can be used as the child of a [LabelComponent].
 // Only one child component is allowed per label.
 //
-// Currently valid types: [TextInputComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
+// Currently valid types: [TextInputComponent], [StringSelectComponent], [SelectComponent] (user/role/mentionable/channel selects), [FileUploadComponent], [RadioGroupComponent], [CheckboxGroupComponent] and [CheckboxComponent].
 //
-// https://discord.com/developers/docs/components/reference#label-label-child-components
+// https://docs.discord.com/developers/components/reference#label-label-child-components
 type LabelChildComponent interface {
 	AnyComponent
 	_lblcmp()
@@ -75,7 +75,7 @@ type LabelChildComponent interface {
 //
 // Currently valid types: [ActionRowComponent], [TextDisplayComponent], [SectionComponent], [MediaGalleryComponent], [SeparatorComponent] and [FileComponent].
 //
-// https://discord.com/developers/docs/components/reference#container-container-child-components
+// https://docs.discord.com/developers/components/reference#container-container-child-components
 type ContainerChildComponent interface {
 	AnyComponent
 	_containercmp()
@@ -85,7 +85,7 @@ type ContainerChildComponent interface {
 //
 // Currently valid types: [ButtonComponent], [StringSelectComponent] and [SelectComponent] (user/role/mentionable/channel selects).
 //
-// https://discord.com/developers/docs/components/reference#action-row-action-row-child-components
+// https://docs.discord.com/developers/components/reference#action-row-action-row-child-components
 type ActionRowChildComponent interface {
 	AnyComponent
 	_arowcmp()
@@ -96,7 +96,7 @@ type ActionRowChildComponent interface {
 //
 // Currently valid types: [ButtonComponent] & [ThumbnailComponent].
 //
-// https://discord.com/developers/docs/components/reference#section-section-structure
+// https://docs.discord.com/developers/components/reference#section-section-structure
 type AccessoryComponent interface {
 	AnyComponent
 	_acmp()
@@ -164,4 +164,18 @@ func (cmp LabelComponent) _kind() ComponentType { return cmp.Type }
 func (cmp LabelComponent) _lcmp()               {}
 func (cmp LabelComponent) _modalcmp()           {}
 
-// TODO: Add file upload components (which should not implement either message/modal interfaces since they can only go inside labels)
+func (cmp FileUploadComponent) _kind() ComponentType { return cmp.Type }
+func (cmp FileUploadComponent) _icmp()               {}
+func (cmp FileUploadComponent) _lblcmp()             {}
+
+func (cmp RadioGroupComponent) _kind() ComponentType { return cmp.Type }
+func (cmp RadioGroupComponent) _icmp()               {}
+func (cmp RadioGroupComponent) _lblcmp()             {}
+
+func (cmp CheckboxGroupComponent) _kind() ComponentType { return cmp.Type }
+func (cmp CheckboxGroupComponent) _icmp()               {}
+func (cmp CheckboxGroupComponent) _lblcmp()             {}
+
+func (cmp CheckboxComponent) _kind() ComponentType { return cmp.Type }
+func (cmp CheckboxComponent) _icmp()               {}
+func (cmp CheckboxComponent) _lblcmp()             {}
