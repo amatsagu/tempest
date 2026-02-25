@@ -14,7 +14,7 @@ const (
 type OptionType uint8
 
 const (
-	SUB_OPTION_TYPE               OptionType = iota + 1
+	SUB_COMMAND_OPTION_TYPE       OptionType = iota + 1
 	SUB_COMMAND_GROUP_OPTION_TYPE            // NOT SUPPORTED BY LIBRARY
 	STRING_OPTION_TYPE
 	INTEGER_OPTION_TYPE

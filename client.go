@@ -498,7 +498,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelis
 }
 
 func (client *BaseClient) handleInteraction(itx CommandInteraction) (CommandInteraction, Command, bool) {
-	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == SUB_OPTION_TYPE {
+	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == SUB_COMMAND_OPTION_TYPE {
 		finalName := itx.Data.Name + "@" + itx.Data.Options[0].Name
 		subCommand, available := client.commands.Get(finalName)
 		if available {
@@ -542,7 +542,7 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 			parts := strings.Split(name, "@")
 			group := tree[parts[0]]
 
-			command.Type = CommandType(SUB_OPTION_TYPE)
+			command.Type = CommandType(SUB_COMMAND_OPTION_TYPE)
 			group[parts[1]] = command
 			tree[parts[0]] = group
 		}
@@ -563,7 +563,7 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 				baseCommand.Options = append(baseCommand.Options, CommandOption{
 					Name:        subCommand.Name,
 					Description: subCommand.Description,
-					Type:        SUB_OPTION_TYPE,
+					Type:        SUB_COMMAND_OPTION_TYPE,
 					Options:     subCommand.Options,
 				})
 			}
