@@ -1,6 +1,6 @@
 package tempest
 
-// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
+// https://docs.discord.com/developers/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 type Opcode uint8
 
 const (

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// https://discord.com/developers/docs/resources/user#user-object-premium-types
+// https://docs.discord.com/developers/resources/user#user-object-premium-types
 type NitroType uint8
 
 const (
@@ -17,7 +17,7 @@ const (
 	BASIC_NITRO_TYPE
 )
 
-// https://discord.com/developers/docs/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
+// https://docs.discord.com/developers/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
 type AvatarDecoration struct {
 	AssetHash string    `json:"avatar"` // Hash code used to access user's avatar decoration.
 	SkuID     Snowflake `json:"sku_id"`
@@ -36,7 +36,7 @@ func (adc *AvatarDecoration) DecorationURL() string {
 	return DiscordCDNBaseURL() + "/avatar-decoration-presets/" + adc.AssetHash
 }
 
-// https://discord.com/developers/docs/resources/user#user-object-user-flags
+// https://docs.discord.com/developers/resources/user#user-object-user-flags
 type UserFlags BitSet
 
 const (
@@ -65,7 +65,7 @@ const (
 	ACTIVE_DEVELOPER_USER_FLAG // User has regular discord developer badge
 )
 
-// https://discord.com/developers/docs/resources/user#user-object-user-structure
+// https://docs.discord.com/developers/resources/user#user-object-user-structure
 type User struct {
 	ID                   Snowflake         `json:"id"`
 	Username             string            `json:"username"`
@@ -131,7 +131,7 @@ func (user *User) BannerURL() string {
 	return DiscordCDNBaseURL() + "/banners/" + user.ID.String() + "/" + user.BannerHash
 }
 
-// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
+// https://docs.discord.com/developers/resources/guild#guild-member-object-guild-member-flags
 type MemberFlags BitSet
 
 const (
@@ -147,7 +147,7 @@ const (
 	DM_SETTINGS_UPSELL_ACKNOWLEDGED_MEMBER_FLAG
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-structure
+// https://docs.discord.com/developers/resources/guild#guild-member-object-guild-member-structure
 type Member struct {
 	User                       *User             `json:"user,omitempty"`
 	Nickname                   string            `json:"nick,omitempty"`
@@ -204,7 +204,7 @@ func (member *Member) GuildBannerURL() string {
 	return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash
 }
 
-// https://discord.com/developers/docs/topics/permissions#role-object-role-structure
+// https://docs.discord.com/developers/topics/permissions#role-object-role-structure
 type Role struct {
 	ID              Snowflake       `json:"id"`
 	Name            string          `json:"name"`
@@ -217,7 +217,7 @@ type Role struct {
 	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
 	Mentionable     bool            `json:"mentionable"` // Whether this role is mentionable.
 	Tags            RoleTag         `json:"tags"`
-	Flags           BitSet          `json:"flags"` // https://discord.com/developers/docs/topics/permissions#role-object-role-flags
+	Flags           BitSet          `json:"flags"` // https://docs.discord.com/developers/topics/permissions#role-object-role-flags
 }
 
 func (role *Role) Mention() string {
@@ -237,7 +237,7 @@ func (role *Role) IconURL() string {
 	return DiscordCDNBaseURL() + "/avatars/" + role.ID.String() + "/" + role.IconHash
 }
 
-// https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
+// https://docs.discord.com/developers/topics/permissions#role-object-role-tags-structure
 type RoleTag struct {
 	BotID                 Snowflake `json:"bot_id,omitempty"`
 	IntegrationID         Snowflake `json:"integration_id,omitempty"`          // The id of the integration this role belongs to.

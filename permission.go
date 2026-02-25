@@ -1,6 +1,6 @@
 package tempest
 
-// https://discord.com/developers/docs/topics/permissions#permissions
+// https://docs.discord.com/developers/topics/permissions#permissions
 type PermissionFlags BitSet
 
 const (

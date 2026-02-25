@@ -2,7 +2,7 @@ package tempest
 
 import "encoding/json"
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
 
 const (
@@ -13,7 +13,7 @@ const (
 	MODAL_SUBMIT_INTERACTION_TYPE
 )
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-context-types
 type InteractionContextType uint16 // use uint16 instead uint8 to avoid Go's json marshal logic that thinks of it as symbols.
 
 const (
@@ -30,7 +30,7 @@ type InteractionTypeExtractor struct {
 // Represents general interaction.
 // Use Command/Component/Modal interaction to read Data field.
 //
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
 	// This struct is purposefully lacking some large but hardly ever used fields like Message or (partial) Guild.
 	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
@@ -71,25 +71,25 @@ type Interaction struct {
 	responder     func(res Response) error `json:"-"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
 	*Interaction
 	Data CommandInteractionData `json:"data"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
 	*Interaction
 	Data ComponentInteractionData `json:"data"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
 	*Interaction
 	Data ModalInteractionData `json:"data"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-data
 type CommandInteractionData struct {
 	ID       Snowflake                  `json:"id"`
 	Name     string                     `json:"name"`
@@ -100,7 +100,7 @@ type CommandInteractionData struct {
 	TargetID Snowflake                  `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
 type CommandInteractionOption struct {
 	Name    string                     `json:"name"`
 	Type    OptionType                 `json:"type"`
@@ -109,7 +109,7 @@ type CommandInteractionOption struct {
 	Focused bool                       `json:"focused"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type InteractionDataResolved struct {
 	Users       map[Snowflake]User           `json:"users,omitzero"`
 	Members     map[Snowflake]Member         `json:"members,omitzero"`
@@ -119,14 +119,14 @@ type InteractionDataResolved struct {
 	Attachments map[Snowflake]Attachment     `json:"attachments,omitzero"`
 }
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-choice-structure
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-choice-structure
 type CommandOptionChoice struct {
 	Name              string              `json:"name"`
-	NameLocalizations map[Language]string `json:"name_localizations,omitzero"` // https://discord.com/developers/docs/reference#locales
+	NameLocalizations map[Language]string `json:"name_localizations,omitzero"` // https://docs.discord.com/developers/reference#locales
 	Value             any                 `json:"value"`                       // string, float64 (double or integer) or bool
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-message-component-data-structure
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
 	CustomID string                   `json:"custom_id"`
 	Type     ComponentType            `json:"component_type"`
@@ -136,7 +136,7 @@ type ComponentInteractionData struct {
 
 // ModalInteractionData represents the data received from a user submitting a modal.
 //
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
 type ModalInteractionData struct {
 	CustomID   string           `json:"custom_id"`
 	Components []ModalComponent `json:"components,omitzero"` // The components that were sent inside the modal, having been filled with user input.

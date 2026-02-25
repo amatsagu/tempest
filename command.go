@@ -1,6 +1,6 @@
 package tempest
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-types
 type CommandType uint8
 
 const (
@@ -10,12 +10,12 @@ const (
 	PRIMARY_ENTRY_POINT_COMMAND_TYPE                        // An UI-based command that represents the primary way to invoke an app's Activity
 )
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-type
 type OptionType uint8
 
 const (
 	SUB_COMMAND_OPTION_TYPE       OptionType = iota + 1
-	SUB_COMMAND_GROUP_OPTION_TYPE            // NOT SUPPORTED BY LIBRARY
+	SUB_COMMAND_GROUP_OPTION_TYPE            // NOT OFFICIALLY SUPPORTED BY LIBRARY
 	STRING_OPTION_TYPE
 	INTEGER_OPTION_TYPE
 	BOOLEAN_OPTION_TYPE
@@ -27,7 +27,7 @@ const (
 	ATTACHMENT_OPTION_TYPE
 )
 
-// https://discord.com/developers/docs/resources/application#application-object-application-integration-types
+// https://docs.discord.com/developers/resources/application#application-object-application-integration-types
 type ApplicationIntegrationType uint8
 
 const (
@@ -35,7 +35,7 @@ const (
 	USER_INSTALL
 )
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-entry-point-command-handler-types
 type CommandHandlerType uint8
 
 const (
@@ -43,7 +43,7 @@ const (
 	DISCORD_LAUNCH_ACTIVITY_COMMAND_HANDLER
 )
 
-// https://discord.com/developers/docs/reference#locales
+// https://docs.discord.com/developers/reference#locales
 type Language string
 
 const (
@@ -79,7 +79,7 @@ const (
 	KOREAN_LANGUAGE         Language = "ko"
 )
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
 	ID                       Snowflake                    `json:"-"` // It's not needed on app side to work.
 	Type                     CommandType                  `json:"type,omitempty"`
@@ -93,7 +93,7 @@ type Command struct {
 	RequiredPermissions      PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
 	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
 	Contexts                 []InteractionContextType     `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	NSFW                     bool                         `json:"nsfw"`              // https://discord.com/developers/docs/interactions/application-commands#agerestricted-commands
+	NSFW                     bool                         `json:"nsfw"`              // https://docs.discord.com/developers/interactions/application-commands#agerestricted-commands
 	Version                  Snowflake                    `json:"version,omitempty"` // Autoincrementing version identifier updated during substantial record changes.
 	Handler                  CommandHandlerType           `json:"handler,omitempty"`
 
@@ -101,7 +101,7 @@ type Command struct {
 	SlashCommandHandler func(itx *CommandInteraction)                      `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
 }
 
-// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
+// https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure
 type CommandOption struct {
 	Type                     OptionType            `json:"type"`
 	Name                     string                `json:"name"`

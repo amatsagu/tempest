@@ -2,7 +2,7 @@ package tempest
 
 import "time"
 
-// https://discord.com/developers/docs/resources/entitlement#entitlement-object-entitlement-types
+// https://docs.discord.com/developers/resources/entitlement#entitlement-object-entitlement-types
 type EntitlementType uint8
 
 const (
@@ -20,7 +20,7 @@ const (
 //
 // Refer to the Monetization Overview for more information on how to use Entitlements in your app.
 //
-// https://discord.com/developers/docs/resources/entitlement#entitlement-object
+// https://docs.discord.com/developers/resources/entitlement#entitlement-object
 type Entitlement struct {
 	ID            Snowflake       `json:"id"`
 	SkuID         Snowflake       `json:"sku_id"`
@@ -34,7 +34,7 @@ type Entitlement struct {
 	Consumed      bool            `json:"consumed"` // Whether entitlement was already used
 }
 
-// https://discord.com/developers/docs/resources/entitlement#create-test-entitlement-json-params
+// https://docs.discord.com/developers/resources/entitlement#create-test-entitlement-json-params
 type TestEntitlementPayload struct {
 	SkuID     Snowflake `json:"sku_id"`
 	OwnerID   Snowflake `json:"owner_id"`

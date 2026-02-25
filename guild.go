@@ -2,13 +2,13 @@ package tempest
 
 import "strings"
 
-// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
+// https://docs.discord.com/developers/resources/guild#unavailable-guild-object
 type UnavailableGuild struct {
 	ID          Snowflake `json:"id"`
 	Unavailable bool      `json:"unavailable"`
 }
 
-// https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level
+// https://docs.discord.com/developers/resources/guild#guild-object-default-message-notification-level
 type MessageNotificationLevel uint8
 
 const (
@@ -16,7 +16,7 @@ const (
 	ONLY_MENTIONS_NOTIFICATION_LEVEL
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level
+// https://docs.discord.com/developers/resources/guild#guild-object-explicit-content-filter-level
 type ExplicitContentFilter uint8
 
 const (
@@ -25,7 +25,7 @@ const (
 	ALL_MEMBERS_CONTENT_FILTER
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-object-mfa-level
+// https://docs.discord.com/developers/resources/guild#guild-object-mfa-level
 type MFALevel uint8
 
 const (
@@ -33,7 +33,7 @@ const (
 	ELEVATED_MFA_LEVEL
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
+// https://docs.discord.com/developers/resources/guild#guild-object-system-channel-flags
 type SystemChannelFlags BitSet
 
 const (
@@ -45,7 +45,7 @@ const (
 	SUPPRESS_ROLE_SUBSCRIPTION_PURCHASE_NOTIFICATION_REPLIES_SYSTEM_FLAG
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-object-premium-tier
+// https://docs.discord.com/developers/resources/guild#guild-object-premium-tier
 type PremiumTier uint8
 
 const (
@@ -55,7 +55,7 @@ const (
 	BOOST_3_PREMIUM_TIER
 )
 
-// https://discord.com/developers/docs/resources/guild#guild-object-guild-structure
+// https://docs.discord.com/developers/resources/guild#guild-object-guild-structure
 type Guild struct {
 	ID                          Snowflake                `json:"id"`
 	Name                        string                   `json:"name"`
@@ -71,7 +71,7 @@ type Guild struct {
 	ExplicitContentFilter       ExplicitContentFilter    `json:"explicit_content_filter"`
 	Roles                       []Role                   `json:"roles,omitzero"`
 	Emojis                      []Emoji                  `json:"emojis,omitzero"`
-	Features                    []string                 `json:"features,omitzero"` // // https://discord.com/developers/docs/resources/guild#guild-object-guild-features
+	Features                    []string                 `json:"features,omitzero"` // // https://docs.discord.com/developers/resources/guild#guild-object-guild-features
 	MFALevel                    MFALevel                 `json:"mfa_level"`
 	ApplicationID               Snowflake                `json:"application_id,omitempty"` // Application id of the guild creator if it is bot-created (never seen it in use).
 	SystemChannelID             Snowflake                `json:"system_channel_id,omitempty"`

@@ -276,7 +276,7 @@ func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Me
 //
 // By default it will attempt to return all, existing entitlements - provide query filter to control this behavior.
 //
-// https://discord.com/developers/docs/resources/entitlement#list-entitlements
+// https://docs.discord.com/developers/resources/entitlement#list-entitlements
 func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitlement, error) {
 	if queryFilter[0] != '?' {
 		queryFilter = "?" + queryFilter
@@ -297,7 +297,7 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitleme
 	return res, nil
 }
 
-// https://discord.com/developers/docs/resources/entitlement#get-entitlement
+// https://docs.discord.com/developers/resources/entitlement#get-entitlement
 func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement, error) {
 	raw, err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	if err != nil {
@@ -317,7 +317,7 @@ func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement
 // For One-Time Purchase consumable SKUs, marks a given entitlement for the user as consumed.
 // The entitlement will have consumed: true when using Client.FetchEntitlements.
 //
-// https://discord.com/developers/docs/resources/entitlement#consume-an-entitlement
+// https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement
 func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil)
 	if err != nil {
@@ -326,7 +326,7 @@ func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 	return err
 }
 
-// https://discord.com/developers/docs/resources/entitlement#create-test-entitlement
+// https://docs.discord.com/developers/resources/entitlement#create-test-entitlement
 func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload)
 	if err != nil {
@@ -335,7 +335,7 @@ func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) 
 	return err
 }
 
-// https://discord.com/developers/docs/resources/entitlement#delete-test-entitlement
+// https://docs.discord.com/developers/resources/entitlement#delete-test-entitlement
 func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	if err != nil {

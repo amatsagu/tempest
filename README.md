@@ -62,7 +62,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
   - [x] Components (buttons, string selects, sections, etc.)
   - [x] Modals
   - [x] Bitfields (flags, permissions, etc.)
-  - [x] [Message Components v2](https://discord.com/developers/docs/components/overview)
+  - [x] [Message Components v2](https://docs.discord.com/developers/components/overview)
 - [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
 - [x] **__Basic__** support for Discord Monetization API *(enough to get started)*
 

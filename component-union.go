@@ -19,7 +19,7 @@ type AnyComponent interface {
 // A list of all valid types can be found on [Discord's website],
 // though this interface intentionally excludes certain components that cannot appear by themselves (such as [SelectComponent]s).
 //
-// [Discord's website]: https://discord.com/developers/docs/components/reference#component-object-component-types
+// [Discord's website]: https://docs.discord.com/developers/components/reference#component-object-component-types
 type MessageComponent interface {
 	AnyComponent
 	_messagecmp()
@@ -31,7 +31,7 @@ type MessageComponent interface {
 // A list of all valid types can be found on [Discord's website],
 // though this interface intentionally excludes certain components that cannot appear by themselves (such as [SelectComponent]s).
 //
-// [Discord's website]: https://discord.com/developers/docs/components/reference#component-object-component-types
+// [Discord's website]: https://docs.discord.com/developers/components/reference#component-object-component-types
 type ModalComponent interface {
 	AnyComponent
 	_modalcmp()

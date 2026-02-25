@@ -1,6 +1,6 @@
 package tempest
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
 type ResponseType uint8
 
 const (
@@ -18,19 +18,19 @@ const (
 	LAUNCH_ACTIVITY_RESPONSE_TYPE // Launch the Activity associated with the app. Only available for apps with Activities enabled.
 )
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseMessage struct {
 	Type ResponseType         `json:"type"`
 	Data *ResponseMessageData `json:"data,omitempty"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseAutoComplete struct {
 	Type ResponseType              `json:"type"`
 	Data *ResponseAutoCompleteData `json:"data,omitempty"`
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseModal struct {
 	Type ResponseType       `json:"type"`
 	Data *ResponseModalData `json:"data,omitempty"`
@@ -38,7 +38,7 @@ type ResponseModal struct {
 
 // ResponseMessageData represents the data sent for message responses.
 //
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-messages
 type ResponseMessageData struct {
 	TTS             bool               `json:"tts"`                        // Whether the message is a TTS message.
 	Content         string             `json:"content,omitempty"`          // The message content.
@@ -50,14 +50,14 @@ type ResponseMessageData struct {
 	Poll            *Poll              `json:"poll,omitempty"`             // An optional poll to include in the message.
 }
 
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-autocomplete
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-autocomplete
 type ResponseAutoCompleteData struct {
 	Choices []CommandOptionChoice `json:"choices,omitzero"` // The autocomplete choices to show, up to 25 in total.
 }
 
 // ResponseModalData represents the data sent for modal responses.
 //
-// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
 	CustomID   string           `json:"custom_id"`           // A custom identifier for the modal. Must be non-empty and between 1-100 characters.
 	Title      string           `json:"title"`               // The title of the modal. Must be under 45 characters.
