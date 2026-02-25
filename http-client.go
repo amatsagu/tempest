@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -36,12 +35,12 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 			PostCommandHook:            opt.PostCommandHook,
 			ComponentHandler:           opt.ComponentHandler,
 			ModalHandler:               opt.ModalHandler,
+			Logger:                     opt.Logger,
 		}),
 		PublicKey: discordPublicKey,
 	}
 
 	if opt.Trace {
-		client.traceLogger.SetOutput(os.Stdout)
 		client.tracef("HTTP Client tracing enabled.")
 	}
 

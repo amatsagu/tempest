@@ -41,6 +41,8 @@ type BaseClientOptions struct {
 	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
 	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
+
+	Logger *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
@@ -54,10 +56,15 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		contexts = opt.DefaultInteractionContexts
 	}
 
+	traceLogger := opt.Logger
+	if traceLogger == nil {
+		traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
+	}
+
 	return &BaseClient{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.Token),
-		traceLogger:        log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),
+		traceLogger:        traceLogger,
 		commands:           NewSharedMap[string, Command](),
 		commandContexts:    contexts,
 		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),

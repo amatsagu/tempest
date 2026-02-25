@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 )
@@ -29,16 +28,20 @@ type ShardManager struct {
 
 // Creates a new gateway connection manager.
 // Set trace to true to enable detailed logging for the manager & all shards under its control.
-func NewShardManager(token string, trace bool, eventHandler func(shardID uint16, packet EventPacket)) *ShardManager {
+// If tracing is enabled and logger is provided, it'll be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
+func NewShardManager(token string, trace bool, eventHandler func(shardID uint16, packet EventPacket), logger *log.Logger) *ShardManager {
 	m := &ShardManager{
 		token:        token,
 		shards:       make(map[uint16]*Shard),
-		traceLogger:  log.New(io.Discard, "[TEMPEST] ", log.LstdFlags),
+		traceLogger:  logger,
 		eventHandler: eventHandler,
 	}
 
+	if m.traceLogger == nil {
+		m.traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
+	}
+
 	if trace {
-		m.traceLogger.SetOutput(os.Stdout)
 		m.tracef("Shard Manager tracing enabled.")
 	}
 
