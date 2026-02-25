@@ -1,47 +1,115 @@
 # Message Components v2
 
-New Discord layout system. Requires `Flags: tempest.IS_COMPONENTS_V2_MESSAGE_FLAG` in the response/message data.
+Requires `Flags: tempest.IS_COMPONENTS_V2_MESSAGE_FLAG` in responses.
 
 ## Layouts
-### `ActionRowComponent` (Type 1)
-Max 5 buttons or 1 select.
-```go
-type ActionRowComponent struct {
-	Type       ComponentType             `json:"type"`
-	Components []ActionRowChildComponent `json:"components,omitzero"`
-}
-```
-
-### `SectionComponent` (Type 9)
-Text + 1 accessory.
+### SectionComponent (Type 9)
 ```go
 type SectionComponent struct {
-	Type       ComponentType          `json:"type"`
-	Components []TextDisplayComponent `json:"components,omitzero"`
-	Accessory  AccessoryComponent     `json:"accessory,omitempty"`
+	Type       ComponentType
+	Components []TextDisplayComponent
+	Accessory  AccessoryComponent
 }
 ```
 
-### `ContainerComponent` (Type 17)
-Visual grouping + accent color.
+### ContainerComponent (Type 17)
 ```go
 type ContainerComponent struct {
-	Type        ComponentType             `json:"type"`
-	Components  []ContainerChildComponent `json:"components,omitzero"`
-	AccentColor uint32                    `json:"accent_color,omitempty"`
+	Type        ComponentType
+	Components  []ContainerChildComponent
+	AccentColor uint32
+	Spoiler     bool
+}
+```
+
+### ActionRowComponent (Type 1)
+```go
+type ActionRowComponent struct {
+	Type       ComponentType
+	Components []ActionRowChildComponent
 }
 ```
 
 ## Elements
-### `ButtonComponent` (Type 2)
-### `StringSelectComponent` (Type 3)
+### ButtonComponent (Type 2)
+```go
+type ButtonComponent struct {
+	Type     ComponentType
+	Style    ButtonStyle
+	Label    string
+	Emoji    *Emoji
+	CustomID string
+	SkuID    Snowflake
+	URL      string
+	Disabled bool
+}
+```
 
-## Interfaces (Duck-typing)
-- `MessageComponent`: Top-level message.
-- `ModalComponent`: Top-level modal.
-- `ActionRowChildComponent`: In ActionRow.
-- `ContainerChildComponent`: In Container.
-- `AccessoryComponent`: In Section (Button/Thumbnail).
+### Select Components (Types 3, 5-8)
+```go
+type StringSelectComponent struct {
+	Type        ComponentType
+	CustomID    string
+	Options     []SelectMenuOption
+	Placeholder string
+	MinValues   uint8
+	MaxValues   uint8
+	Disabled    bool
+}
+
+type SelectComponent struct {
+	Type          ComponentType // USER, ROLE, MENTIONABLE, CHANNEL
+	CustomID      string
+	ChannelTypes  []ChannelType
+	Placeholder   string
+	DefaultValues []DefaultValueOption
+	MinValues     uint8
+	MaxValues     uint8
+}
+```
+
+## Sub-structures
+```go
+type SelectMenuOption struct {
+	Label       string
+	Value       string
+	Description string
+	Emoji       *Emoji
+	Default     bool
+}
+
+type TextDisplayComponent struct {
+	Type    ComponentType
+	Content string
+}
+
+type ThumbnailComponent struct {
+	Type        ComponentType
+	Media       UnfurledMediaItem
+	Description string
+	Spoiler     bool
+}
+
+type UnfurledMediaItem struct {
+	URL      string
+	ProxyURL string
+	Width    uint32
+	Height   uint32
+}
+```
+
+## Constants
+### ButtonStyle
+```go
+const (
+	PRIMARY_BUTTON_STYLE ButtonStyle = iota + 1
+	SECONDARY_BUTTON_STYLE
+	SUCCESS_BUTTON_STYLE
+	DANGER_BUTTON_STYLE
+	LINK_BUTTON_STYLE
+	PREMIUM_BUTTON_STYLE
+)
+```
 
 ## Helpers
 ```go

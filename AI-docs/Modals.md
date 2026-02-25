@@ -1,39 +1,74 @@
 # Modals
 
-Structured input. Components must be inside `LabelComponent`.
+Input components must be inside `LabelComponent`.
 
-## Structs
-### `ResponseModalData`
-```go
-type ResponseModalData struct {
-	CustomID   string           `json:"custom_id"`
-	Title      string           `json:"title"`
-	Components []ModalComponent `json:"components"`
-}
-```
-
-### `LabelComponent` (Type 18)
-Required input wrapper.
+## Required Wrapper
+### LabelComponent (Type 18)
 ```go
 type LabelComponent struct {
-	Type        ComponentType       `json:"type"` // 18
-	Label       string              `json:"label"`
-	Description string              `json:"description,omitempty"`
-	Component   LabelChildComponent `json:"component"`
+	Type        ComponentType
+	Label       string
+	Description string
+	Component   LabelChildComponent
 }
 ```
 
 ## Input Components
-`LabelChildComponent` implementations:
-- `TextInputComponent`
-- `StringSelectComponent`
-- `SelectComponent` (User, Role, etc.)
-- `FileUploadComponent`
-- `RadioGroupComponent`
-- `CheckboxGroupComponent`
-- `CheckboxComponent`
+### TextInputComponent (Type 4)
+```go
+type TextInputComponent struct {
+	Type        ComponentType
+	CustomID    string
+	Style       TextInputStyle
+	Label       string
+	MinLength   uint16
+	MaxLength   uint16
+	Required    bool
+	Value       string
+	Placeholder string
+}
+```
 
-## Accessing Data
+### FileUploadComponent (Type 19)
+```go
+type FileUploadComponent struct {
+	Type      ComponentType
+	CustomID  string
+	MinValues uint8
+	MaxValues uint8
+	Required  bool
+}
+```
+
+### RadioGroupComponent (Type 21)
+```go
+type RadioGroupComponent struct {
+	Type     ComponentType
+	CustomID string
+	Options  []RadioGroupOption
+	Required bool
+}
+```
+
+### Checkbox Components (Types 22-23)
+```go
+type CheckboxGroupComponent struct {
+	Type      ComponentType
+	CustomID  string
+	Options   []CheckboxGroupOption
+	MinValues uint8
+	MaxValues uint8
+	Required  bool
+}
+
+type CheckboxComponent struct {
+	Type     ComponentType
+	CustomID string
+	Default  bool
+}
+```
+
+## Extraction
 ```go
 func (itx *ModalInteraction) GetInputValue(customID string) string
 ```

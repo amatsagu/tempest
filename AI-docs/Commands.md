@@ -1,38 +1,80 @@
 # Slash Commands
 
 ## Structures
-### `Command`
+### Command
 ```go
 type Command struct {
-	Name                     string
-	Description              string
 	Type                     CommandType
+	ApplicationID            Snowflake
+	GuildID                  Snowflake
+	Name                     string
+	NameLocalizations        map[Language]string
+	Description              string
+	DescriptionLocalizations map[Language]string
 	Options                  []CommandOption
-	DefaultMemberPermissions uint64
+	RequiredPermissions      PermissionFlags
+	IntegrationTypes         []ApplicationIntegrationType
 	Contexts                 []InteractionContextType
-	IntegrationTypes         []IntegrationType
 	NSFW                     bool
-	SlashCommandHandler      func(itx *CommandInteraction)
 	AutoCompleteHandler      func(itx CommandInteraction) []CommandOptionChoice
+	SlashCommandHandler      func(itx *CommandInteraction)
 }
 ```
 
-### `CommandOption`
+### CommandOption
 ```go
 type CommandOption struct {
-	Type         CommandOptionType
-	Name         string
-	Description  string
-	Required     bool
-	Choices      []CommandOptionChoice
-	Options      []CommandOption
-	ChannelTypes []ChannelType
-	MinValue     float64
-	MaxValue     float64
-	MinLength    uint32
-	MaxLength    uint32
-	Autocomplete bool
+	Type                     OptionType
+	Name                     string
+	NameLocalizations        map[Language]string
+	Description              string
+	DescriptionLocalizations map[Language]string
+	Required                 bool
+	Choices                  []CommandOptionChoice
+	Options                  []CommandOption
+	ChannelTypes             []ChannelType
+	MinValue                 float64
+	MaxValue                 float64
+	MinLength                uint16
+	MaxLength                uint16
+	AutoComplete             bool
 }
+```
+
+### CommandOptionChoice
+```go
+type CommandOptionChoice struct {
+	Name              string
+	NameLocalizations map[Language]string
+	Value             any // string, float64, or bool
+}
+```
+
+## Enums & Constants
+### CommandType
+```go
+const (
+	CHAT_INPUT_COMMAND_TYPE CommandType = iota + 1
+	USER_COMMAND_TYPE
+	MESSAGE_COMMAND_TYPE
+	PRIMARY_ENTRY_POINT_COMMAND_TYPE
+)
+```
+
+### OptionType
+```go
+const (
+	SUB_COMMAND_OPTION_TYPE OptionType = iota + 1
+	STRING_OPTION_TYPE
+	INTEGER_OPTION_TYPE
+	BOOLEAN_OPTION_TYPE
+	USER_OPTION_TYPE
+	CHANNEL_OPTION_TYPE
+	ROLE_OPTION_TYPE
+	MENTIONABLE_OPTION_TYPE
+	NUMBER_OPTION_TYPE
+	ATTACHMENT_OPTION_TYPE
+)
 ```
 
 ## Methods
@@ -50,10 +92,4 @@ client.RegisterSubCommand(tempest.Command{Name: "info", ...}, "user")
 ```
 
 ## Autocomplete
-Return <= 25 choices.
-```go
-AutoCompleteHandler: func(itx tempest.CommandInteraction) []tempest.CommandOptionChoice {
-    name, value := itx.GetFocusedValue()
-    // return slice of choices
-}
-```
+Return <= 25 choices. Use `itx.GetFocusedValue()` to identify targeted option.
