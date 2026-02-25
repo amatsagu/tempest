@@ -80,6 +80,7 @@ There are two ways for bots to receive events from Discord. Most API wrappers su
 ### Getting started
 1. Install with: `go get -u github.com/amatsagu/tempest`
 2. Check [example](https://github.com/amatsagu/tempest/blob/master/example) with few simple commands.
+3. (Experimental) Using AI coding assistants like Gemini, ChatGPT, or Claude? Check [TEMPEST_AI.md](./TEMPEST_AI.md) for optimized documentation to help them understand the library better.
 
 
 
