@@ -236,13 +236,22 @@ type Message struct {
 	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
 }
 
-// https://docs.discord.com/developers/resources/channel#message-reference-object-message-reference-structure
+// https://docs.discord.com/developers/resources/message#message-reference-structure
 type MessageReference struct {
-	MessageID       Snowflake `json:"message_id,omitempty"`
-	ChannelID       Snowflake `json:"channel_id,omitempty"`
-	GuildID         Snowflake `json:"guild_id,omitempty"`
-	FailIfNotExists bool      `json:"fail_if_not_exists"`
+	Type            MessageReferenceType `json:"type,omitempty"`
+	MessageID       Snowflake            `json:"message_id,omitempty"`
+	ChannelID       Snowflake            `json:"channel_id,omitempty"`
+	GuildID         Snowflake            `json:"guild_id,omitempty"`
+	FailIfNotExists bool                 `json:"fail_if_not_exists"`
 }
+
+// https://docs.discord.com/developers/resources/message#message-reference-types
+type MessageReferenceType uint8
+
+const (
+	DEFAULT_MESSAGE_REFERENCE_TYPE MessageReferenceType = iota // A standard reference used by replies. Coupled with: referenced_message
+	FORWARD_MESSAGE_REFERENCE_TYPE                             // Reference used to point to a message at a point in time. Coupled with: message_snapshot
+)
 
 // https://docs.discord.com/developers/resources/message#message-interaction-metadata-object-application-command-interaction-metadata-structure
 type MessageInteractionMetadata struct {
