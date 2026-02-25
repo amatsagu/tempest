@@ -42,7 +42,8 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 	}
 
 	if opt.Trace {
-		if client.traceLogger.Writer() == nil {
+		w := client.traceLogger.Writer()
+		if w == nil || w == io.Discard {
 			client.traceLogger.SetOutput(os.Stdout)
 		}
 		client.tracef("HTTP Client tracing enabled.")

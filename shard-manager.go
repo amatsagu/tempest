@@ -43,8 +43,9 @@ func NewShardManager(token string, trace bool, eventHandler func(shardID uint16,
 	}
 
 	if trace {
-		if logger.Writer() == nil {
-			logger.SetOutput(os.Stdout)
+		w := m.traceLogger.Writer()
+		if w == nil || w == io.Discard {
+			m.traceLogger.SetOutput(os.Stdout)
 		}
 		m.tracef("Shard Manager tracing enabled.")
 	}

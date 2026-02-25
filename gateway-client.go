@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 )
@@ -33,7 +34,8 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 	}
 
 	if opt.Trace {
-		if client.traceLogger.Writer() == nil {
+		w := client.traceLogger.Writer()
+		if w == nil || w == io.Discard {
 			client.traceLogger.SetOutput(os.Stdout)
 		}
 		client.tracef("Gateway Client tracing enabled.")
