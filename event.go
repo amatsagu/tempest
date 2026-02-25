@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// https://docs.discord.com/developers/events/gateway-events#receive-events
 type EventName string
 
 const (
@@ -17,6 +18,17 @@ const (
 	MESSAGE_DELETE_BULK_EVENT EventName = "MESSAGE_DELETE_BULK"
 	GUILD_CREATE_EVENT        EventName = "GUILD_CREATE"
 	GUILD_DELETE_EVENT        EventName = "GUILD_DELETE"
+	ENTITLEMENT_CREATE_EVENT  EventName = "ENTITLEMENT_CREATE"
+	ENTITLEMENT_UPDATE_EVENT  EventName = "ENTITLEMENT_UPDATE"
+	ENTITLEMENT_DELETE_EVENT  EventName = "ENTITLEMENT_DELETE"
+	INTEGRATION_CREATE_EVENT  EventName = "INTEGRATION_CREATE"
+	INTEGRATION_UPDATE_EVENT  EventName = "INTEGRATION_UPDATE"
+	INTEGRATION_DELETE_EVENT  EventName = "INTEGRATION_DELETE"
+	VOICE_STATE_UPDATE_EVENT  EventName = "VOICE_STATE_UPDATE"
+
+	// Added integration & voice names for QoL for some people.
+	// Sinve v1.4 where we added gateway client - I was informated quite a few people
+	// use Tempest for leveling discord bots.
 )
 
 // In modern discord docs - otherwise known as generic gateway event.
