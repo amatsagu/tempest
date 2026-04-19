@@ -36,6 +36,7 @@ type BaseClient struct {
 type BaseClientOptions struct {
 	Token                      string
 	DefaultInteractionContexts []InteractionContextType
+	RestOptions                RestOptions
 
 	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
@@ -61,9 +62,13 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
 	}
 
+	if opt.RestOptions.Token == "" {
+		opt.RestOptions.Token = opt.Token
+	}
+
 	return &BaseClient{
 		ApplicationID:      botUserID,
-		Rest:               NewRest(opt.Token),
+		Rest:               NewRest(opt.RestOptions),
 		traceLogger:        traceLogger,
 		commands:           NewSharedMap[string, Command](),
 		commandContexts:    contexts,

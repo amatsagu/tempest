@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,16 +35,28 @@ type rateLimitError struct {
 
 type Rest struct {
 	HTTPClient  http.Client
-	MaxRetries  uint8
+	maxRetries  uint8
+	maxWaitTime time.Duration
 	token       string
 	globalMu    sync.RWMutex
 	globalReset time.Time
 }
 
-func NewRest(token string) *Rest {
-	t := token
-	if !strings.HasPrefix(t, "Bot ") {
-		t = "Bot " + t
+type RestOptions struct {
+	Token       string
+	MaxRetries  uint8
+	MaxWaitTime time.Duration // Max duration it can take for each request.
+}
+
+func NewRest(opt RestOptions) *Rest {
+	_, err := extractUserIDFromToken(opt.Token)
+	if err != nil {
+		panic("failed to extract bot user ID from bot token: " + err.Error())
+	}
+
+	prefixedToken := opt.Token
+	if !strings.HasPrefix(prefixedToken, "Bot ") {
+		prefixedToken = "Bot " + prefixedToken
 	}
 
 	transport := &http.Transport{
@@ -53,15 +66,26 @@ func NewRest(token string) *Rest {
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		ForceAttemptHTTP2: false,
-		MaxConnsPerHost:   256,
-		MaxIdleConns:      256,
-		IdleConnTimeout:   90 * time.Second,
+		// MaxConnsPerHost:   256,
+		MaxIdleConns:    256,
+		IdleConnTimeout: 90 * time.Second,
+	}
+
+	maxTimeout := 10 * time.Second
+	if opt.MaxWaitTime != 0 {
+		maxTimeout = opt.MaxWaitTime
+	}
+
+	var maxRetries uint8 = 5
+	if opt.MaxRetries != 0 {
+		maxRetries = opt.MaxRetries
 	}
 
 	return &Rest{
-		HTTPClient: http.Client{Transport: transport, Timeout: 10 * time.Second},
-		token:      t,
-		MaxRetries: 5,
+		HTTPClient:  http.Client{Transport: transport, Timeout: maxTimeout},
+		token:       prefixedToken,
+		maxRetries:  maxRetries,
+		maxWaitTime: maxTimeout,
 	}
 }
 
@@ -87,7 +111,7 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 		lastErr      error
 	)
 
-	for i := uint8(0); i < rest.MaxRetries; i++ {
+	for i := uint8(0); i < rest.maxRetries; i++ {
 		if body != nil {
 			body.Seek(0, io.SeekStart)
 		}
@@ -113,7 +137,7 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 		return responseBody, nil
 	}
 
-	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.MaxRetries, method, route, lastErr)
+	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.maxRetries, method, route, lastErr)
 }
 
 func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
@@ -222,4 +246,20 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
+}
+
+func extractUserIDFromToken(token string) (Snowflake, error) {
+	strs := strings.Split(token, ".")
+	if len(strs) == 0 {
+		return 0, errors.New("token is not in a valid format")
+	}
+
+	hexID := strings.Replace(strs[0], "Bot ", "", 1)
+
+	byteID, err := base64.RawStdEncoding.DecodeString(hexID)
+	if err != nil {
+		return 0, err
+	}
+
+	return StringToSnowflake(string(byteID))
 }
