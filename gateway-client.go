@@ -59,65 +59,76 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		return
 	}
 
-	var interaction Interaction
-	if err := json.Unmarshal(packet.Data, &interaction); err != nil {
-		client.tracef("Received interaction event but failed to parse it: %v", err)
+	var extractor InteractionTypeExtractor
+	if err := json.Unmarshal(packet.Data, &extractor); err != nil {
+		client.tracef("Received interaction event but failed to extract type: %v", err)
 		return
 	}
 
-	interaction.BaseClient = client.BaseClient
-	interaction.GatewayClient = client
-	interaction.ShardID = shardID
-	interaction.responder = func(res Response) error {
-		_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
-		return err
-	}
-
-	switch interaction.Type {
+	switch extractor.Type {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		var data CommandInteractionData
-		if err := json.Unmarshal(interaction.Data, &data); err != nil {
+		var interaction CommandInteraction
+		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
 			client.tracef("Received command interaction event but failed to parse its data: %v", err)
 			return
 		}
+		interaction.BaseClient = client.BaseClient
+		interaction.GatewayClient = client
+		interaction.ShardID = shardID
+		interaction.responder = func(res Response) error {
+			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
+			return err
+		}
 
-		client.commandInteractionHandler(CommandInteraction{
-			Interaction: &interaction,
-			Data:        data,
-		})
+		client.commandInteractionHandler(interaction)
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var componentData ComponentInteractionData
-		if err := json.Unmarshal(interaction.Data, &componentData); err != nil {
+		var interaction ComponentInteraction
+		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
 			client.tracef("Received component interaction event but failed to parse its data: %v", err)
 			return
 		}
 
-		client.componentInteractionHandler(ComponentInteraction{
-			Interaction: &interaction,
-			Data:        componentData,
-		})
+		interaction.BaseClient = client.BaseClient
+		interaction.GatewayClient = client
+		interaction.ShardID = shardID
+		interaction.responder = func(res Response) error {
+			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
+			return err
+		}
+
+		client.componentInteractionHandler(interaction)
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
-		var commandData CommandInteractionData
-		if err := json.Unmarshal(interaction.Data, &commandData); err != nil {
+		var interaction CommandInteraction
+		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
 			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
 			return
 		}
 
-		client.autoCompleteInteractionHandler(CommandInteraction{
-			Interaction: &interaction,
-			Data:        commandData,
-		})
+		interaction.BaseClient = client.BaseClient
+		interaction.GatewayClient = client
+		interaction.ShardID = shardID
+		interaction.responder = func(res Response) error {
+			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
+			return err
+		}
+
+		client.autoCompleteInteractionHandler(interaction)
 	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var modalData ModalInteractionData
-		if err := json.Unmarshal(interaction.Data, &modalData); err != nil {
+		var interaction ModalInteraction
+		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
 			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
 			return
 		}
 
-		client.modalInteractionHandler(ModalInteraction{
-			Interaction: &interaction,
-			Data:        modalData,
-		})
+		interaction.BaseClient = client.BaseClient
+		interaction.GatewayClient = client
+		interaction.ShardID = shardID
+		interaction.responder = func(res Response) error {
+			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
+			return err
+		}
+
+		client.modalInteractionHandler(interaction)
 	}
 }
 

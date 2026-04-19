@@ -76,18 +76,16 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var interaction Interaction
-	if err := json.Unmarshal(rawData, &interaction); err != nil {
+	var extractor InteractionTypeExtractor
+	if err := json.Unmarshal(rawData, &extractor); err != nil {
+		client.tracef("Received interaction event but failed to extract type: %v", err)
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
 
-	interaction.BaseClient = client.BaseClient
-	interaction.HTTPClient = client
-
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
 	responseCh := make(chan []byte, 1)
-	interaction.responder = func(res Response) error {
+	responderFunc := func(res Response) error {
 		body, err := json.Marshal(res)
 		if err != nil {
 			return err
@@ -101,52 +99,56 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	switch interaction.Type {
+	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		w.Write(bodyPingResponse)
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		var data CommandInteractionData
-		if err := json.Unmarshal(interaction.Data, &data); err != nil {
-			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
+		var interaction CommandInteraction
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
+			client.tracef("Received command interaction event but failed to parse its data: %v", err)
+			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
 
-		// Move to extra goroutine in case modal handler needs more than 3s.
-		go client.commandInteractionHandler(CommandInteraction{
-			Interaction: &interaction,
-			Data:        data,
-		}, responseCh)
+		interaction.BaseClient = client.BaseClient
+		interaction.HTTPClient = client
+		interaction.responder = responderFunc
 
+		go client.commandInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)
+
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var data ComponentInteractionData
-		if err := json.Unmarshal(interaction.Data, &data); err != nil {
-			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
+		var interaction ComponentInteraction
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
+			client.tracef("Received component interaction event but failed to parse its data: %v", err)
+			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
 
-		// Move to extra goroutine in case modal handler needs more than 3s.
-		go client.componentInteractionHandler(ComponentInteraction{
-			Interaction: &interaction,
-			Data:        data,
-		}, responseCh)
+		interaction.BaseClient = client.BaseClient
+		interaction.HTTPClient = client
+		interaction.responder = responderFunc
 
+		go client.componentInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)
+
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
-		var data CommandInteractionData
-		if err := json.Unmarshal(interaction.Data, &data); err != nil {
-			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
+		var interaction CommandInteraction
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
+			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
+			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
 
-		choices := client.autoCompleteInteractionHandler(CommandInteraction{
-			Interaction: &interaction,
-			Data:        data,
-		})
+		interaction.BaseClient = client.BaseClient
+		interaction.HTTPClient = client
+		interaction.responder = responderFunc
+
+		choices := client.autoCompleteInteractionHandler(interaction)
 
 		body, err := json.Marshal(ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
@@ -164,19 +166,20 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		w.Write(body)
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var data ModalInteractionData
-		if err := json.Unmarshal(interaction.Data, &data); err != nil {
-			http.Error(w, "bad request - failed to decode Interaction.Data", http.StatusBadRequest)
+		var interaction ModalInteraction
+		if err := json.Unmarshal(rawData, &interaction); err != nil {
+			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
+			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
 
-		// Move to extra goroutine in case modal handler needs more than 3s.
-		go client.modalInteractionHandler(ModalInteraction{
-			Interaction: &interaction,
-			Data:        data,
-		}, responseCh)
+		interaction.BaseClient = client.BaseClient
+		interaction.HTTPClient = client
+		interaction.responder = responderFunc
 
+		go client.modalInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)
+
 		return
 	}
 }
