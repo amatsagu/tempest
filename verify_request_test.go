@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
 
@@ -13,6 +14,14 @@ func TestVerifyRequest(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	client := &HTTPClient{
+		bufferPool: &sync.Pool{
+			New: func() any {
+				return new(bytes.Buffer)
+			},
+		},
 	}
 
 	timestamp := "1234567890"
@@ -26,7 +35,7 @@ func TestVerifyRequest(t *testing.T) {
 		req.Header.Set("X-Signature-Ed25519", sigHex)
 		req.Header.Set("X-Signature-Timestamp", timestamp)
 
-		resBody, verified := verifyRequest(req, pub, 1024)
+		resBody, verified := client.verifyRequest(req, pub, 1024)
 		if !verified {
 			t.Error("expected verification to succeed")
 		}
@@ -40,7 +49,7 @@ func TestVerifyRequest(t *testing.T) {
 		req.Header.Set("X-Signature-Ed25519", "invalid")
 		req.Header.Set("X-Signature-Timestamp", timestamp)
 
-		_, verified := verifyRequest(req, pub, 1024)
+		_, verified := client.verifyRequest(req, pub, 1024)
 		if verified {
 			t.Error("expected verification to fail")
 		}
@@ -52,7 +61,7 @@ func TestVerifyRequest(t *testing.T) {
 		req.Header.Set("X-Signature-Ed25519", sigHex)
 		req.Header.Set("X-Signature-Timestamp", timestamp)
 
-		_, verified := verifyRequest(req, pub, 1024)
+		_, verified := client.verifyRequest(req, pub, 1024)
 		if verified {
 			// It should fail because ed25519.Verify will check truncated body against signature of full body
 			t.Error("expected verification to fail due to truncated body")

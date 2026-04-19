@@ -1,6 +1,7 @@
 package tempest
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
@@ -8,12 +9,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
 type HTTPClient struct {
 	*BaseClient
-	PublicKey ed25519.PublicKey
+	PublicKey  ed25519.PublicKey
+	bufferPool *sync.Pool
 }
 
 type HTTPClientOptions struct {
@@ -39,6 +42,13 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 			Logger:                     opt.Logger,
 		}),
 		PublicKey: discordPublicKey,
+		bufferPool: &sync.Pool{
+			New: func() any {
+				b := new(bytes.Buffer)
+				b.Grow(1024 * 32) // 32KB is plenty for most interactions
+				return b
+			},
+		},
 	}
 
 	if opt.Trace {
@@ -60,7 +70,7 @@ func (m *HTTPClient) tracef(format string, v ...any) {
 // Due to default HTTP server behavior, this goroutine cannot block for more than 3s,
 // to achieve that we use client interaction responder trick.
 func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
-	rawData, verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey), MAX_REQUEST_BODY_SIZE)
+	rawData, verified := client.verifyRequest(r, client.PublicKey, MAX_REQUEST_BODY_SIZE)
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -169,6 +179,49 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		client.awaitResponse(w, responseCh)
 		return
 	}
+}
+
+// Verifies incoming request if it's from Discord. Returns the body bytes if verification was successful.
+func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) ([]byte, bool) {
+	signature := r.Header.Get("X-Signature-Ed25519")
+	if signature == "" {
+		return nil, false
+	}
+
+	sig, err := hex.DecodeString(signature)
+	if err != nil {
+		return nil, false
+	}
+
+	if len(sig) != ed25519.SignatureSize || sig[63]&224 != 0 {
+		return nil, false
+	}
+
+	timestamp := r.Header.Get("X-Signature-Timestamp")
+	if timestamp == "" {
+		return nil, false
+	}
+
+	buf := client.bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer client.bufferPool.Put(buf)
+
+	buf.WriteString(timestamp)
+
+	defer r.Body.Close()
+	_, err = buf.ReadFrom(io.LimitReader(r.Body, maxSize))
+	if err != nil {
+		return nil, false
+	}
+
+	if ed25519.Verify(key, buf.Bytes(), sig) {
+		// We copy the body bytes because we're returning the buffer to the pool.
+		bodyBytes := make([]byte, buf.Len()-len(timestamp))
+		copy(bodyBytes, buf.Bytes()[len(timestamp):])
+		return bodyBytes, true
+	}
+
+	return nil, false
 }
 
 func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
