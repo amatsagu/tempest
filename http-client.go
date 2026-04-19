@@ -70,11 +70,12 @@ func (m *HTTPClient) tracef(format string, v ...any) {
 // Due to default HTTP server behavior, this goroutine cannot block for more than 3s,
 // to achieve that we use client interaction responder trick.
 func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
-	rawData, verified := client.verifyRequest(r, client.PublicKey, MAX_REQUEST_BODY_SIZE)
+	rawData, cleanup, verified := client.verifyRequest(r, client.PublicKey, MAX_REQUEST_BODY_SIZE)
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	defer cleanup()
 
 	var extractor InteractionTypeExtractor
 	if err := json.Unmarshal(rawData, &extractor); err != nil {
@@ -185,46 +186,50 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 }
 
 // Verifies incoming request if it's from Discord. Returns the body bytes if verification was successful.
-func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) ([]byte, bool) {
+func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) ([]byte, func(), bool) {
 	signature := r.Header.Get("X-Signature-Ed25519")
 	if signature == "" {
-		return nil, false
+		return nil, nil, false
 	}
 
 	sig, err := hex.DecodeString(signature)
 	if err != nil {
-		return nil, false
+		return nil, nil, false
 	}
 
 	if len(sig) != ed25519.SignatureSize || sig[63]&224 != 0 {
-		return nil, false
+		return nil, nil, false
 	}
 
 	timestamp := r.Header.Get("X-Signature-Timestamp")
 	if timestamp == "" {
-		return nil, false
+		return nil, nil, false
 	}
 
 	buf := client.bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer client.bufferPool.Put(buf)
 
 	buf.WriteString(timestamp)
 
 	defer r.Body.Close()
 	_, err = buf.ReadFrom(io.LimitReader(r.Body, maxSize))
 	if err != nil {
-		return nil, false
+		client.bufferPool.Put(buf)
+		return nil, nil, false
 	}
 
 	if ed25519.Verify(key, buf.Bytes(), sig) {
-		// We copy the body bytes because we're returning the buffer to the pool.
-		bodyBytes := make([]byte, buf.Len()-len(timestamp))
-		copy(bodyBytes, buf.Bytes()[len(timestamp):])
-		return bodyBytes, true
+		return buf.Bytes()[len(timestamp):], func() {
+			if int64(buf.Cap()) <= maxSize {
+				client.bufferPool.Put(buf)
+			}
+		}, true
 	}
 
-	return nil, false
+	if int64(buf.Cap()) <= maxSize {
+		client.bufferPool.Put(buf)
+	}
+	return nil, nil, false
 }
 
 func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
@@ -276,7 +281,7 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 		return
 	}
 
-	isQueued := client.queuedComponents.Has(interaction.Data.CustomID)
+	signalChan, isQueued := client.queuedComponents.Get(interaction.Data.CustomID)
 	hasGlobal := client.componentHandler != nil
 
 	if isQueued || hasGlobal {
@@ -294,16 +299,11 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 		interaction.deferred = true
 
 		if isQueued {
-			client.queuedComponents.mu.RLock()
-			if signalChan, ok := client.queuedComponents.cache[interaction.Data.CustomID]; ok {
-				select {
-				case signalChan <- &interaction:
-				default:
-				}
-				client.queuedComponents.mu.RUnlock()
-				return
+			select {
+			case signalChan <- &interaction:
+			default:
 			}
-			client.queuedComponents.mu.RUnlock()
+			return
 		}
 
 		if client.componentHandler != nil {
@@ -322,7 +322,7 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 		return
 	}
 
-	isQueued := client.queuedModals.Has(interaction.Data.CustomID)
+	signalChan, isQueued := client.queuedModals.Get(interaction.Data.CustomID)
 	hasGlobal := client.modalHandler != nil
 
 	if isQueued || hasGlobal {
@@ -340,16 +340,11 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 		interaction.deferred = true
 
 		if isQueued {
-			client.queuedModals.mu.RLock()
-			if signalChan, ok := client.queuedModals.cache[interaction.Data.CustomID]; ok {
-				select {
-				case signalChan <- &interaction:
-				default:
-				}
-				client.queuedModals.mu.RUnlock()
-				return
+			select {
+			case signalChan <- &interaction:
+			default:
 			}
-			client.queuedModals.mu.RUnlock()
+			return
 		}
 
 		if client.modalHandler != nil {
