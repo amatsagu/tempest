@@ -199,7 +199,7 @@ func (client *BaseClient) SendLinearMessage(channelID Snowflake, content string)
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
 func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
-	res := make(map[string]interface{}, 0)
+	res := make(map[string]any, 0)
 	res["recipient_id"] = userID
 
 	raw, err := client.Rest.Request(http.MethodPost, "/users/@me/channels", res)
@@ -412,11 +412,11 @@ func (client *BaseClient) RegisterComponent(customIDs []string, fn func(Componen
 		}
 	}
 
-	client.queuedComponents.mu.Lock()
+	client.staticComponents.mu.Lock()
 	for _, key := range customIDs {
-		client.staticComponents.cache[key] = fn
+		client.staticComponents.Set(key, fn)
 	}
-	client.queuedComponents.mu.Unlock()
+	client.staticComponents.mu.Unlock()
 
 	client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
 	return nil
@@ -449,11 +449,11 @@ func (client *BaseClient) DeleteComponent(customIDs []string) error {
 		}
 	}
 
-	client.queuedComponents.mu.Lock()
+	client.staticComponents.mu.Lock()
 	for _, key := range customIDs {
 		delete(client.staticComponents.cache, key)
 	}
-	client.queuedComponents.mu.Unlock()
+	client.staticComponents.mu.Unlock()
 
 	client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
 	return nil
@@ -471,11 +471,11 @@ func (client *BaseClient) DeleteModal(customIDs []string) error {
 		}
 	}
 
-	client.queuedComponents.mu.Lock()
+	client.staticModals.mu.Lock()
 	for _, key := range customIDs {
 		delete(client.staticModals.cache, key)
 	}
-	client.queuedComponents.mu.Unlock()
+	client.staticModals.mu.Unlock()
 
 	client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
 	return nil
