@@ -12,46 +12,43 @@ import (
 	"net/http"
 )
 
-// Verifies incoming request if it's from Discord.
-func verifyRequest(r *http.Request, key ed25519.PublicKey) bool {
-	var msg bytes.Buffer
-
+// Verifies incoming request if it's from Discord. Returns the body bytes if verification was successful.
+func verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) ([]byte, bool) {
 	signature := r.Header.Get("X-Signature-Ed25519")
 	if signature == "" {
-		return false
+		return nil, false
 	}
 
 	sig, err := hex.DecodeString(signature)
 	if err != nil {
-		return false
+		return nil, false
 	}
 
 	if len(sig) != ed25519.SignatureSize || sig[63]&224 != 0 {
-		return false
+		return nil, false
 	}
 
 	timestamp := r.Header.Get("X-Signature-Timestamp")
 	if timestamp == "" {
-		return false
+		return nil, false
 	}
 
+	var msg bytes.Buffer
 	msg.WriteString(timestamp)
 
 	defer r.Body.Close()
 	var body bytes.Buffer
 
-	// Copy the original body back into the request after finishing.
-	defer func() {
-		r.Body = io.NopCloser(&body)
-	}()
-
-	// Copy body into buffers
-	_, err = io.Copy(&msg, io.TeeReader(r.Body, &body))
+	_, err = io.Copy(&msg, io.TeeReader(io.LimitReader(r.Body, maxSize), &body))
 	if err != nil {
-		return false
+		return nil, false
 	}
 
-	return ed25519.Verify(key, msg.Bytes(), sig)
+	if ed25519.Verify(key, msg.Bytes(), sig) {
+		return body.Bytes(), true
+	}
+
+	return nil, false
 }
 
 func extractUserIDFromToken(token string) (Snowflake, error) {

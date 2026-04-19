@@ -60,17 +60,9 @@ func (m *HTTPClient) tracef(format string, v ...any) {
 // Due to default HTTP server behavior, this goroutine cannot block for more than 3s,
 // to achieve that we use client interaction responder trick.
 func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.Request) {
-	verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey))
+	rawData, verified := verifyRequest(r, ed25519.PublicKey(client.PublicKey), MAX_REQUEST_BODY_SIZE)
 	if !verified {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	limitedReader := http.MaxBytesReader(w, r.Body, MAX_REQUEST_BODY_SIZE)
-	rawData, err := io.ReadAll(limitedReader)
-	limitedReader.Close() // closes underlying r.Body
-	if err != nil {
-		http.Error(w, "bad request - failed to read body payload", http.StatusBadRequest)
 		return
 	}
 
