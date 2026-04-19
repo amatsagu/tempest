@@ -188,8 +188,14 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 		if err != nil {
 			return fmt.Errorf("failed to create file part [%d]: %w", i, err)
 		}
-		if _, err := io.Copy(filePart, file.Reader); err != nil {
+
+		lr := io.LimitReader(file.Reader, MAX_FILE_UPLOAD_SIZE+1)
+		n, err := io.Copy(filePart, lr)
+		if err != nil {
 			return fmt.Errorf("failed to stream file [%s]: %w", file.Name, err)
+		}
+		if n > MAX_FILE_UPLOAD_SIZE {
+			return fmt.Errorf("file [%s] exceeds maximum upload size of 10MB", file.Name)
 		}
 	}
 
