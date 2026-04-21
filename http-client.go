@@ -281,34 +281,32 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 		return
 	}
 
-	signalChan, isQueued := client.queuedComponents.Get(interaction.Data.CustomID)
+	handler, isQueued := client.queuedComponents.Get(interaction.Data.CustomID)
+	if isQueued && time.Now().After(handler.Expire) {
+		isQueued = false
+		client.queuedComponents.Delete(interaction.Data.CustomID)
+		if handler.OnTimeout != nil {
+			go handler.OnTimeout()
+		}
+	}
+
 	hasGlobal := client.componentHandler != nil
 
-	if isQueued || hasGlobal {
-		if isQueued {
-			client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
-		} else {
-			client.tracef("Received component interaction - moved to defined component handler.")
-		}
-
+	if isQueued {
+		client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:
 		}
 
 		interaction.deferred = true
+		handler.Handler(&interaction)
+		return
+	}
 
-		if isQueued {
-			select {
-			case signalChan <- &interaction:
-			default:
-			}
-			return
-		}
-
-		if client.componentHandler != nil {
-			client.componentHandler(&interaction)
-		}
+	if hasGlobal {
+		client.tracef("Received component interaction - moved to defined component handler.")
+		client.componentHandler(&interaction)
 		return
 	}
 
@@ -322,34 +320,32 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 		return
 	}
 
-	signalChan, isQueued := client.queuedModals.Get(interaction.Data.CustomID)
+	handler, isQueued := client.queuedModals.Get(interaction.Data.CustomID)
+	if isQueued && time.Now().After(handler.Expire) {
+		isQueued = false
+		client.queuedModals.Delete(interaction.Data.CustomID)
+		if handler.OnTimeout != nil {
+			go handler.OnTimeout()
+		}
+	}
+
 	hasGlobal := client.modalHandler != nil
 
-	if isQueued || hasGlobal {
-		if isQueued {
-			client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
-		} else {
-			client.tracef("Received modal interaction - moved to defined modal handler.")
-		}
-
+	if isQueued {
+		client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:
 		}
 
 		interaction.deferred = true
+		handler.Handler(&interaction)
+		return
+	}
 
-		if isQueued {
-			select {
-			case signalChan <- &interaction:
-			default:
-			}
-			return
-		}
-
-		if client.modalHandler != nil {
-			client.modalHandler(&interaction)
-		}
+	if hasGlobal {
+		client.tracef("Received modal interaction - moved to defined modal handler.")
+		client.modalHandler(&interaction)
 		return
 	}
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 // BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
@@ -29,8 +30,10 @@ type BaseClient struct {
 	componentHandler   func(itx *ComponentInteraction)
 	modalHandler       func(itx *ModalInteraction)
 
-	queuedComponents *SharedMap[string, chan *ComponentInteraction]
-	queuedModals     *SharedMap[string, chan *ModalInteraction]
+	queuedComponents *SharedMap[string, *queuedComponent]
+	queuedModals     *SharedMap[string, *queuedModal]
+
+	sweeper interactionSweeper
 }
 
 type BaseClientOptions struct {
@@ -44,6 +47,18 @@ type BaseClientOptions struct {
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 
 	Logger *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
+}
+
+type queuedComponent struct {
+	Handler   func(*ComponentInteraction)
+	Expire    time.Time
+	OnTimeout func()
+}
+
+type queuedModal struct {
+	Handler   func(*ModalInteraction)
+	Expire    time.Time
+	OnTimeout func()
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
@@ -66,7 +81,7 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		opt.RestOptions.Token = opt.Token
 	}
 
-	return &BaseClient{
+	client := &BaseClient{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.RestOptions),
 		traceLogger:        traceLogger,
@@ -78,9 +93,11 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		postCommandHandler: opt.PostCommandHook,
 		componentHandler:   opt.ComponentHandler,
 		modalHandler:       opt.ModalHandler,
-		queuedComponents:   NewSharedMap[string, chan *ComponentInteraction](),
-		queuedModals:       NewSharedMap[string, chan *ModalInteraction](),
+		queuedComponents:   NewSharedMap[string, *queuedComponent](),
+		queuedModals:       NewSharedMap[string, *queuedModal](),
 	}
+
+	return client
 }
 
 func (s *BaseClient) tracef(format string, v ...any) {
@@ -88,97 +105,147 @@ func (s *BaseClient) tracef(format string, v ...any) {
 }
 
 // Makes client dynamically "listen" incoming component type interactions.
-// When component custom id matches - it'll send back interaction through channel.
-// Holder s responsible for calling cleanup function once done (check example app code for better understanding).
-// You can use context to control timeout - Discord API allows to reply to interaction for max 15 minutes.
+// When component custom id matches - it'll run onAction callback.
+// If onAction returns false, it stops listening.
+// If it reaches the timeout duration, it stops listening and calls onTimeout (if provided).
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *BaseClient) AwaitComponent(customIDs []string) (<-chan *ComponentInteraction, func(), error) {
+func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Duration, onAction func(itx *ComponentInteraction) bool, onTimeout func()) error {
 	client.staticComponents.mu.RLock()
+	client.queuedComponents.mu.Lock()
+	defer client.staticComponents.mu.RUnlock()
+	defer client.queuedComponents.mu.Unlock()
+
 	for _, id := range customIDs {
-		if client.staticComponents.cache[id] != nil {
-			client.staticComponents.mu.RUnlock()
-			return nil, nil, fmt.Errorf("static component with custom ID \"%s\" is already registered", id)
+		if _, ok := client.staticComponents.cache[id]; ok {
+			return fmt.Errorf("static component with custom ID %q is already registered", id)
+		}
+
+		if _, ok := client.queuedComponents.cache[id]; ok {
+			return fmt.Errorf("dynamic component with custom ID %q is already registered", id)
 		}
 	}
-	client.staticComponents.mu.RUnlock()
 
-	client.queuedComponents.mu.RLock()
-	for _, id := range customIDs {
-		if client.queuedComponents.cache[id] != nil {
-			client.queuedComponents.mu.RUnlock()
-			return nil, nil, fmt.Errorf("dynamic component with custom ID \"%s\" is already registered", id)
-		}
-	}
-	client.queuedComponents.mu.RUnlock()
-
-	signalChan := make(chan *ComponentInteraction)
-	var once sync.Once
-
-	cleanup := func() {
-		once.Do(func() {
+	handler := func(itx *ComponentInteraction) {
+		keepListening := onAction(itx)
+		if !keepListening {
 			client.queuedComponents.mu.Lock()
-			defer client.queuedComponents.mu.Unlock()
 			for _, id := range customIDs {
 				delete(client.queuedComponents.cache, id)
 			}
-			close(signalChan)
-		})
+			client.queuedComponents.mu.Unlock()
+		}
 	}
 
-	client.queuedComponents.mu.Lock()
-	for _, id := range customIDs {
-		client.queuedComponents.cache[id] = signalChan
+	expire := time.Now().Add(timeout)
+
+	var once sync.Once
+	var timeoutFunc func() = nil
+	if onTimeout != nil {
+		timeoutFunc = func() {
+			once.Do(func() {
+				client.queuedComponents.mu.Lock()
+				for _, id := range customIDs {
+					delete(client.queuedComponents.cache, id)
+				}
+				client.queuedComponents.mu.Unlock()
+				onTimeout()
+			})
+		}
+	} else {
+		timeoutFunc = func() {
+			once.Do(func() {
+				client.queuedComponents.mu.Lock()
+				for _, id := range customIDs {
+					delete(client.queuedComponents.cache, id)
+				}
+				client.queuedComponents.mu.Unlock()
+			})
+		}
 	}
-	client.queuedComponents.mu.Unlock()
+
+	for _, id := range customIDs {
+		client.queuedComponents.cache[id] = &queuedComponent{
+			Handler:   handler,
+			Expire:    expire,
+			OnTimeout: timeoutFunc,
+		}
+	}
 
 	client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
-	return signalChan, cleanup, nil
+	client.sweeper.tryRun(client)
+
+	return nil
 }
 
 // Mirror method to Client.AwaitComponent but for handling modal interactions.
 // Look comment on Client.AwaitComponent and see example bot/app code for more.
-func (client *BaseClient) AwaitModal(customIDs []string) (<-chan *ModalInteraction, func(), error) {
+func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, onAction func(itx *ModalInteraction) bool, onTimeout func()) error {
 	client.staticModals.mu.RLock()
+	client.queuedModals.mu.Lock()
+	defer client.staticModals.mu.RUnlock()
+	defer client.queuedModals.mu.Unlock()
+
 	for _, id := range customIDs {
-		if client.staticModals.cache[id] != nil {
-			client.staticModals.mu.RUnlock()
-			return nil, nil, fmt.Errorf("static modal with custom ID \"%s\" is already registered", id)
+		if _, ok := client.staticModals.cache[id]; ok {
+			return fmt.Errorf("static modal with custom ID %q is already registered", id)
+		}
+
+		if _, ok := client.queuedModals.cache[id]; ok {
+			return fmt.Errorf("dynamic modal with custom ID %q is already registered", id)
 		}
 	}
-	client.staticModals.mu.RUnlock()
 
-	client.queuedModals.mu.RLock()
-	for _, id := range customIDs {
-		if client.queuedModals.cache[id] != nil {
-			client.queuedModals.mu.RUnlock()
-			return nil, nil, fmt.Errorf("dynamic modal with custom ID \"%s\" is already registered", id)
-		}
-	}
-	client.queuedModals.mu.RUnlock()
-
-	signalChan := make(chan *ModalInteraction)
-	var once sync.Once
-
-	cleanup := func() {
-		once.Do(func() {
+	handler := func(itx *ModalInteraction) {
+		keepListening := onAction(itx)
+		if !keepListening {
 			client.queuedModals.mu.Lock()
-			defer client.queuedModals.mu.Unlock()
 			for _, id := range customIDs {
 				delete(client.queuedModals.cache, id)
 			}
-			close(signalChan)
-		})
+			client.queuedModals.mu.Unlock()
+		}
 	}
 
-	client.queuedModals.mu.Lock()
-	for _, id := range customIDs {
-		client.queuedModals.cache[id] = signalChan
+	expire := time.Now().Add(timeout)
+
+	var once sync.Once
+	var timeoutFunc func() = nil
+	if onTimeout != nil {
+		timeoutFunc = func() {
+			once.Do(func() {
+				client.queuedModals.mu.Lock()
+				for _, id := range customIDs {
+					delete(client.queuedModals.cache, id)
+				}
+				client.queuedModals.mu.Unlock()
+				onTimeout()
+			})
+		}
+	} else {
+		timeoutFunc = func() {
+			once.Do(func() {
+				client.queuedModals.mu.Lock()
+				for _, id := range customIDs {
+					delete(client.queuedModals.cache, id)
+				}
+				client.queuedModals.mu.Unlock()
+			})
+		}
 	}
-	client.queuedModals.mu.Unlock()
+
+	for _, id := range customIDs {
+		client.queuedModals.cache[id] = &queuedModal{
+			Handler:   handler,
+			Expire:    expire,
+			OnTimeout: timeoutFunc,
+		}
+	}
 
 	client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
-	return signalChan, cleanup, nil
+	client.sweeper.tryRun(client)
+
+	return nil
 }
 
 func (client *BaseClient) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
@@ -407,21 +474,24 @@ func (client *BaseClient) RegisterSubCommand(subCommand Command, parentCommandNa
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
 func (client *BaseClient) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
-	for _, ID := range customIDs {
-		if client.staticComponents.Has(ID) {
-			return errors.New("client already has registered static component with custom ID = " + ID + " (custom id already in use)")
-		}
-
-		if client.queuedComponents.Has(ID) {
-			return errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use elsewhere)")
-		}
-	}
-
 	client.staticComponents.mu.Lock()
-	for _, key := range customIDs {
-		client.staticComponents.Set(key, fn)
+	client.queuedComponents.mu.RLock()
+	defer client.staticComponents.mu.Unlock()
+	defer client.queuedComponents.mu.RUnlock()
+
+	for _, id := range customIDs {
+		if _, ok := client.staticComponents.cache[id]; ok {
+			return fmt.Errorf("client already has registered static component with custom ID %q (custom id already in use)", id)
+		}
+
+		if _, ok := client.queuedComponents.cache[id]; ok {
+			return fmt.Errorf("client already has registered dynamic (queued) component with custom ID %q (custom id already in use elsewhere)", id)
+		}
 	}
-	client.staticComponents.mu.Unlock()
+
+	for _, key := range customIDs {
+		client.staticComponents.cache[key] = fn
+	}
 
 	client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
 	return nil
@@ -429,36 +499,40 @@ func (client *BaseClient) RegisterComponent(customIDs []string, fn func(Componen
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving component interaction with matching custom id.
 func (client *BaseClient) RegisterModal(customID string, fn func(ModalInteraction)) error {
-	if client.staticModals.Has(customID) {
-		return errors.New("client already has registered static modal with custom ID = " + customID + " (custom id already in use)")
+	client.staticModals.mu.Lock()
+	client.queuedModals.mu.RLock()
+	defer client.staticModals.mu.Unlock()
+	defer client.queuedModals.mu.RUnlock()
+
+	if _, ok := client.staticModals.cache[customID]; ok {
+		return fmt.Errorf("client already has registered static modal with custom ID %q (custom id already in use)", customID)
 	}
 
-	if client.queuedModals.Has(customID) {
-		return errors.New("client already has registered dynamic (queued) modal with custom ID = " + customID + " (custom id already in use elsewhere)")
+	if _, ok := client.queuedModals.cache[customID]; ok {
+		return fmt.Errorf("client already has registered dynamic (queued) modal with custom ID %q (custom id already in use elsewhere)", customID)
 	}
 
-	client.staticModals.Set(customID, fn)
+	client.staticModals.cache[customID] = fn
 	client.tracef("Registered static modal handler for custom ID = %s", customID)
 	return nil
 }
 
 // Removes previously registered, static components that match any of provided custom IDs.
 func (client *BaseClient) DeleteComponent(customIDs []string) error {
-	for _, ID := range customIDs {
-		if !client.staticComponents.Has(ID) {
-			return errors.New("client has no tracking data about static component with custom ID = " + ID + " (custom id already in use)")
-		}
+	client.staticComponents.mu.Lock()
+	client.queuedComponents.mu.RLock()
+	defer client.staticComponents.mu.Unlock()
+	defer client.queuedComponents.mu.RUnlock()
 
-		if client.queuedComponents.Has(ID) {
-			return errors.New("client already has registered dynamic (queued) component with custom ID = " + ID + " (custom id already in use elsewhere)")
+	for _, id := range customIDs {
+		if _, ok := client.queuedComponents.cache[id]; ok {
+			return fmt.Errorf("client already has registered dynamic (queued) component with custom ID %q (custom id already in use elsewhere)", id)
 		}
 	}
 
-	client.staticComponents.mu.Lock()
 	for _, key := range customIDs {
 		delete(client.staticComponents.cache, key)
 	}
-	client.staticComponents.mu.Unlock()
 
 	client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
 	return nil
@@ -466,21 +540,20 @@ func (client *BaseClient) DeleteComponent(customIDs []string) error {
 
 // Removes previously registered, static modals that match any of provided custom IDs.
 func (client *BaseClient) DeleteModal(customIDs []string) error {
-	for _, ID := range customIDs {
-		if !client.staticModals.Has(ID) {
-			return errors.New("client has no tracking data about static modal with custom ID = " + ID + " (custom id already in use)")
-		}
+	client.staticModals.mu.Lock()
+	client.queuedModals.mu.RLock()
+	defer client.staticModals.mu.Unlock()
+	defer client.queuedModals.mu.RUnlock()
 
-		if client.queuedModals.Has(ID) {
-			return errors.New("client already has registered dynamic (queued) modal with custom ID = " + ID + " (custom id already in use elsewhere)")
+	for _, id := range customIDs {
+		if _, ok := client.queuedModals.cache[id]; ok {
+			return fmt.Errorf("client already has registered dynamic (queued) modal with custom ID %q (custom id already in use elsewhere)", id)
 		}
 	}
 
-	client.staticModals.mu.Lock()
 	for _, key := range customIDs {
 		delete(client.staticModals.cache, key)
 	}
-	client.staticModals.mu.Unlock()
 
 	client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
 	return nil

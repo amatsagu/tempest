@@ -310,8 +310,8 @@ func (s *Shard) sendIdentify() error {
 			ShardOrder: [2]uint16{s.ID, s.totalShards},
 			Properties: IdentifyPayloadDataProperties{
 				OS:      runtime.GOOS,
-				Browser: "qord",
-				Device:  "qord",
+				Browser: "tempest",
+				Device:  "tempest",
 			},
 		},
 	}

@@ -1,6 +1,9 @@
 package tempest
 
-import "sync"
+import (
+	"iter"
+	"sync"
+)
 
 // Map but wrapped with mutex so it's safe to use between goroutines.
 // It also supports few extra, helper methods that are new to std Map.
@@ -184,10 +187,64 @@ func (sm *SharedMap[K, V]) ExportValues() []V {
 }
 
 // Runs provided function on every map entry. Map contents stays locked for entire duration of this function call.
+//
+// Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the provided function,
+// as it will block all other map operations (including Writes) for the entire duration of the loop.
 func (sm *SharedMap[K, V]) ReadRange(fn func(key K, value V)) {
 	sm.mu.RLock()
 	for key, value := range sm.cache {
 		fn(key, value)
 	}
 	sm.mu.RUnlock()
+}
+
+// Returns an iterator over the map's key-value pairs.
+// Map contents stays locked for the entire duration of the iteration.
+//
+// Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
+// as it will block all other map operations (including Writes) for the entire duration of the loop.
+func (sm *SharedMap[K, V]) Entries() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		sm.mu.RLock()
+		defer sm.mu.RUnlock()
+		for k, v := range sm.cache {
+			if !yield(k, v) {
+				return
+			}
+		}
+	}
+}
+
+// Returns an iterator over the map's keys.
+// Map contents stays locked for the entire duration of the iteration.
+//
+// Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
+// as it will block all other map operations (including Writes) for the entire duration of the loop.
+func (sm *SharedMap[K, V]) Keys() iter.Seq[K] {
+	return func(yield func(K) bool) {
+		sm.mu.RLock()
+		defer sm.mu.RUnlock()
+		for k := range sm.cache {
+			if !yield(k) {
+				return
+			}
+		}
+	}
+}
+
+// Returns an iterator over the map's values.
+// Map contents stays locked for the entire duration of the iteration.
+//
+// Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
+// as it will block all other map operations (including Writes) for the entire duration of the loop.
+func (sm *SharedMap[K, V]) Values() iter.Seq[V] {
+	return func(yield func(V) bool) {
+		sm.mu.RLock()
+		defer sm.mu.RUnlock()
+		for _, v := range sm.cache {
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }

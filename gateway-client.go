@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 type GatewayClient struct {
@@ -180,34 +181,27 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 		return
 	}
 
-	isQueued := client.queuedComponents.Has(interaction.Data.CustomID)
+	handler, isQueued := client.queuedComponents.Get(interaction.Data.CustomID)
+	if isQueued && time.Now().After(handler.Expire) {
+		isQueued = false
+		client.queuedComponents.Delete(interaction.Data.CustomID)
+		if handler.OnTimeout != nil {
+			go handler.OnTimeout()
+		}
+	}
+
 	hasGlobal := client.componentHandler != nil
 
-	if isQueued || hasGlobal {
-		if isQueued {
-			client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
-		} else {
-			client.tracef("Received component interaction - moved to defined component handler.")
-		}
-
+	if isQueued {
+		client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
 		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		handler.Handler(&interaction)
+		return
+	}
 
-		if isQueued {
-			client.queuedComponents.mu.RLock()
-			if signalChan, ok := client.queuedComponents.cache[interaction.Data.CustomID]; ok {
-				select {
-				case signalChan <- &interaction:
-				default:
-				}
-				client.queuedComponents.mu.RUnlock()
-				return
-			}
-			client.queuedComponents.mu.RUnlock()
-		}
-
-		if client.componentHandler != nil {
-			client.componentHandler(&interaction)
-		}
+	if hasGlobal {
+		client.tracef("Received component interaction - moved to defined component handler.")
+		client.componentHandler(&interaction)
 		return
 	}
 
@@ -221,34 +215,27 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 		return
 	}
 
-	isQueued := client.queuedModals.Has(interaction.Data.CustomID)
+	handler, isQueued := client.queuedModals.Get(interaction.Data.CustomID)
+	if isQueued && time.Now().After(handler.Expire) {
+		isQueued = false
+		client.queuedModals.Delete(interaction.Data.CustomID)
+		if handler.OnTimeout != nil {
+			go handler.OnTimeout()
+		}
+	}
+
 	hasGlobal := client.modalHandler != nil
 
-	if isQueued || hasGlobal {
-		if isQueued {
-			client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
-		} else {
-			client.tracef("Received modal interaction - moved to defined modal handler.")
-		}
-
+	if isQueued {
+		client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
 		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		handler.Handler(&interaction)
+		return
+	}
 
-		if isQueued {
-			client.queuedModals.mu.RLock()
-			if signalChan, ok := client.queuedModals.cache[interaction.Data.CustomID]; ok {
-				select {
-				case signalChan <- &interaction:
-				default:
-				}
-				client.queuedModals.mu.RUnlock()
-				return
-			}
-			client.queuedModals.mu.RUnlock()
-		}
-
-		if client.modalHandler != nil {
-			client.modalHandler(&interaction)
-		}
+	if hasGlobal {
+		client.tracef("Received modal interaction - moved to defined modal handler.")
+		client.modalHandler(&interaction)
 		return
 	}
 
