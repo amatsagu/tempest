@@ -1,7 +1,6 @@
 package command
 
 import (
-	"context"
 	"log"
 	"strconv"
 	"time"
@@ -37,62 +36,46 @@ var Dynamic tempest.Command = tempest.Command{
 		itx.SendReply(msg, false, nil)
 
 		// In real world - you'll probably have some sort of master context instead default background to gracefully control app/bot lifecycles.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
-		defer cancel()
+		var counter uint64 = 0
 
-		signalChan, cleanupFunc, err := itx.BaseClient.AwaitComponent([]string{uniqueButtonID})
+		err := itx.BaseClient.AwaitComponent([]string{uniqueButtonID}, time.Minute*2, func(citx *tempest.ComponentInteraction) bool {
+			if citx.Member.User.ID != itx.Member.User.ID {
+				return true // Ignore click from other user, keep listening
+			}
+
+			counter++
+			if row, ok := msg.Components[0].(tempest.ActionRowComponent); ok {
+				if btn, ok := row.Components[0].(tempest.ButtonComponent); ok {
+					btn.Label = strconv.FormatUint(counter, 10)
+					row.Components[0] = btn
+					msg.Components[0] = row
+				}
+			}
+
+			err := itx.EditReply(msg, false)
+			if err != nil {
+				log.Println("failed to edit response", err)
+				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+				return false // Stop listening on error
+			}
+
+			return true // Continue listening
+		}, func() {
+			// This runs when timeout is reached
+			err := itx.EditReply(tempest.ResponseMessageData{
+				Content: "Reached timeout (button disabled).",
+			}, false)
+
+			if err != nil {
+				log.Println("failed to edit response", err)
+				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
+			}
+		})
+
 		if err != nil {
 			log.Println("failed to create component listener:", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)
 			return
-		}
-		defer cleanupFunc()
-
-		var counter uint64 = 0
-
-	counterLoop: // At least in our case, use label to clearly exit infinite loop where appropriate.
-		for {
-			select {
-			case citx, open := <-signalChan:
-				if !open {
-					break counterLoop
-				}
-
-				if citx.Member.User.ID != itx.Member.User.ID {
-					continue
-				}
-
-				counter++
-				if row, ok := msg.Components[0].(tempest.ActionRowComponent); ok {
-					if btn, ok := row.Components[0].(tempest.ButtonComponent); ok {
-						btn.Label = strconv.FormatUint(counter, 10)
-						row.Components[0] = btn
-						msg.Components[0] = row
-					}
-				}
-
-				err = itx.EditReply(msg, false)
-				if err != nil {
-					log.Println("failed to edit response", err)
-					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
-					return
-				}
-
-				//break counterLoop
-			case <-ctx.Done():
-				// timeout or cancellation (we already defer cleanup higher)
-
-				err = itx.EditReply(tempest.ResponseMessageData{
-					Content: "Reached timeout or cancellation of context",
-				}, false)
-
-				if err != nil {
-					log.Println("failed to edit response", err)
-					itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
-				}
-
-				break counterLoop
-			}
 		}
 
 		// Any code after for loop would run just fine...

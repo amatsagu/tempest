@@ -15,12 +15,12 @@ var Modal tempest.Command = tempest.Command{
 			Title:    "Hello modal!",
 			Components: []tempest.ModalComponent{
 				tempest.LabelComponent{
-					Type: tempest.LABEL_COMPONENT_TYPE,
+					Type:  tempest.LABEL_COMPONENT_TYPE,
+					Label: "Tell me something you like",
 					Component: tempest.TextInputComponent{
 						Type:     tempest.TEXT_INPUT_COMPONENT_TYPE,
 						CustomID: "example-test-input",
 						Style:    tempest.SHORT_TEXT_INPUT_STYLE,
-						Label:    "Tell me something you like",
 					},
 				},
 			},

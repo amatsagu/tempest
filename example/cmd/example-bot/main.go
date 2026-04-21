@@ -78,7 +78,7 @@ func startHTTP(addr string, trace bool) error {
 
 	loadCommands(client.BaseClient)
 
-	http.HandleFunc("POST /", client.DiscordRequestHandler)
+	http.HandleFunc("/", client.DiscordRequestHandler)
 	return http.ListenAndServe(addr, nil)
 }
 
