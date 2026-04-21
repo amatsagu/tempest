@@ -156,48 +156,6 @@ func (sm *SharedMap[K, V]) Sweep(fn func(key K, value V) bool) {
 	sm.mu.Unlock()
 }
 
-// Creates new slice with keys.
-func (sm *SharedMap[K, V]) ExportKeys() []K {
-	sm.mu.RLock()
-	res := make([]K, len(sm.cache))
-
-	i := 0
-	for key := range sm.cache {
-		res[i] = key
-		i++
-	}
-
-	sm.mu.RUnlock()
-	return res
-}
-
-// Creates new slice with values/items.
-func (sm *SharedMap[K, V]) ExportValues() []V {
-	sm.mu.RLock()
-	res := make([]V, len(sm.cache))
-
-	i := 0
-	for _, value := range sm.cache {
-		res[i] = value
-		i++
-	}
-
-	sm.mu.RUnlock()
-	return res
-}
-
-// Runs provided function on every map entry. Map contents stays locked for entire duration of this function call.
-//
-// Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the provided function,
-// as it will block all other map operations (including Writes) for the entire duration of the loop.
-func (sm *SharedMap[K, V]) ReadRange(fn func(key K, value V)) {
-	sm.mu.RLock()
-	for key, value := range sm.cache {
-		fn(key, value)
-	}
-	sm.mu.RUnlock()
-}
-
 // Returns an iterator over the map's key-value pairs.
 // Map contents stays locked for the entire duration of the iteration.
 //
