@@ -155,11 +155,16 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
-	// TODO: Add validation for modal data (1-5 components, title length, non-empty customID)
-	return itx.responder(Response{
+	err := itx.responder(Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
+
+	if err == nil {
+		itx.responded = true
+	}
+
+	return err
 }
 
 func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
