@@ -103,7 +103,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-		w.Write(bodyPingResponse)
+		if _, err := w.Write(bodyPingResponse); err != nil {
+			client.tracef("Failed to write ping response: %v.", err)
+		}
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
@@ -164,7 +166,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		}
 
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-		w.Write(body)
+		if _, err := w.Write(body); err != nil {
+			client.tracef("Failed to write auto complete response: %v.", err)
+		}
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
@@ -211,7 +215,11 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 
 	buf.WriteString(timestamp)
 
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			client.tracef("failed to close request body: %v", err)
+		}
+	}()
 	_, err = buf.ReadFrom(io.LimitReader(r.Body, maxSize))
 	if err != nil {
 		client.bufferPool.Put(buf)
@@ -236,7 +244,9 @@ func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
 	select {
 	case response := <-ch:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-		w.Write(response)
+		if _, err := w.Write(response); err != nil {
+			client.tracef("failed to write response: %v", err)
+		}
 	case <-time.After(2500 * time.Millisecond):
 		w.WriteHeader(http.StatusNoContent)
 	}

@@ -172,7 +172,7 @@ func (m *ShardManager) Send(shardID uint16, jsonStruct any) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if shardID+1 > uint16(len(m.shards)) {
+	if int(shardID) >= len(m.shards) {
 		m.tracef("Tried sending payload via invalid shard (ID = %d) - such shard does not exist.", shardID)
 		return
 	}
@@ -289,7 +289,11 @@ func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			m.tracef("Failed to close response body: %v.", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("failed to get gateway info: " + resp.Status)

@@ -113,9 +113,12 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 
 	for i := uint8(0); i < rest.maxRetries; i++ {
 		if body != nil {
-			body.Seek(0, io.SeekStart)
+			if _, err := body.Seek(0, io.SeekStart); err != nil {
+				return nil, fmt.Errorf("failed to seek request body: %w", err)
+			}
 		}
 
+		// #nosec G704
 		req, err := http.NewRequest(method, DiscordAPIBaseURL()+route, body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
@@ -159,7 +162,7 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 
 // Writes the JSON payload and files to a multipart writer.
 func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) error {
-	defer writer.Close()
+	defer writer.Close() //nolint:errcheck
 
 	// Write JSON payload part.
 	jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
@@ -178,7 +181,9 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 	// Write file parts.
 	for i, file := range files {
 		if seeker, ok := file.Reader.(io.ReadSeeker); ok {
-			seeker.Seek(0, io.SeekStart)
+			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+				return fmt.Errorf("failed to seek file [%s]: %w", file.Name, err)
+			}
 		}
 
 		filePart, err := writer.CreatePart(textproto.MIMEHeader{
@@ -197,6 +202,10 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 		if n > MAX_FILE_UPLOAD_SIZE {
 			return fmt.Errorf("file [%s] exceeds maximum upload size of 10MB", file.Name)
 		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
 	return nil
@@ -218,7 +227,7 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
 	}
-	defer res.Body.Close()
+	defer res.Body.Close() //nolint:errcheck
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {

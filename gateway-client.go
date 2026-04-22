@@ -170,7 +170,7 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 	})
 
 	if err != nil {
-		client.tracef("failed to acknowledge auto complete interaction: %v", err)
+		client.tracef("Failed to acknowledge auto complete interaction: %v.", err)
 	}
 }
 
@@ -194,7 +194,9 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 
 	if isQueued {
 		client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
-		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		if err := interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE}); err != nil {
+			client.tracef("failed to send deferred update message response: %v", err)
+		}
 		handler.Handler(&interaction)
 		return
 	}
@@ -228,7 +230,9 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 
 	if isQueued {
 		client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
-		interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE})
+		if err := interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE}); err != nil {
+			client.tracef("failed to send deferred update message response: %v", err)
+		}
 		handler.Handler(&interaction)
 		return
 	}
@@ -241,3 +245,4 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 
 	client.tracef("Dropped modal interaction. You see this trace message because client received modal interaction but there's no defined handler for it.")
 }
+

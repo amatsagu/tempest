@@ -107,13 +107,17 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 		select {
 		case <-ctx.Done():
 			s.tracef("Context cancellation received. Exiting connection loop.")
-			s.socket.close() // Explicitly close the socket.
+			if err := s.socket.close(); err != nil { // Explicitly close the socket.
+				s.tracef("failed to close socket: %v", err)
+			}
 			s.mu.Lock()
 			s.state = OFFLINE_SHARD_STATE
 			s.mu.Unlock()
 			return
 		default:
-			s.socket.close()
+			if err := s.socket.close(); err != nil {
+				s.tracef("Failed to close socket gracefully during reconnect: %v.", err)
+			}
 
 			s.mu.Lock()
 			s.state = CONNECTING_SHARD_STATE
@@ -169,7 +173,9 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 
 func (s *Shard) Close() {
 	s.tracef("Closing shard connection.")
-	s.socket.close()
+	if err := s.socket.close(); err != nil {
+		s.tracef("Failed to close socket gracefully: %v.", err)
+	}
 	s.mu.Lock()
 	s.state = OFFLINE_SHARD_STATE
 	s.mu.Unlock()
@@ -234,7 +240,9 @@ func (s *Shard) handleDispatchEvent(p EventPacket) error {
 func (s *Shard) handlePacket(p EventPacket) error {
 	switch p.Opcode {
 	case DISPATCH_OPCODE:
-		s.handleDispatchEvent(p)
+		if err := s.handleDispatchEvent(p); err != nil {
+			s.tracef("Failed to handle dispatch event: %v.", err)
+		}
 	case HELLO_OPCODE:
 		var hello HelloEventData
 		if err := json.Unmarshal(p.Data, &hello); err != nil {
@@ -361,7 +369,9 @@ func (s *Shard) heartbeatLoop(ctx context.Context) {
 
 			// Close the socket to force the main readLoop to exit.
 			// This will cause the Start loop to trigger a reconnect.
-			s.socket.close()
+			if err := s.socket.close(); err != nil {
+				s.tracef("failed to close socket: %v", err)
+			}
 			return
 		}
 		s.heartbeatAckMissing = true
