@@ -245,4 +245,3 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 
 	client.tracef("Dropped modal interaction. You see this trace message because client received modal interaction but there's no defined handler for it.")
 }
-

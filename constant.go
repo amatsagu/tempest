@@ -11,7 +11,7 @@ const (
 	CONTENT_TYPE_JSON                  = "application/json"
 	CONTENT_TYPE_OCTET_STREAM          = "application/octet-stream"
 	CONTENT_MULTIPART_JSON_DESCRIPTION = `form-data; name="payload_json"`
-	MAX_REQUEST_BODY_SIZE              = 1024 * 1024 // 1024 KB
+	MAX_REQUEST_BODY_SIZE              = 1024 * 1024      // 1024 KB
 	MAX_FILE_UPLOAD_SIZE               = 10 * 1024 * 1024 // 10 MB
 	ROOT_PLACEHOLDER                   = "-"
 )
