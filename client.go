@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
@@ -47,18 +46,6 @@ type BaseClientOptions struct {
 	Logger *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
 }
 
-type queuedComponent struct {
-	Handler   func(*ComponentInteraction)
-	Expire    time.Time
-	OnTimeout func()
-}
-
-type queuedModal struct {
-	Handler   func(*ModalInteraction)
-	Expire    time.Time
-	OnTimeout func()
-}
-
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
 	botUserID, err := extractUserIDFromToken(opt.Token)
 	if err != nil {
@@ -93,6 +80,9 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		modalHandler:       opt.ModalHandler,
 		queuedComponents:   NewSharedMap[string, *queuedComponent](),
 		queuedModals:       NewSharedMap[string, *queuedModal](),
+		sweeper: interactionSweeper{
+			signal: make(chan struct{}, 1),
+		},
 	}
 
 	return client

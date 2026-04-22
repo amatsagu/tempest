@@ -70,7 +70,7 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 	}
 
 	client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
-	client.sweeper.tryRun(client)
+	client.sweeper.tryRun(client, expire)
 
 	return nil
 }
@@ -134,7 +134,7 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 	}
 
 	client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
-	client.sweeper.tryRun(client)
+	client.sweeper.tryRun(client, expire)
 
 	return nil
 }
