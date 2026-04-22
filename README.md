@@ -63,7 +63,7 @@ It was created as a better alternative to [discord-interactions-go](https://gith
   - [x] Bitfields (flags, permissions, etc.)
   - [x] [Components + Message Components v2](https://docs.discord.com/developers/components/overview)
     <details>
-      <summary>See supporterd component types</summary>
+      <summary>See supported component types</summary>
         
       - [x] Action Row (1)
       - [x] Button (2)
