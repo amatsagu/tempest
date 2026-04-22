@@ -59,10 +59,34 @@ It was created as a better alternative to [discord-interactions-go](https://gith
 - [x] Helper structs and methods to manage:
   - [x] Simple messages
   - [x] Embeds
-  - [x] Components (buttons, string selects, sections, etc.)
   - [x] Modals
   - [x] Bitfields (flags, permissions, etc.)
-  - [x] [Message Components v2](https://docs.discord.com/developers/components/overview)
+  - [x] [Components + Message Components v2](https://docs.discord.com/developers/components/overview)
+    <details>
+      <summary>See supporterd component types</summary>
+        
+      - [x] Action Row (1)
+      - [x] Button (2)
+      - [x] String Select (3)
+      - [x] Text Input (4)
+      - [x] User Select (5)
+      - [x] Role Select (6)
+      - [x] Mentionable Select (7)
+      - [x] Channel Select (8)
+      - [x] Section (9)
+      - [x] Text Display (10)
+      - [x] Thumbnail (11)
+      - [x] Media Gallery (12)
+      - [x] File (13)
+      - [x] Separator (14)
+      - [x] Container (17)
+      - [x] Label (18)
+      - [x] File Upload (19)
+      - [x] Radio Group (21)
+      - [x] Checkbox Group (22)
+      - [x] Checkbox (23)
+
+    </details>
 - [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
 - [x] **__Basic__** support for Discord Monetization API *(enough to get started)*
 
