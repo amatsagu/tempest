@@ -43,7 +43,7 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 	expire := time.Now().Add(timeout)
 
 	var once sync.Once
-	var timeoutFunc func() = nil
+	var timeoutFunc func()
 	if onTimeout != nil {
 		timeoutFunc = func() {
 			once.Do(func() {
@@ -113,7 +113,7 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 	expire := time.Now().Add(timeout)
 
 	var once sync.Once
-	var timeoutFunc func() = nil
+	var timeoutFunc func()
 	if onTimeout != nil {
 		timeoutFunc = func() {
 			once.Do(func() {
