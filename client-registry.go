@@ -9,11 +9,12 @@ import (
 
 // Makes client dynamically "listen" incoming component type interactions.
 // When component custom id matches - it'll run onAction callback.
-// If onAction returns false, it stops listening.
+// If onAction returns true, it means it finished - so it should be instantly removed from memory and onTimeout should never be called then.
+// If onAction returns false - do nothing extra (it remains in map, can be called again or timeout).
 // If it reaches the timeout duration, it stops listening and calls onTimeout (if provided).
 //
 // Warning! Components handled this way will already be acknowledged.
-func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Duration, onAction func(itx *ComponentInteraction) bool, onTimeout func()) error {
+func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Duration, onActionFn func(itx *ComponentInteraction) bool, onTimeoutFn func()) error {
 	client.staticComponents.mu.RLock()
 	client.queuedComponents.mu.Lock()
 	defer client.staticComponents.mu.RUnlock()
@@ -29,41 +30,34 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 		}
 	}
 
+	cleanup := func() {
+		client.queuedComponents.mu.Lock()
+		for _, id := range customIDs {
+			delete(client.queuedComponents.cache, id)
+		}
+		client.queuedComponents.mu.Unlock()
+	}
+
+	var once sync.Once
 	handler := func(itx *ComponentInteraction) {
-		keepListening := onAction(itx)
-		if !keepListening {
-			client.queuedComponents.mu.Lock()
-			for _, id := range customIDs {
-				delete(client.queuedComponents.cache, id)
-			}
-			client.queuedComponents.mu.Unlock()
+		if onActionFn(itx) {
+			once.Do(cleanup)
 		}
 	}
 
 	expire := time.Now().Add(timeout)
 
-	var once sync.Once
-	var timeoutFunc func()
-	if onTimeout != nil {
-		timeoutFunc = func() {
+	var timeoutFn func()
+	if onTimeoutFn != nil {
+		timeoutFn = func() {
 			once.Do(func() {
-				client.queuedComponents.mu.Lock()
-				for _, id := range customIDs {
-					delete(client.queuedComponents.cache, id)
-				}
-				client.queuedComponents.mu.Unlock()
-				onTimeout()
+				cleanup()
+				onTimeoutFn()
 			})
 		}
 	} else {
-		timeoutFunc = func() {
-			once.Do(func() {
-				client.queuedComponents.mu.Lock()
-				for _, id := range customIDs {
-					delete(client.queuedComponents.cache, id)
-				}
-				client.queuedComponents.mu.Unlock()
-			})
+		timeoutFn = func() {
+			once.Do(cleanup)
 		}
 	}
 
@@ -71,7 +65,7 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 		client.queuedComponents.cache[id] = &queuedComponent{
 			Handler:   handler,
 			Expire:    expire,
-			OnTimeout: timeoutFunc,
+			OnTimeout: timeoutFn,
 		}
 	}
 
@@ -83,7 +77,7 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 
 // Mirror method to Client.AwaitComponent but for handling modal interactions.
 // Look comment on Client.AwaitComponent and see example bot/app code for more.
-func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, onAction func(itx *ModalInteraction) bool, onTimeout func()) error {
+func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, onActionFn func(itx *ModalInteraction) bool, onTimeoutFn func()) error {
 	client.staticModals.mu.RLock()
 	client.queuedModals.mu.Lock()
 	defer client.staticModals.mu.RUnlock()
@@ -99,41 +93,35 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 		}
 	}
 
+	var once sync.Once
+
+	cleanup := func() {
+		client.queuedModals.mu.Lock()
+		for _, id := range customIDs {
+			delete(client.queuedModals.cache, id)
+		}
+		client.queuedModals.mu.Unlock()
+	}
+
 	handler := func(itx *ModalInteraction) {
-		keepListening := onAction(itx)
-		if !keepListening {
-			client.queuedModals.mu.Lock()
-			for _, id := range customIDs {
-				delete(client.queuedModals.cache, id)
-			}
-			client.queuedModals.mu.Unlock()
+		if onActionFn(itx) {
+			once.Do(cleanup)
 		}
 	}
 
 	expire := time.Now().Add(timeout)
 
-	var once sync.Once
-	var timeoutFunc func()
-	if onTimeout != nil {
-		timeoutFunc = func() {
+	var timeoutFn func()
+	if onTimeoutFn != nil {
+		timeoutFn = func() {
 			once.Do(func() {
-				client.queuedModals.mu.Lock()
-				for _, id := range customIDs {
-					delete(client.queuedModals.cache, id)
-				}
-				client.queuedModals.mu.Unlock()
-				onTimeout()
+				cleanup()
+				onTimeoutFn()
 			})
 		}
 	} else {
-		timeoutFunc = func() {
-			once.Do(func() {
-				client.queuedModals.mu.Lock()
-				for _, id := range customIDs {
-					delete(client.queuedModals.cache, id)
-				}
-				client.queuedModals.mu.Unlock()
-			})
+		timeoutFn = func() {
+			once.Do(cleanup)
 		}
 	}
 
@@ -141,7 +129,7 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 		client.queuedModals.cache[id] = &queuedModal{
 			Handler:   handler,
 			Expire:    expire,
-			OnTimeout: timeoutFunc,
+			OnTimeout: timeoutFn,
 		}
 	}
 
@@ -201,7 +189,7 @@ func (client *BaseClient) RegisterSubCommand(subCommand Command, parentCommandNa
 }
 
 // Bind function to all components with matching custom ids. App will automatically run bound function whenever receiving component interaction with matching custom id.
-func (client *BaseClient) RegisterComponent(customIDs []string, fn func(ComponentInteraction)) error {
+func (client *BaseClient) RegisterComponent(customIDs []string, handler func(ComponentInteraction)) error {
 	client.staticComponents.mu.Lock()
 	client.queuedComponents.mu.RLock()
 	defer client.staticComponents.mu.Unlock()
@@ -218,7 +206,7 @@ func (client *BaseClient) RegisterComponent(customIDs []string, fn func(Componen
 	}
 
 	for _, key := range customIDs {
-		client.staticComponents.cache[key] = fn
+		client.staticComponents.cache[key] = handler
 	}
 
 	client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
@@ -226,7 +214,7 @@ func (client *BaseClient) RegisterComponent(customIDs []string, fn func(Componen
 }
 
 // Bind function to modal with matching custom id. App will automatically run bound function whenever receiving component interaction with matching custom id.
-func (client *BaseClient) RegisterModal(customID string, fn func(ModalInteraction)) error {
+func (client *BaseClient) RegisterModal(customID string, handler func(ModalInteraction)) error {
 	client.staticModals.mu.Lock()
 	client.queuedModals.mu.RLock()
 	defer client.staticModals.mu.Unlock()
@@ -240,7 +228,7 @@ func (client *BaseClient) RegisterModal(customID string, fn func(ModalInteractio
 		return fmt.Errorf("client already has registered dynamic (queued) modal with custom ID %q (custom id already in use elsewhere)", customID)
 	}
 
-	client.staticModals.cache[customID] = fn
+	client.staticModals.cache[customID] = handler
 	client.tracef("Registered static modal handler for custom ID = %s", customID)
 	return nil
 }
