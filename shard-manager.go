@@ -66,7 +66,7 @@ func NewShardManager(token string, trace bool, eventHandler func(shardID uint16,
 // Note: Normally Manager will ask Discord API for recommended number of shards and use that.
 // You can manually change that by setting forcedShardCount param to value larger than 0.
 // There's also option to provide on ready function callback to detect once all shards are online.
-func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16, readyCallback func()) error {
+func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16, readyCallbackFn func()) error {
 	m.mu.Lock()
 	if len(m.shards) != 0 {
 		m.mu.Unlock()
@@ -125,8 +125,8 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 	}
 
 	spawnWg.Wait() // Wait for all shards to be launched before proceeding.
-	if readyCallback != nil {
-		readyCallback()
+	if readyCallbackFn != nil {
+		readyCallbackFn()
 	}
 
 	m.tracef("All shards have been launched.")
@@ -214,7 +214,7 @@ func (m *ShardManager) Broadcast(jsonStruct any) {
 
 // Allows to update status (presence) of the bot.
 // Have generator function return nil to skip updating status for a specific shard.
-func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *UpdatePresenceEvent) {
+func (m *ShardManager) UpdateStatus(statusGeneratorFn func(shardID uint16) *UpdatePresenceEvent) {
 	m.tracef("Setting status for selected online shards!")
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -224,7 +224,7 @@ func (m *ShardManager) UpdateStatus(statusGenerator func(shardID uint16) *Update
 			continue
 		}
 
-		payload := statusGenerator(shard.ID)
+		payload := statusGeneratorFn(shard.ID)
 		if payload == nil {
 			continue
 		}

@@ -86,7 +86,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
 	responseCh := make(chan []byte, 1)
-	responderFunc := func(res Response) error {
+	responderFn := func(res Response) error {
 		body, err := json.Marshal(res)
 		if err != nil {
 			return err
@@ -117,7 +117,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFunc
+		interaction.responder = responderFn
 
 		go client.commandInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)
@@ -133,7 +133,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFunc
+		interaction.responder = responderFn
 
 		go client.componentInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)
@@ -149,7 +149,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFunc
+		interaction.responder = responderFn
 
 		choices := client.autoCompleteInteractionHandler(interaction)
 
@@ -180,7 +180,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFunc
+		interaction.responder = responderFn
 
 		go client.modalInteractionHandler(interaction, responseCh)
 		client.awaitResponse(w, responseCh)

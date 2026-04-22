@@ -60,7 +60,7 @@ func (sm *SharedMap[K, V]) Size() int {
 
 // Creates a copy of a given shared map,
 // filtered down to just the elements from the given array that pass the test implemented by the provided function.
-func (sm *SharedMap[K, V]) FilterMap(fn func(key K, value V) bool, limit int) *SharedMap[K, V] {
+func (sm *SharedMap[K, V]) FilterMap(filter func(key K, value V) bool, limit int) *SharedMap[K, V] {
 	res := NewSharedMap[K, V]()
 	sm.mu.RLock()
 
@@ -70,7 +70,7 @@ func (sm *SharedMap[K, V]) FilterMap(fn func(key K, value V) bool, limit int) *S
 	}
 
 	for key, value := range sm.cache {
-		if fn(key, value) {
+		if filter(key, value) {
 			res.Set(key, value)
 			i++
 			if i == limit {
@@ -84,7 +84,7 @@ func (sm *SharedMap[K, V]) FilterMap(fn func(key K, value V) bool, limit int) *S
 }
 
 // Same as FilterMap but returns slice of values that pass the provided test function.
-func (sm *SharedMap[K, V]) FilterValues(fn func(key K, value V) bool, limit int) []V {
+func (sm *SharedMap[K, V]) FilterValues(filter func(key K, value V) bool, limit int) []V {
 	var res []V
 
 	if limit == 0 {
@@ -100,7 +100,7 @@ func (sm *SharedMap[K, V]) FilterValues(fn func(key K, value V) bool, limit int)
 	}
 
 	for key, value := range sm.cache {
-		if fn(key, value) {
+		if filter(key, value) {
 			res = append(res, value)
 			i++
 			if i == limit {
@@ -114,7 +114,7 @@ func (sm *SharedMap[K, V]) FilterValues(fn func(key K, value V) bool, limit int)
 }
 
 // Same as FilterMap but returns slice of keys that pass the provided test function.
-func (sm *SharedMap[K, V]) FilterKeys(fn func(key K, value V) bool, limit int) []K {
+func (sm *SharedMap[K, V]) FilterKeys(filter func(key K, value V) bool, limit int) []K {
 	var res []K
 
 	if limit == 0 {
@@ -130,7 +130,7 @@ func (sm *SharedMap[K, V]) FilterKeys(fn func(key K, value V) bool, limit int) [
 	}
 
 	for key, value := range sm.cache {
-		if fn(key, value) {
+		if filter(key, value) {
 			res = append(res, key)
 			i++
 			if i == limit {
@@ -144,11 +144,11 @@ func (sm *SharedMap[K, V]) FilterKeys(fn func(key K, value V) bool, limit int) [
 }
 
 // Deletes items that satisfy the provided filter function within 1 mutex lock.
-func (sm *SharedMap[K, V]) Sweep(fn func(key K, value V) bool) {
+func (sm *SharedMap[K, V]) Sweep(filter func(key K, value V) bool) {
 	sm.mu.Lock()
 
 	for key, value := range sm.cache {
-		if fn(key, value) {
+		if filter(key, value) {
 			delete(sm.cache, key)
 		}
 	}
@@ -162,11 +162,11 @@ func (sm *SharedMap[K, V]) Sweep(fn func(key K, value V) bool) {
 // Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
 // as it will block all other map operations (including Writes) for the entire duration of the loop.
 func (sm *SharedMap[K, V]) Entries() iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
+	return func(yieldFn func(K, V) bool) {
 		sm.mu.RLock()
 		defer sm.mu.RUnlock()
 		for k, v := range sm.cache {
-			if !yield(k, v) {
+			if !yieldFn(k, v) {
 				return
 			}
 		}
@@ -179,11 +179,11 @@ func (sm *SharedMap[K, V]) Entries() iter.Seq2[K, V] {
 // Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
 // as it will block all other map operations (including Writes) for the entire duration of the loop.
 func (sm *SharedMap[K, V]) Keys() iter.Seq[K] {
-	return func(yield func(K) bool) {
+	return func(yieldFn func(K) bool) {
 		sm.mu.RLock()
 		defer sm.mu.RUnlock()
 		for k := range sm.cache {
-			if !yield(k) {
+			if !yieldFn(k) {
 				return
 			}
 		}
@@ -196,11 +196,11 @@ func (sm *SharedMap[K, V]) Keys() iter.Seq[K] {
 // Warning! Do not perform any heavy computation or blocking operations (like I/O) inside the loop,
 // as it will block all other map operations (including Writes) for the entire duration of the loop.
 func (sm *SharedMap[K, V]) Values() iter.Seq[V] {
-	return func(yield func(V) bool) {
+	return func(yieldFn func(V) bool) {
 		sm.mu.RLock()
 		defer sm.mu.RUnlock()
 		for _, v := range sm.cache {
-			if !yield(v) {
+			if !yieldFn(v) {
 				return
 			}
 		}

@@ -40,7 +40,7 @@ var Dynamic tempest.Command = tempest.Command{
 
 		err := itx.BaseClient.AwaitComponent([]string{uniqueButtonID}, time.Minute*2, func(citx *tempest.ComponentInteraction) bool {
 			if citx.Member.User.ID != itx.Member.User.ID {
-				return true // Ignore click from other user, keep listening
+				return false // Ignore click from other user, keep listening
 			}
 
 			counter++
@@ -56,10 +56,10 @@ var Dynamic tempest.Command = tempest.Command{
 			if err != nil {
 				log.Println("failed to edit response", err)
 				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
-				return false // Stop listening on error
+				return true // Stop listening on error
 			}
 
-			return true // Continue listening
+			return false // Continue listening
 		}, func() {
 			// This runs when timeout is reached
 			err := itx.EditReply(tempest.ResponseMessageData{
