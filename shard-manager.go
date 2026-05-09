@@ -17,6 +17,7 @@ import (
 type ShardManager struct {
 	token        string
 	traceLogger  *log.Logger
+	compress     bool
 	eventHandler func(shardID uint16, packet EventPacket)
 
 	mu     sync.RWMutex
@@ -30,11 +31,12 @@ type ShardManager struct {
 // Creates a new gateway connection manager.
 // Set trace to true to enable detailed logging for the manager & all shards under its control.
 // If tracing is enabled and logger is provided, it'll be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
-func NewShardManager(token string, trace bool, eventHandler func(shardID uint16, packet EventPacket), logger *log.Logger) *ShardManager {
+func NewShardManager(token string, trace bool, zlibCompression bool, eventHandler func(shardID uint16, packet EventPacket), logger *log.Logger) *ShardManager {
 	m := &ShardManager{
 		token:        token,
 		shards:       make(map[uint16]*Shard),
 		traceLogger:  logger,
+		compress:     zlibCompression,
 		eventHandler: eventHandler,
 	}
 
@@ -104,7 +106,15 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 				default:
 					m.tracef("Spawning shard ID = %d in bucket ID = %d.", shardID, bucketID)
 
-					shard := NewShard(shardID, gBot.ShardCount, m.token, intents, m.traceLogger, m.eventHandler)
+					shard := NewShard(
+						shardID,
+						gBot.ShardCount,
+						m.token,
+						intents,
+						m.compress,
+						m.traceLogger,
+						m.eventHandler,
+					)
 
 					m.mu.Lock()
 					m.shards[shardID] = shard
@@ -113,7 +123,11 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 
 					go func() {
 						defer m.wg.Done()
-						shard.Start(m.ctx, gBot.URL+"/?v=10&encoding=json")
+						url := gBot.URL + "/?v=10&encoding=json"
+						if m.compress {
+							url += "&compress=zlib-stream"
+						}
+						shard.Start(m.ctx, url)
 					}()
 
 					// Discord requires a 5-second delay between each IDENTIFY per bucket

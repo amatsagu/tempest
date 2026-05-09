@@ -17,6 +17,7 @@ type GatewayClient struct {
 type GatewayClientOptions struct {
 	BaseClientOptions
 	Trace              bool // Whether to enable detailed logging for shard manager and basic client actions.
+	ZlibCompression    bool // Whether to enable zlib-stream compression for gateway traffic. It can reduce incoming traffic by up to ~70% but as side effect requires more CPU for compression & decompression of payloads.
 	CustomEventHandler func(shardID uint16, packet EventPacket)
 }
 
@@ -42,7 +43,13 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 		client.tracef("Gateway Client tracing enabled.")
 	}
 
-	client.Gateway = NewShardManager(opt.Token, opt.Trace, client.eventHandler, client.traceLogger)
+	client.Gateway = NewShardManager(
+		opt.Token,
+		opt.Trace,
+		opt.ZlibCompression,
+		client.eventHandler,
+		client.traceLogger,
+	)
 
 	return &client
 }

@@ -1,21 +1,64 @@
 package tempest
 
 import (
+	"compress/zlib"
+	"encoding/json"
 	"errors"
+	"io"
 	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
-// Each Qord connection with Gateway is:
+// Each Connection with Gateway is:
 // manager -> shards -> sockets
 
 // A thread-safe wrapper around a Gorilla WebSocket connection.
 // It's designed to handle the basic lifecycle and data framing for a
 // connection to the Discord Gateway.
 type socket struct {
-	conn *websocket.Conn
-	mu   sync.Mutex
+	conn     *websocket.Conn
+	mu       sync.Mutex
+	compress bool
+
+	// zlib-stream
+	zreader io.ReadCloser
+	decoder *json.Decoder
+}
+
+// Handles zero-allocation streaming from WebSocket frames.
+type zlibFeeder struct {
+	conn   *websocket.Conn
+	reader io.Reader
+}
+
+func (f *zlibFeeder) Read(p []byte) (int, error) {
+	for {
+		if f.reader == nil {
+			mt, r, err := f.conn.NextReader()
+			if err != nil {
+				return 0, err
+			}
+
+			if mt != websocket.BinaryMessage {
+				continue
+			}
+
+			f.reader = r
+		}
+
+		n, err := f.reader.Read(p)
+		if err == io.EOF {
+			f.reader = nil
+			if n > 0 {
+				return n, nil
+			}
+
+			continue
+		}
+
+		return n, err
+	}
 }
 
 func (s *socket) connect(urlStr string) error {
@@ -32,6 +75,19 @@ func (s *socket) connect(urlStr string) error {
 	}
 
 	s.conn = conn
+
+	if s.compress {
+		zr, err := zlib.NewReader(&zlibFeeder{conn: conn})
+		if err != nil {
+			_ = conn.Close()
+			s.conn = nil
+			return err
+		}
+
+		s.zreader = zr
+		s.decoder = json.NewDecoder(zr)
+	}
+
 	return nil
 }
 
@@ -52,18 +108,32 @@ func (s *socket) close() error {
 	err := s.conn.Close()
 	s.conn = nil // Mark as disconnected.
 
+	if s.zreader != nil {
+		_ = s.zreader.Close()
+		s.zreader = nil
+	}
+
+	s.decoder = nil
 	return err
 }
 
 func (s *socket) readJSON(v any) error {
 	s.mu.Lock()
-	if s.conn == nil {
+	conn := s.conn
+	if conn == nil {
 		s.mu.Unlock()
 		return errors.New("not connected")
 	}
-	s.mu.Unlock() // Unlock early to allow writes while we block on read.
 
-	return s.conn.ReadJSON(v)
+	if !s.compress {
+		s.mu.Unlock()
+		return conn.ReadJSON(v)
+	}
+
+	decoder := s.decoder
+	s.mu.Unlock()
+
+	return decoder.Decode(v)
 }
 
 func (s *socket) writeJSON(v any) error {

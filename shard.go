@@ -71,6 +71,7 @@ func NewShard(
 	totalShards uint16,
 	token string,
 	intents uint32,
+	compress bool,
 	traceLogger *log.Logger,
 	eventHandler func(shardID uint16, packet EventPacket),
 ) *Shard {
@@ -79,7 +80,7 @@ func NewShard(
 		totalShards:  totalShards,
 		token:        token,
 		intents:      intents,
-		socket:       &socket{},
+		socket:       &socket{compress: compress},
 		traceLogger:  traceLogger,
 		eventHandler: eventHandler,
 		// state:        ShardStateOffline,
