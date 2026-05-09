@@ -131,6 +131,10 @@ func (s *socket) readJSON(v any) error {
 	}
 
 	decoder := s.decoder
+	if decoder == nil {
+		s.mu.Unlock()
+		return errors.New("not connected")
+	}
 	s.mu.Unlock()
 
 	return decoder.Decode(v)
