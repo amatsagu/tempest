@@ -152,8 +152,9 @@ type UpdatePresenceEvent struct {
 
 // https://docs.discord.com/developers/events/gateway-events#update-presence-gateway-presence-update-structure
 type UpdatePresenceEventData struct {
-	Since      *int64     `json:"since"` // Unix time (in milliseconds) of when the client went idle, or null if the client is not idle
 	Activities []Activity `json:"activities"`
+	Status     StatusType `json:"status"`
+	Since      *int64     `json:"since"` // Unix time (in milliseconds) of when the client went idle, or null if the client is not idle
 	Emoji      Emoji      `json:"emoji"`
 	AFK        bool       `json:"afk"`
 }
