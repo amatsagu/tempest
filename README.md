@@ -89,6 +89,9 @@ It was created as a better alternative to [discord-interactions-go](https://gith
     </details>
 - [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
 - [x] **__Basic__** support for Discord Monetization API *(enough to get started)*
+- [x] **Optional** support for ws connection to gateway. Tempest focuses on HTTPS-based communication but it might be useful for large Discord Applications that require lower latency
+  - [x] Support for auto-sharding (enabled by default)
+  - [x] Support for zlib-stream compression (needs to be enabled in config)
 
 
 
