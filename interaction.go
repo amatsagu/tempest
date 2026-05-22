@@ -137,13 +137,9 @@ type CommandOptionChoice struct {
 	Value             any                 `json:"value"`                       // string, float64 (double or integer) or bool
 }
 
-//
-//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
-	// A unique, developer-defined identifier for this interaction; must be between 1 and 100 characters long.
-	//
-	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	// The CustomID of the Component having been interacted with.
 	CustomID string                   `json:"custom_id"`
 	Type     ComponentType            `json:"component_type"`  // The type of the component having been interacted with.
 	Values   []string                 `json:"values,omitzero"` // Values the user selected in a select menu component
@@ -154,7 +150,7 @@ type ComponentInteractionData struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
 type ModalInteractionData struct {
-	// The CustomID of the modal having been submitted. 
+	// The CustomID of the modal having been submitted.
 	CustomID   string           `json:"custom_id"`
 	Components []ModalComponent `json:"components,omitzero"` // The components that were sent inside the modal, having been filled with user input.
 }
