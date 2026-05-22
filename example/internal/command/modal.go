@@ -36,7 +36,7 @@ func HelloModal(itx tempest.ModalInteraction) {
 	if row, ok := itx.Data.Components[0].(tempest.LabelComponent); ok {
 		if textInput, ok := row.Component.(tempest.TextInputComponent); ok {
 			// This if check is technically redundant since we already know what the 1st text input field contains, but
-			// illustrates that Discord will send these back verbatim (so you could use it to encode state).
+			// illustrates that Discord will send component Custom IDs back verbatim (so you could use them to encode state).
 			if textInput.CustomID == "example-test-input" {
 				value = textInput.Value
 			}
