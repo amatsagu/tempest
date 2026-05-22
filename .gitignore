@@ -1,4 +1,5 @@
 .*
 !.gitignore
+!.golangci.yml
 !.github
 example/bin
