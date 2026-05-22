@@ -12,9 +12,9 @@ const (
 	PREMIUM_BUTTON_STYLE                          // By default same as primary but will automatically use SKU icon, name & price (sky_id field is required)
 )
 
+// https://docs.discord.com/developers/components/reference#component-object
 type ComponentType uint8
 
-// https://docs.discord.com/developers/components/reference#component-object
 const (
 	ACTION_ROW_COMPONENT_TYPE         ComponentType = iota + 1 // Layout component for Messages
 	BUTTON_COMPONENT_TYPE                                      // Interactive component for Messages
@@ -45,7 +45,7 @@ const (
 type TextInputStyle uint8
 
 const (
-	SHORT_TEXT_INPUT_STYLE     TextInputStyle = iota + 1 // 	A single-line input.
+	SHORT_TEXT_INPUT_STYLE     TextInputStyle = iota + 1 // A single-line input.
 	PARAGRAPH_TEXT_INPUT_STYLE                           // A multi-line input.
 )
 
@@ -81,15 +81,18 @@ type ActionRowComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#button
 type ButtonComponent struct {
-	Type     ComponentType `json:"type"` // Always = BUTTON_COMPONENT_TYPE (2)
-	ID       uint32        `json:"id,omitempty"`
-	Style    ButtonStyle   `json:"style"`
-	Label    string        `json:"label,omitempty"`
-	Emoji    *Emoji        `json:"emoji,omitempty"` // It may only contain id, name, and animated from regular Emoji struct.
-	CustomID string        `json:"custom_id,omitempty"`
-	SkuID    Snowflake     `json:"sku_id,omitempty"` // Identifier for a purchasable SKU, only available when using premium-style buttons. Premium buttons do not send an interaction to your app when clicked.
-	URL      string        `json:"url,omitempty"`
-	Disabled bool          `json:"disabled"`
+	Type  ComponentType `json:"type"` // Always = BUTTON_COMPONENT_TYPE (2)
+	ID    uint32        `json:"id,omitempty"`
+	Style ButtonStyle   `json:"style"`
+	Label string        `json:"label,omitempty"`
+	Emoji *Emoji        `json:"emoji,omitempty"` // It may only contain id, name, and animated from regular Emoji struct.
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	CustomID string    `json:"custom_id,omitempty"`
+	SkuID    Snowflake `json:"sku_id,omitempty"` // Identifier for a purchasable SKU, only available when using premium-style buttons. Premium buttons do not send an interaction to your app when clicked.
+	URL      string    `json:"url,omitempty"`
+	Disabled bool      `json:"disabled"`
 }
 
 // A StringSelectComponent displays a dropdown menu for users to select one or more pre-defined options.
@@ -99,20 +102,26 @@ type ButtonComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#string-select
 type StringSelectComponent struct {
-	Type        ComponentType      `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3). For responses, only provided for modal interactions
-	ID          uint32             `json:"id,omitempty"`
+	Type ComponentType `json:"type"` // Always = STRING_SELECT_COMPONENT_TYPE (3). Omitted inside interaction responses from messages.
+	ID   uint32        `json:"id,omitempty"`
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID    string             `json:"custom_id,omitempty"`
 	Options     []SelectMenuOption `json:"options,omitzero"`
 	Placeholder string             `json:"placeholder,omitempty"`
-	MinValues   uint8              `json:"min_values,omitempty"`
-	MaxValues   uint8              `json:"max_values,omitempty"`
-	Disabled    bool               `json:"disabled"`
-	Required    bool               `json:"required"`
+	MinValues   uint8              `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 0 and must be between 0 and 25. Can only be 0 if required is set to false.
+	MaxValues   uint8              `json:"max_values,omitempty"` // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
+	Disabled    bool               `json:"disabled"`             // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
+	Required    bool               `json:"required"`             // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
 
-	// Below 2 fields are controlled by API and should be readonly for us, developers.
-	// https://docs.discord.com/developers/components/reference#string-select-string-select-interaction-response-structure
-	ComponentType ComponentType `json:"component_type,omitempty"` // This field is ignored and provided by the API as part of the response (only provided for message interaction)
-	Values        []string      `json:"values,omitzero"`          // This field is ignored and provided by the API as part of the response.
+	// The following 2 fields are sent by Discord's API upon a successful interaction response.
+	// They should not be sent by developers when sending a message or modal, being either ignored or causing runtime payload rejection.
+	// Source: https://docs.discord.com/developers/components/reference#string-select-string-select-interaction-response-structure
+	// TODO: Have someone try throwing an invalid payload with these fields at discord to see how they respond (and update the above comment accordingly)
+
+	ComponentType ComponentType `json:"component_type,omitempty"` // Always = STRING_SELECT_COMPONENT_TYPE (3). Omitted in anything BUT interaction responses from messages.
+	Values        []string      `json:"values,omitzero"`          // The values of the options that were selected by the user. Should not be provided during message or modal creation.
 }
 
 // A SelectMenuOption represents a single option within a [StringSelectComponent].
@@ -128,12 +137,15 @@ type SelectMenuOption struct {
 
 // A TextInputComponent displays a field for the user to input free-form text.
 //
-// They can only be used inside [LabelComponents] within modals.
+// They can only be used inside [LabelComponent]s within modals.
 //
 // https://docs.discord.com/developers/components/reference#text-input
 type TextInputComponent struct {
-	Type        ComponentType  `json:"type"` // Always = TEXT_INPUT_COMPONENT_TYPE (4)
-	ID          uint32         `json:"id,omitempty"`
+	Type ComponentType `json:"type"` // Always = TEXT_INPUT_COMPONENT_TYPE (4)
+	ID   uint32        `json:"id,omitempty"`
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID    string         `json:"custom_id,omitempty"`
 	Style       TextInputStyle `json:"style"`
 	Label       string         `json:"label,omitempty"`       // Deprecated: use `label` and `description` on a Label component instead
@@ -155,14 +167,17 @@ type TextInputComponent struct {
 // [Mentionable Select]: https://docs.discord.com/developers/components/reference#mentionable-select-mentionable-select-structure
 // [Channel Select]: https://docs.discord.com/developers/components/reference#channel-select-channel-select-structure
 type SelectComponent struct {
-	Type          ComponentType        `json:"type"` // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
-	ID            uint32               `json:"id,omitempty"`
+	Type ComponentType `json:"type"` // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
+	ID   uint32        `json:"id,omitempty"`
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID      string               `json:"custom_id,omitempty"`
-	ChannelTypes  []ChannelType        `json:"channel_types,omitzero"`  // List of channel types to include in the channel select component; should be omitted for all other select types
-	Placeholder   string               `json:"placeholder,omitempty"`   // Placeholder text if nothing is selected, max: 150 characters
-	DefaultValues []DefaultValueOption `json:"default_values,omitzero"` // List of default values for auto-populated select menu components; must have between MinValues and MaxValues entries
-	MinValues     uint8                `json:"min_values,omitempty"`    // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25
-	MaxValues     uint8                `json:"max_values,omitempty"`    // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25
+	ChannelTypes  []ChannelType        `json:"channel_types,omitzero"`  // List of channel types to include in the channel select component; should be omitted for all other select types.
+	Placeholder   string               `json:"placeholder,omitempty"`   // Placeholder text if nothing is selected, max: 150 characters.
+	DefaultValues []DefaultValueOption `json:"default_values,omitzero"` // List of default values for auto-populated select menu components; must have between MinValues and MaxValues entries.
+	MinValues     uint8                `json:"min_values,omitempty"`    // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
+	MaxValues     uint8                `json:"max_values,omitempty"`    // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
 	Disabled      bool                 `json:"disabled"`                // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
@@ -279,30 +294,35 @@ type LabelComponent struct {
 	Component   LabelChildComponent `json:"component"`             // The component nested within the label.
 }
 
-// File Upload is an interactive component that allows users to upload files in modals.
-// File Uploads can be configured to have a minimum and maximum number of files between 0 and 10,
-// along with required for if the upload is required to submit the modal.
-// The max file size a user can upload is based on the user’s upload limit in that channel.
+// A FileUploadComponent allows users to upload one or more files in modals.
+// The maximum file size a user can upload is based solely on the user’s upload limit in that channel.
 //
-// File Uploads are available on modals. They must be placed inside a Label Component(s).
+// They can only be used inside [LabelComponent]s within modals.
 //
 // https://docs.discord.com/developers/components/reference#file-upload
 type FileUploadComponent struct {
-	Type      ComponentType `json:"type"`         // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
-	ID        uint32        `json:"id,omitempty"` // Optional identifier for component
-	CustomID  string        `json:"custom_id,omitempty"`
-	MinValues uint8         `json:"min_values,omitempty"`
-	MaxValues uint8         `json:"max_values,omitempty"`
-	Required  bool          `json:"required"`
+	Type ComponentType `json:"type"`         // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
+	ID   uint32        `json:"id,omitempty"` // Optional identifier for component
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	CustomID  string `json:"custom_id,omitempty"`
+	MinValues uint8  `json:"min_values,omitempty"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MaxValues uint8  `json:"max_values,omitempty"` // The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
+	Required  bool   `json:"required"`             // Whether a file upload is required to submit the modal.
 }
 
-// A Radio Group is an interactive component for selecting exactly one option from a defined list.
-// Radio Groups are available in modals and must be placed inside a Label Component(s).
+// A RadioGroupComponent allows selecting exactly one option from a defined list of choices.
+//
+// They can only be used inside [LabelComponent]s within modals.
 //
 // https://docs.discord.com/developers/components/reference#radio-group
 type RadioGroupComponent struct {
-	Type     ComponentType      `json:"type"`         // Always = RADIO_GROUP_COMPONENT_TYPE (21)
-	ID       uint32             `json:"id,omitempty"` // Optional identifier for component
+	Type ComponentType `json:"type"`         // Always = RADIO_GROUP_COMPONENT_TYPE (21)
+	ID   uint32        `json:"id,omitempty"` // Optional identifier for component
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID string             `json:"custom_id,omitempty"`
 	Options  []RadioGroupOption `json:"options,omitzero"` // List of options to show; min 2, max 10
 	Required bool               `json:"required"`         // Whether a selection is required to submit the modal (defaults to true)
@@ -316,18 +336,22 @@ type RadioGroupOption struct {
 	Default     bool   `json:"default"` // Whether to render this option as selected by default.
 }
 
-// A Checkbox Group is an interactive component for selecting one or many options via checkboxes.
-// Checkbox Groups are available in modals and must be placed inside a Label Component(s).
+// A CheckboxGroupComponent displays a list of one or more options selectable via checkboxes.
+//
+// They can only be used inside [LabelComponent]s within modals.
 //
 // https://docs.discord.com/developers/components/reference#checkbox-group
 type CheckboxGroupComponent struct {
-	Type      ComponentType         `json:"type"`         // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
-	ID        uint32                `json:"id,omitempty"` // Optional identifier for component
+	Type ComponentType `json:"type"`         // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
+	ID   uint32        `json:"id,omitempty"` // Optional identifier for component
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID  string                `json:"custom_id,omitempty"`
-	Options   []CheckboxGroupOption `json:"options,omitzero"`
-	MinValues uint8                 `json:"min_values,omitempty"`
-	MaxValues uint8                 `json:"max_values,omitempty"`
-	Required  bool                  `json:"required"`
+	Options   []CheckboxGroupOption `json:"options,omitzero"`     // The options to show in this checkbox group; must be between 1 and 10 options.
+	MinValues uint8                 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MaxValues uint8                 `json:"max_values,omitempty"` // The maximum number of options that can be chosen; must be between 1 and 10.
+	Required  bool                  `json:"required"`             // Whether a selection is required to submit the modal (defaults to true).
 }
 
 // https://docs.discord.com/developers/components/reference#checkbox-group-option-structure
@@ -338,13 +362,17 @@ type CheckboxGroupOption struct {
 	Default     bool   `json:"default"` // Whether to render this option as selected by default.
 }
 
-// A Checkbox is a single interactive component for simple yes/no style questions.
-// Checkboxes are available in modals and must be placed inside a Label Component(s).
+// A CheckboxComponent displays a single, non-required yes/no style question.
+//
+// They can only be used inside [LabelComponent]s within modals.
 //
 // https://docs.discord.com/developers/components/reference#checkbox
 type CheckboxComponent struct {
-	Type     ComponentType `json:"type"`         // Always = CHECKBOX_COMPONENT_TYPE (23)
-	ID       uint32        `json:"id,omitempty"` // Optional identifier for component
-	CustomID string        `json:"custom_id,omitempty"`
-	Default  bool          `json:"default"` // Whether to render this option as selected by default.
+	Type ComponentType `json:"type"`         // Always = CHECKBOX_COMPONENT_TYPE (23)
+	ID   uint32        `json:"id,omitempty"` // Optional identifier for component
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	CustomID string `json:"custom_id,omitempty"`
+	Default  bool   `json:"default"` // Whether to render this option as selected by default.
 }
