@@ -35,7 +35,6 @@ func HelloStatic(itx tempest.ComponentInteraction) {
 	err := itx.AcknowledgeWithMessage(tempest.ResponseMessageData{
 		Content: fmt.Sprintf("Hello <@%d>!", itx.Member.User.ID),
 	}, false)
-
 	if err != nil {
 		log.Println("failed to acknowledge static component", err)
 		return

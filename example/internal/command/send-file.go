@@ -28,7 +28,6 @@ var SendFile tempest.Command = tempest.Command{
 		err = itx.SendReply(tempest.ResponseMessageData{
 			Content: "This message should have attached files!",
 		}, false, files)
-
 		if err != nil {
 			log.Println("SendReply failed:", err)
 		}
