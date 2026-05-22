@@ -71,42 +71,53 @@ type Interaction struct {
 	responder     func(res Response) error `json:"-"`
 }
 
+// A CommandInteraction represents an interaction received from a user invoking an application command, such as a slash command or a context menu command.
+//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
 	*Interaction
 	Data CommandInteractionData `json:"data"`
 }
 
+// A ComponentInteraction represents an interaction received from a user interacting with a message component,
+// such as a [ButtonComponent] or [SelectComponent].
+//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
 	*Interaction
 	Data ComponentInteractionData `json:"data"`
 }
 
+// A ModalInteraction represents an interaction received from a user submitting a modal.
+//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
 	*Interaction
 	Data ModalInteractionData `json:"data"`
 }
 
+// A CommandInteractionData represents the data received from a user invoking an application command, such as a slash command or a context menu command.
+//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-data
 type CommandInteractionData struct {
-	ID       Snowflake                  `json:"id"`
-	Name     string                     `json:"name"`
-	Type     CommandType                `json:"type"`
-	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`
-	Options  []CommandInteractionOption `json:"options,omitzero"`
-	GuildID  Snowflake                  `json:"guild_id,omitempty"`
-	TargetID Snowflake                  `json:"target_id,omitempty"` // ID of either user or message targeted. Depends whether it was user command or message command.
+	ID       Snowflake                  `json:"id"`                  // The ID of the invoked command.
+	Name     string                     `json:"name"`                // The name of the invoked command, not including subcommand names.
+	Type     CommandType                `json:"type"`                // The type of comamnd that was invoked.
+	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`  // Data that Discord has resolved for the command, such as user and role objects. Fields will only be available to bots with the requisite permissions.
+	Options  []CommandInteractionOption `json:"options,omitzero"`    // The options and values passed by the user.
+	GuildID  Snowflake                  `json:"guild_id,omitempty"`  // The ID of the guild the command was invoked from. Will be null (i.e. 0) if invoked in a DM.
+	TargetID Snowflake                  `json:"target_id,omitempty"` // The ID of the user or message targeted by a user or message command from the context menu. Will be empty for slash commands.
 }
 
+// A CommandInteractionOption represents data about a single option passed to a command.
+//
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
 type CommandInteractionOption struct {
-	Name    string                     `json:"name"`
-	Type    OptionType                 `json:"type"`
-	Value   any                        `json:"value,omitempty"` // string, float64 (double or integer) or bool
-	Options []CommandInteractionOption `json:"options,omitzero"`
-	Focused bool                       `json:"focused"`
+	Name    string                     `json:"name"`             // The name of the option.
+	Type    OptionType                 `json:"type"`             // The type of option that was provided.
+	Value   any                        `json:"value,omitempty"`  // The value provided by the user; will always be of type string, float64 (double/integer) or bool. Mutually exclusive with options.
+	Options []CommandInteractionOption `json:"options,omitzero"` // For subcommands or grouped commands, the options passed to the subcommand or group. Mutually exclusive with value.
+	Focused bool                       `json:"focused"`          // Whether this option is currently focused by the user during autocomplete. Is exclusively used for autocomplete interactions and will always be false otherwise.
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-resolved-data-structure
@@ -128,8 +139,9 @@ type CommandOptionChoice struct {
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
+	// The CustomID of the Component having been interacted with.
 	CustomID string                   `json:"custom_id"`
-	Type     ComponentType            `json:"component_type"`
+	Type     ComponentType            `json:"component_type"`  // The type of the component having been interacted with.
 	Values   []string                 `json:"values,omitzero"` // Values the user selected in a select menu component
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 }
@@ -138,6 +150,7 @@ type ComponentInteractionData struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
 type ModalInteractionData struct {
+	// The CustomID of the modal having been submitted.
 	CustomID   string           `json:"custom_id"`
 	Components []ModalComponent `json:"components,omitzero"` // The components that were sent inside the modal, having been filled with user input.
 }

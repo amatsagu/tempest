@@ -59,7 +59,10 @@ type ResponseAutoCompleteData struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-modal
 type ResponseModalData struct {
-	CustomID   string           `json:"custom_id"`           // A custom identifier for the modal. Must be non-empty and between 1-100 characters.
+	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
+	//
+	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	CustomID   string           `json:"custom_id"`
 	Title      string           `json:"title"`               // The title of the modal. Must be under 45 characters.
 	Components []ModalComponent `json:"components,omitzero"` // 1-5 components that will make up the modal's body. Will be returned populated with user-filled data.
 }
