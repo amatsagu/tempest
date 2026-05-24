@@ -38,7 +38,6 @@ var V2Component tempest.Command = tempest.Command{
 				},
 			},
 		}, false, nil)
-
 		if err != nil {
 			log.Println("Run into a problem when trying to construct new components v2 reply message:", err)
 		}

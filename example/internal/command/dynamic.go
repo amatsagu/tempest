@@ -65,13 +65,11 @@ var Dynamic tempest.Command = tempest.Command{
 			err := itx.EditReply(tempest.ResponseMessageData{
 				Content: "Reached timeout (button disabled).",
 			}, false)
-
 			if err != nil {
 				log.Println("failed to edit response", err)
 				itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to edit response."}, false)
 			}
 		})
-
 		if err != nil {
 			log.Println("failed to create component listener:", err)
 			itx.SendFollowUp(tempest.ResponseMessageData{Content: "Failed to create component listener."}, false)

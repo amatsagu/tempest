@@ -175,7 +175,6 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 			Choices: choices,
 		},
 	})
-
 	if err != nil {
 		client.tracef("Failed to acknowledge auto complete interaction: %v.", err)
 	}

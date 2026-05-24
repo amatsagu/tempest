@@ -1,0 +1,37 @@
+# .golangci.yml
+version: "2"
+run:
+  timeout: 3m
+  tests: true
+
+formatters:
+  enable:
+    - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: false
+
+linters:
+  default: standard
+  enable:
+    - staticcheck
+    - whitespace
+    - nakedret
+    - errcheck
+  disable:
+    - unused
+  settings:
+    nakedret:
+      max-func-lines: 50
+    errcheck:
+      # Catch unchecked errors, but allow _ in tests.
+      exclude-functions:
+        - (*testing.T).Error
+        - (*testing.T).Fatal
+        - (*testing.T).Fatalf
+        - (*testing.T).Log
+        - (*testing.T).Logf
+        - (*testing.T).Errorf
+      # Disable warning on unchecked type assertions as the few cases where we do not check are contractually obligated
+      # to work correctly
+      check-type-assertions: false

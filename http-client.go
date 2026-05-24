@@ -159,7 +159,6 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 				Choices: choices,
 			},
 		})
-
 		if err != nil {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
@@ -190,7 +189,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 }
 
 // Verifies incoming request if it's from Discord. Returns the body bytes if verification was successful.
-func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) ([]byte, func(), bool) {
+func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) (rawData []byte, cleanup func(), ok bool) {
 	signature := r.Header.Get("X-Signature-Ed25519")
 	if signature == "" {
 		return nil, nil, false
