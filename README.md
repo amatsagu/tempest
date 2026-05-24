@@ -34,18 +34,19 @@
     </a>
 </h4>
 
-**Project: Tempest** is a modern, minimal [Discord](https://discord.com) library for building Discord Apps, written in [Go](https://golang.org/). It aims to be extremely fast, stay very close to the Discord API, and include little to no caching - making it an excellent choice for small VPS or serverless architecture. In real-world projects using this lib, your bottlenecks will 9/10 cases be in the database or network bandwidth, not in app/bot itself.
+**Project: Tempest** is a modern, minimal [Discord](https://discord.com) library for building Discord Apps, written in [Go](https://golang.org/). It aims to be extremely fast, stay very close to the Discord API, and include little to no caching - making it an excellent choice for small VPS or serverless architecture.
+In real-world projects using this library, your bottlenecks will almost always be from your database or network bandwidth, not the app or bot itself.
 
 It was created as a better alternative to [discord-interactions-go](https://github.com/bsdlp/discord-interactions-go), which is too low-level and outdated.
 
 ### Features
 
-- [x] Secure HTTPS-based communication with the Discord API using `crypto/ed25519`
+- [x] Secure HTTPS-based communication with Discord's API using `crypto/ed25519`
 - [x] Automatic dispatching of:
     - [x] Application commands
     - [x] Message components (buttons, select menu, text input)
     - [x] Autocomplete interactions
-    - [x] Modal interactions  
+    - [x] Modal interactions
 - [x] Built-in basic rate limit management that respects Discord’s HTTP limits
 - [x] Full file upload support (message attachments) as stream (over x4 times faster than regular multipart creation)
 - [x] Lightweight, fast command manager for auto handling slash commands, their auto complete and subcommands
@@ -56,15 +57,15 @@ It was created as a better alternative to [discord-interactions-go](https://gith
   - [Supports buttons, select menus, text inputs, and modals](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitComponent)
   - Includes timeout support and flexible interaction flows
   - Works with both [static](https://pkg.go.dev/github.com/amatsagu/tempest#Client.RegisterComponent) and [dynamic](https://pkg.go.dev/github.com/amatsagu/tempest#Client.AwaitModal) handlers
-- [x] Helper structs and methods to manage:
-  - [x] Simple messages
-  - [x] Embeds
-  - [x] Modals
-  - [x] Bitfields (flags, permissions, etc.)
-  - [x] [Components + Message Components v2](https://docs.discord.com/developers/components/overview)
+- [x] Support for:
+    - [x] Simple messages
+    - [x] Embeds
+    - [x] Modals
+    - [x] Bitfields (flags, permissions, etc.)
+    - [x] [Components + Message Components v2](https://docs.discord.com/developers/components/overview) with full type safety
     <details>
-      <summary>See supported component types</summary>
-        
+      <summary>Supports all currently available component types</summary>
+
       - [x] Action Row (1)
       - [x] Button (2)
       - [x] String Select (3)
@@ -87,41 +88,31 @@ It was created as a better alternative to [discord-interactions-go](https://gith
       - [x] Checkbox (23)
 
     </details>
-- [x] Exposed Rest client and all API structs which allows to easily extend library capabilities if needed
+- [x] REST client and all API structs exposed, allowing users to easily extend library capabilities if needed
 - [x] **__Basic__** support for Discord Monetization API *(enough to get started)*
 - [x] **Optional** support for ws connection to gateway. Tempest focuses on HTTPS-based communication but it might be useful for large Discord Applications that require lower latency
-  - [x] Support for auto-sharding (enabled by default)
-  - [x] Support for zlib-stream compression (needs to be enabled in config)
-
+    - [x] Support for auto-sharding (enabled by default)
+    - [x] Support for zlib-stream compression (needs to be enabled in config)
 
 
 ### HTTP vs Gateway
 **TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
 
-There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTPS\**. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly reduced number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
+There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTPS\*. Using http hooks lets you scale code more easily & reduce resource usage at cost of greatly HTTP number of events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
 
-> \** Since v1.4 - Tempest can also run same code over gateway, simply swap `HTTPClient` to `GatewayClient`. Your existing bot/app code should be backward compatible. This option exists for large Discord Applications that outgrow initial plans and now require more reliable connection / lower latency for its users. Check usage at `example/cmd/example-bot/main.go`.
-
-
+> Since v1.4, Tempest supports handling interactions over Gateway by using `GatewayClient` instead of `HTTPClient`. The former supports most (if not all) the functionalities of the latter, so existing apps that want to switch can do so relatively easily.
+> This functionality mainly exists for large Discord applications that require more reliable connections and lower latency for its users.
 
 ### Getting started
 1. Install with: `go get -u github.com/amatsagu/tempest`
-2. Check [example](https://github.com/amatsagu/tempest/blob/master/example) with few simple commands.
-3. (Experimental) Using AI coding assistants like Gemini, ChatGPT, or Claude? Check [TEMPEST_AI.md](./TEMPEST_AI.md) for optimized documentation to help them understand the library better.
-
-
+2. (Optional) Check the [examples folder](./example) for information on how to set up your bot.
+3. Write your code and run it!
 
 ## Troubleshooting
-For help feel free to open an issue on github.
-You can also inivite to contact me on [discord](https://discord.com/users/390394829789593601).
+For help or feature requests, feel free to open an issue on GitHub. \
+You can also contact me on [discord](https://discord.com/users/390394829789593601).
 
 ## Contributing
-All contributions are welcomed.
-Few rules before making a pull request:
-* Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/),
-* Add link to document for new structs,
-* Check [extra code notes](https://github.com/amatsagu/tempest/blob/master/CODE_NOTES.md) to get familiar with few rules I use when writing writing this lib
-
-
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAmatsagu%2FTempest.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FAmatsagu%2FTempest?ref=badge_large)
