@@ -110,7 +110,7 @@ type StringSelectComponent struct {
 	CustomID    string             `json:"custom_id,omitempty"`
 	Options     []SelectMenuOption `json:"options,omitzero"`
 	Placeholder string             `json:"placeholder,omitempty"`
-	MinValues   uint8              `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 0 and must be between 0 and 25. Can only be 0 if required is set to false.
+	MinValues   uint8              `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
 	MaxValues   uint8              `json:"max_values,omitempty"` // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	Disabled    bool               `json:"disabled"`             // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 	Required    bool               `json:"required"`             // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
