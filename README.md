@@ -20,8 +20,8 @@
     <a href="https://golang.org/doc/devel/release.html">
         <img src="https://img.shields.io/github/go-mod/go-version/amatsagu/tempest" alt="Go Version">
     </a>
-    <a href="https://github.com/amatsagu/tempest/blob/development/LICENSE">
-        <img src="https://img.shields.io/github/license/Amatsagu/tempest" alt="License">
+    <a href="https://github.com/amatsagu/tempest/blob/master/LICENSE">
+        <img src="https://img.shields.io/github/license/amatsagu/tempest" alt="License">
     </a>
     <a href="https://github.com/amatsagu/tempest">
         <img src="https://img.shields.io/maintenance/yes/2026" alt="Maintenance Status">
