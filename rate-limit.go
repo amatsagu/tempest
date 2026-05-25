@@ -87,32 +87,67 @@ func (rl *RateLimiter) Wait(route string) {
 
 	rl.mu.RLock()
 	bucketID, ok := rl.routeMapping[route]
-	if !ok {
-		rl.mu.RUnlock()
-		return
+	var bucket *Bucket
+	if ok {
+		bucket = rl.buckets[bucketID]
 	}
-
-	bucket, ok := rl.buckets[bucketID]
 	rl.mu.RUnlock()
 
-	if !ok {
-		return
+	if !ok || bucket == nil {
+		rl.mu.Lock()
+		bucketID, ok = rl.routeMapping[route]
+		if ok {
+			bucket = rl.buckets[bucketID]
+		} else {
+			bucketID = route
+			rl.routeMapping[route] = bucketID
+			bucket = &Bucket{
+				Limit:     1,
+				Remaining: 1,
+				ResetAt:   time.Now().Add(3 * time.Second),
+			}
+			rl.buckets[bucketID] = bucket
+		}
+		rl.mu.Unlock()
 	}
 
 	bucket.mu.Lock()
-	defer bucket.mu.Unlock()
-
-	if bucket.Remaining <= 0 {
+	for bucket.Remaining <= 0 {
 		waitDuration := time.Until(bucket.ResetAt)
-		if waitDuration > 0 {
-			rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucketID, waitDuration.Round(time.Millisecond))
-			time.Sleep(waitDuration)
+		if waitDuration <= 0 {
+			if bucket.Limit > 0 {
+				bucket.Remaining = bucket.Limit
+			} else {
+				bucket.Remaining = 1
+			}
+			bucket.ResetAt = time.Now().Add(2 * time.Second)
+			break
 		}
+
+		bucket.mu.Unlock()
+		rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucketID, waitDuration.Round(time.Millisecond))
+		time.Sleep(waitDuration)
+
+		rl.mu.RLock()
+		newBucketID, ok := rl.routeMapping[route]
+		var newBucket *Bucket
+		if ok {
+			newBucket = rl.buckets[newBucketID]
+		}
+		rl.mu.RUnlock()
+
+		if ok && newBucketID != bucketID && newBucket != nil {
+			bucketID = newBucketID
+			bucket = newBucket
+		}
+
+		bucket.mu.Lock()
 	}
 
-	if rl.preemptive {
+	if rl.preemptive || bucketID == route {
 		bucket.Remaining--
 	}
+	bucket.mu.Unlock()
 }
 
 func (rl *RateLimiter) Update(route string, headers http.Header) {
