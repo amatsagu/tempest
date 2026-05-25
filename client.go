@@ -66,6 +66,10 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		opt.RestOptions.Token = opt.Token
 	}
 
+	if opt.RestOptions.RateLimiterOptions.TraceLogger == nil {
+		opt.RestOptions.RateLimiterOptions.TraceLogger = traceLogger
+	}
+
 	client := &BaseClient{
 		ApplicationID:      botUserID,
 		Rest:               NewRest(opt.RestOptions),

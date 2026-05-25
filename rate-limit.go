@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ type RateLimiterOptions struct {
 	SweepInterval      time.Duration // By default: 30 minutes
 	SweepThreshold     int           // By default: 2500 buckets
 	ReactiveThrottling bool          // Whether to disable preemptive throttling. It's more correct but in some edge cases may exhaust endpoint rate limit sooner than it should. Default: true.
+	TraceLogger        *log.Logger
 }
 
 type RateLimiter struct {
@@ -35,6 +37,7 @@ type RateLimiter struct {
 	sweepInterval  time.Duration
 	sweepThreshold int
 	preemptive     bool
+	traceLogger    *log.Logger
 }
 
 func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
@@ -55,7 +58,12 @@ func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 		sweepInterval:  sweepInterval,
 		sweepThreshold: sweepThreshold,
 		preemptive:     !opt.ReactiveThrottling,
+		traceLogger:    opt.TraceLogger,
 	}
+}
+
+func (rl *RateLimiter) tracef(format string, v ...any) {
+	rl.traceLogger.Printf("[(REST) LIMITER] "+format, v...)
 }
 
 func (rl *RateLimiter) Wait(route string) {
@@ -65,6 +73,7 @@ func (rl *RateLimiter) Wait(route string) {
 		if time.Now().Before(*rl.globalWait) {
 			wait := time.Until(*rl.globalWait)
 			rl.globalMu.RUnlock()
+			rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
 			time.Sleep(wait)
 		} else {
 			rl.globalMu.RUnlock()
@@ -96,6 +105,7 @@ func (rl *RateLimiter) Wait(route string) {
 	if bucket.Remaining <= 0 {
 		waitDuration := time.Until(bucket.ResetAt)
 		if waitDuration > 0 {
+			rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucketID, waitDuration.Round(time.Millisecond))
 			time.Sleep(waitDuration)
 		}
 	}
@@ -109,6 +119,8 @@ func (rl *RateLimiter) Update(route string, headers http.Header) {
 	if headers.Get("X-RateLimit-Global") == "true" {
 		retryAfter, _ := strconv.ParseFloat(headers.Get("Retry-After"), 64)
 		resetAt := time.Now().Add(time.Duration(retryAfter * float64(time.Second)))
+
+		rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
 
 		rl.globalMu.Lock()
 		rl.globalWait = &resetAt
