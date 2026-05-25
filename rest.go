@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"net/textproto"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 var (
 	errRetryable       = errors.New("a retryable error occurred")
 	errGlobalRateLimit = errors.New("hit global rate limit")
+	errTooManyRetries  = errors.New("internal retry threshold exceeded - your code logic is probably unsafe to use at scale")
 )
 
 // Represents file you can attach to message on Discord.
@@ -33,17 +35,20 @@ type rateLimitError struct {
 }
 
 type Rest struct {
-	HTTPClient  http.Client
-	maxRetries  uint8
-	maxWaitTime time.Duration
-	token       string
-	limiter     *RateLimiter
+	HTTPClient     http.Client
+	maxRetries     uint8
+	maxWaitTime    time.Duration
+	token          string
+	limiter        *RateLimiter
+	retryCounter   atomic.Uint64
+	retryThreshold uint64
 }
 
 type RestOptions struct {
 	Token              string
-	MaxRetries         uint8
+	MaxRetries         uint8         // By default: 3
 	MaxWaitTime        time.Duration // Max duration it can take for each request.
+	RetryThreshold     uint64        // Max number of concurrent retries allowed before failing fast. Default: 100.
 	RateLimiterOptions RateLimiterOptions
 }
 
@@ -75,9 +80,14 @@ func NewRest(opt RestOptions) *Rest {
 		maxTimeout = opt.MaxWaitTime
 	}
 
-	var maxRetries uint8 = 5
-	if opt.MaxRetries != 0 {
-		maxRetries = opt.MaxRetries
+	maxRetries := opt.MaxRetries
+	if opt.MaxRetries == 0 {
+		maxRetries = 3
+	}
+
+	retryThreshold := opt.RetryThreshold
+	if retryThreshold == 0 {
+		retryThreshold = 100
 	}
 
 	return &Rest{
@@ -88,9 +98,10 @@ func NewRest(opt RestOptions) *Rest {
 			},
 			Timeout: maxTimeout,
 		},
-		token:       prefixedToken,
-		maxRetries:  maxRetries,
-		maxWaitTime: maxTimeout,
+		token:          prefixedToken,
+		maxRetries:     maxRetries,
+		maxWaitTime:    maxTimeout,
+		retryThreshold: retryThreshold,
 	}
 }
 
@@ -133,13 +144,23 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 		responseBody, err = rest.executeOnce(req)
 		if err != nil {
 			lastErr = err
-			if errors.Is(err, errGlobalRateLimit) {
-				continue
-			}
-			if errors.Is(err, errRetryable) {
+
+			if errors.Is(err, errGlobalRateLimit) || errors.Is(err, errRetryable) {
+				currentRetries := rest.retryCounter.Add(1)
+				defer rest.retryCounter.Add(^uint64(0)) // Decrement counter after loop/retry.
+
+				if currentRetries > rest.retryThreshold {
+					return nil, fmt.Errorf("%w: current retries (%d) exceed limit (%d)", errTooManyRetries, currentRetries, rest.retryThreshold)
+				}
+
+				if errors.Is(err, errGlobalRateLimit) {
+					continue
+				}
+
 				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network/server errors
 				continue
 			}
+
 			return nil, err // Not a retryable error.
 		}
 		return responseBody, nil
