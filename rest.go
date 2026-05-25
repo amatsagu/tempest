@@ -40,15 +40,16 @@ type Rest struct {
 	maxWaitTime    time.Duration
 	token          string
 	limiter        *RateLimiter
-	retryCounter   atomic.Uint64
-	retryThreshold uint64
+	retryCounter   atomic.Int64
+	retryThreshold int64
+	trippedUntil   atomic.Int64 // UnixNano
 }
 
 type RestOptions struct {
 	Token              string
 	MaxRetries         uint8         // By default: 3
 	MaxWaitTime        time.Duration // Max duration it can take for each request.
-	RetryThreshold     uint64        // Max number of concurrent retries allowed before failing fast. Default: 100.
+	RetryThreshold     uint32        // Max number of concurrent retries allowed before failing all ongoing requests (emergency breaks). By default: 60.
 	RateLimiterOptions RateLimiterOptions
 }
 
@@ -87,7 +88,7 @@ func NewRest(opt RestOptions) *Rest {
 
 	retryThreshold := opt.RetryThreshold
 	if retryThreshold == 0 {
-		retryThreshold = 100
+		retryThreshold = 60
 	}
 
 	return &Rest{
@@ -101,7 +102,7 @@ func NewRest(opt RestOptions) *Rest {
 		token:          prefixedToken,
 		maxRetries:     maxRetries,
 		maxWaitTime:    maxTimeout,
-		retryThreshold: retryThreshold,
+		retryThreshold: int64(retryThreshold),
 	}
 }
 
@@ -120,18 +121,33 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 	return rest.request(method, route, body, CONTENT_TYPE_JSON)
 }
 
+func (rest *Rest) isTripped() bool {
+	return rest.trippedUntil.Load() > time.Now().UnixNano()
+}
+
 // Internal handler for buffered requests. It's used by Request and RequestWithFiles (for PATCH only).
 func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType string) ([]byte, error) {
 	var (
 		responseBody []byte
 		lastErr      error
+		retrying     bool
 	)
+
+	defer func() {
+		if retrying {
+			rest.retryCounter.Add(-1)
+		}
+	}()
 
 	for i := uint8(0); i < rest.maxRetries; i++ {
 		if body != nil {
 			if _, err := body.Seek(0, io.SeekStart); err != nil {
 				return nil, fmt.Errorf("failed to seek request body: %w", err)
 			}
+		}
+
+		if rest.isTripped() {
+			return nil, errTooManyRetries
 		}
 
 		// #nosec G704
@@ -146,18 +162,19 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 			lastErr = err
 
 			if errors.Is(err, errGlobalRateLimit) || errors.Is(err, errRetryable) {
-				currentRetries := rest.retryCounter.Add(1)
-				defer rest.retryCounter.Add(^uint64(0)) // Decrement counter after loop/retry.
-
-				if currentRetries > rest.retryThreshold {
-					return nil, fmt.Errorf("%w: current retries (%d) exceed limit (%d)", errTooManyRetries, currentRetries, rest.retryThreshold)
+				if !retrying {
+					retrying = true
+					if rest.retryCounter.Add(1) > rest.retryThreshold {
+						rest.trippedUntil.Store(time.Now().Add(5 * time.Second).UnixNano())
+						return nil, fmt.Errorf("%w: global retry threshold (%d) exceeded", errTooManyRetries, rest.retryThreshold)
+					}
 				}
 
 				if errors.Is(err, errGlobalRateLimit) {
 					continue
 				}
 
-				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1))) // Backoff on network/server errors
+				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1)))
 				continue
 			}
 
