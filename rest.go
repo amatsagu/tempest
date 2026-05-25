@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -38,14 +37,14 @@ type Rest struct {
 	maxRetries  uint8
 	maxWaitTime time.Duration
 	token       string
-	globalMu    sync.RWMutex
-	globalReset time.Time
+	limiter     *RateLimiter
 }
 
 type RestOptions struct {
-	Token       string
-	MaxRetries  uint8
-	MaxWaitTime time.Duration // Max duration it can take for each request.
+	Token              string
+	MaxRetries         uint8
+	MaxWaitTime        time.Duration // Max duration it can take for each request.
+	RateLimiterOptions RateLimiterOptions
 }
 
 func NewRest(opt RestOptions) *Rest {
@@ -82,7 +81,13 @@ func NewRest(opt RestOptions) *Rest {
 	}
 
 	return &Rest{
-		HTTPClient:  http.Client{Transport: transport, Timeout: maxTimeout},
+		HTTPClient: http.Client{
+			Transport: &rateLimitTransport{
+				limiter:        NewRateLimiter(opt.RateLimiterOptions),
+				innerTransport: transport,
+			},
+			Timeout: maxTimeout,
+		},
 		token:       prefixedToken,
 		maxRetries:  maxRetries,
 		maxWaitTime: maxTimeout,
@@ -213,13 +218,6 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 
 // executeOnce handles the lifecycle of a single request attempt.
 func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
-	rest.globalMu.RLock()
-	sleepDuration := time.Until(rest.globalReset)
-	rest.globalMu.RUnlock()
-	if sleepDuration > 0 {
-		time.Sleep(sleepDuration)
-	}
-
 	req.Header.Set("User-Agent", USER_AGENT)
 	req.Header.Set("Authorization", rest.token)
 
@@ -247,13 +245,10 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
 
 		if rateErr.Global {
 			retryAfter := time.Duration(rateErr.RetryAfter * float64(time.Second))
-			rest.globalMu.Lock()
-			rest.globalReset = time.Now().Add(retryAfter)
-			rest.globalMu.Unlock()
 			return nil, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
 		}
 
-		return nil, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", req.Method, req.URL.Path, string(responseBody))
+		return nil, fmt.Errorf("%w: hit per-route rate limit (429) on %s %s: %s", errRetryable, req.Method, req.URL.Path, string(responseBody))
 	}
 
 	if res.StatusCode >= http.StatusInternalServerError {
