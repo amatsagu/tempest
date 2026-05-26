@@ -13,16 +13,16 @@ import (
 // Represents a Discord rate limit bucket.
 type Bucket struct {
 	mu        sync.Mutex
+	ID        string
 	Remaining int
 	Limit     int
 	ResetAt   time.Time
 }
 
 type RateLimiterOptions struct {
-	SweepInterval      time.Duration // By default: 30 minutes
-	SweepThreshold     int           // By default: 2500 buckets
-	ReactiveThrottling bool          // Whether to disable preemptive throttling. It's more correct but in some edge cases may exhaust endpoint rate limit sooner than it should. Default: true.
-	TraceLogger        *log.Logger
+	SweepInterval  time.Duration // By default: 30 minutes
+	SweepThreshold int           // By default: 2500 buckets
+	TraceLogger    *log.Logger
 }
 
 type RateLimiter struct {
@@ -30,13 +30,12 @@ type RateLimiter struct {
 	buckets      map[string]*Bucket // Bucket ID -> Bucket
 	routeMapping map[string]string  // Route (Method:Path) -> Bucket ID
 
-	globalWait *time.Time
+	globalWait time.Time
 	globalMu   sync.RWMutex
 
 	lastSweep      time.Time
 	sweepInterval  time.Duration
 	sweepThreshold int
-	preemptive     bool
 	traceLogger    *log.Logger
 }
 
@@ -57,124 +56,26 @@ func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 		lastSweep:      time.Now(),
 		sweepInterval:  sweepInterval,
 		sweepThreshold: sweepThreshold,
-		preemptive:     !opt.ReactiveThrottling,
 		traceLogger:    opt.TraceLogger,
 	}
 }
 
 func (rl *RateLimiter) tracef(format string, v ...any) {
-	rl.traceLogger.Printf("[(REST) LIMITER] "+format, v...)
+	if rl.traceLogger != nil {
+		rl.traceLogger.Printf("[(REST) LIMITER] "+format, v...)
+	}
 }
 
-func (rl *RateLimiter) Wait(route string) {
+func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 	rl.globalMu.RLock()
-
-	if rl.globalWait != nil {
-		if time.Now().Before(*rl.globalWait) {
-			wait := time.Until(*rl.globalWait)
-			rl.globalMu.RUnlock()
-			rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
-			time.Sleep(wait)
-		} else {
-			rl.globalMu.RUnlock()
-			rl.globalMu.Lock()
-			rl.globalWait = nil
-			rl.globalMu.Unlock()
-		}
+	if !rl.globalWait.IsZero() && time.Now().Before(rl.globalWait) {
+		wait := time.Until(rl.globalWait)
+		rl.globalMu.RUnlock()
+		rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
+		time.Sleep(wait)
 	} else {
 		rl.globalMu.RUnlock()
 	}
-
-	rl.mu.RLock()
-	bucketID, ok := rl.routeMapping[route]
-	var bucket *Bucket
-	if ok {
-		bucket = rl.buckets[bucketID]
-	}
-	rl.mu.RUnlock()
-
-	if !ok || bucket == nil {
-		rl.mu.Lock()
-		bucketID, ok = rl.routeMapping[route]
-		if ok {
-			bucket = rl.buckets[bucketID]
-		} else {
-			bucketID = route
-			rl.routeMapping[route] = bucketID
-			bucket = &Bucket{
-				Limit:     1,
-				Remaining: 1,
-				ResetAt:   time.Now().Add(3 * time.Second),
-			}
-			rl.buckets[bucketID] = bucket
-		}
-		rl.mu.Unlock()
-	}
-
-	bucket.mu.Lock()
-	for bucket.Remaining <= 0 {
-		waitDuration := time.Until(bucket.ResetAt)
-		if waitDuration <= 0 {
-			if bucket.Limit > 0 {
-				bucket.Remaining = bucket.Limit
-			} else {
-				bucket.Remaining = 1
-			}
-			bucket.ResetAt = time.Now().Add(2 * time.Second)
-			break
-		}
-
-		bucket.mu.Unlock()
-		rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucketID, waitDuration.Round(time.Millisecond))
-		time.Sleep(waitDuration)
-
-		rl.mu.RLock()
-		newBucketID, ok := rl.routeMapping[route]
-		var newBucket *Bucket
-		if ok {
-			newBucket = rl.buckets[newBucketID]
-		}
-		rl.mu.RUnlock()
-
-		if ok && newBucketID != bucketID && newBucket != nil {
-			bucketID = newBucketID
-			bucket = newBucket
-		}
-
-		bucket.mu.Lock()
-	}
-
-	if rl.preemptive || bucketID == route {
-		bucket.Remaining--
-	}
-	bucket.mu.Unlock()
-}
-
-func (rl *RateLimiter) Update(route string, headers http.Header) {
-	if headers.Get("X-RateLimit-Global") == "true" {
-		retryAfter, _ := strconv.ParseFloat(headers.Get("Retry-After"), 64)
-		resetAt := time.Now().Add(time.Duration(retryAfter * float64(time.Second)))
-
-		rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
-
-		rl.globalMu.Lock()
-		rl.globalWait = &resetAt
-		rl.globalMu.Unlock()
-		return
-	}
-
-	bucketID := headers.Get("X-RateLimit-Bucket")
-	if bucketID == "" {
-		return
-	}
-
-	remainingStr := headers.Get("X-RateLimit-Remaining")
-	limitStr := headers.Get("X-RateLimit-Limit")
-	resetAfterStr := headers.Get("X-RateLimit-Reset-After")
-
-	remaining, _ := strconv.Atoi(remainingStr)
-	limit, _ := strconv.Atoi(limitStr)
-	resetAfter, _ := strconv.ParseFloat(resetAfterStr, 64)
 
 	rl.mu.Lock()
 	if time.Since(rl.lastSweep) > rl.sweepInterval {
@@ -185,28 +86,96 @@ func (rl *RateLimiter) Update(route string, headers http.Header) {
 
 		now := time.Now()
 		for id, b := range rl.buckets {
-			b.mu.Lock()
-			if now.After(b.ResetAt) {
-				delete(rl.buckets, id)
+			if b.mu.TryLock() {
+				if now.After(b.ResetAt) {
+					delete(rl.buckets, id)
+				}
+				b.mu.Unlock()
 			}
-			b.mu.Unlock()
 		}
 	}
 
-	rl.routeMapping[route] = bucketID
-	bucket, ok := rl.buckets[bucketID]
+	bucketID, ok := rl.routeMapping[route]
 	if !ok {
-		bucket = &Bucket{}
-		rl.buckets[bucketID] = bucket
+		bucketID = route
+		rl.routeMapping[route] = bucketID
 	}
 
+	bucket, ok := rl.buckets[bucketID]
+	if !ok {
+		bucket = &Bucket{
+			ID:        bucketID,
+			Limit:     1,
+			Remaining: 1,
+		}
+		rl.buckets[bucketID] = bucket
+	}
 	rl.mu.Unlock()
 
 	bucket.mu.Lock()
-	bucket.Remaining = remaining
-	bucket.Limit = limit
-	bucket.ResetAt = time.Now().Add(time.Duration(resetAfter*float64(time.Second)) + 100*time.Millisecond)
-	bucket.mu.Unlock()
+
+	now := time.Now()
+	if bucket.Remaining <= 0 && bucket.ResetAt.After(now) {
+		waitDuration := bucket.ResetAt.Sub(now)
+		rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
+		time.Sleep(waitDuration)
+	}
+
+	bucket.Remaining--
+
+	return func(headers http.Header) {
+		defer bucket.mu.Unlock()
+
+		if headers == nil {
+			return
+		}
+
+		if headers.Get("X-RateLimit-Global") == "true" {
+			retryAfter, _ := strconv.ParseFloat(headers.Get("Retry-After"), 64)
+			resetAt := time.Now().Add(time.Duration(retryAfter * float64(time.Second)))
+
+			rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
+
+			rl.globalMu.Lock()
+			rl.globalWait = resetAt
+			rl.globalMu.Unlock()
+			return
+		}
+
+		bucketHeader := headers.Get("X-RateLimit-Bucket")
+		if bucketHeader == "" {
+			return
+		}
+
+		rl.mu.Lock()
+		if bucket.ID != bucketHeader {
+			rl.routeMapping[route] = bucketHeader
+			if _, exists := rl.buckets[bucketHeader]; !exists {
+				oldID := bucket.ID
+				bucket.ID = bucketHeader
+				rl.buckets[bucketHeader] = bucket
+				delete(rl.buckets, oldID)
+			}
+		}
+		rl.mu.Unlock()
+
+		remainingStr := headers.Get("X-RateLimit-Remaining")
+		limitStr := headers.Get("X-RateLimit-Limit")
+		resetAfterStr := headers.Get("X-RateLimit-Reset-After")
+
+		if limitStr != "" {
+			limit, _ := strconv.Atoi(limitStr)
+			bucket.Limit = limit
+		}
+		if remainingStr != "" {
+			remaining, _ := strconv.Atoi(remainingStr)
+			bucket.Remaining = remaining
+		}
+		if resetAfterStr != "" {
+			resetAfter, _ := strconv.ParseFloat(resetAfterStr, 64)
+			bucket.ResetAt = time.Now().Add(time.Duration(resetAfter*float64(time.Second)) + 100*time.Millisecond)
+		}
+	}
 }
 
 type rateLimitTransport struct {
@@ -216,14 +185,15 @@ type rateLimitTransport struct {
 
 func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	route := fmt.Sprintf("%s:%s", req.Method, extractRoute(req.URL.Path))
-	t.limiter.Wait(route)
+	unlock := t.limiter.Wait(route)
 
 	resp, err := t.innerTransport.RoundTrip(req)
 	if err != nil {
+		unlock(nil)
 		return nil, err
 	}
 
-	t.limiter.Update(route, resp.Header)
+	unlock(resp.Header)
 	return resp, nil
 }
 
