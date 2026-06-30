@@ -12,15 +12,14 @@ import (
 // BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
 // You should avoid using base version unless you know what you're doing.
 type BaseClient struct {
-	ApplicationID Snowflake
-	Rest          *Rest
+
+	sweeper interactionSweeper
+	staticModals     *SharedMap[string, func(ModalInteraction)]
 
 	traceLogger *log.Logger // Inherited from HTTPClient or GatewayClient
 
 	commands         *SharedMap[string, Command]
-	commandContexts  []InteractionContextType
 	staticComponents *SharedMap[string, func(ComponentInteraction)]
-	staticModals     *SharedMap[string, func(ModalInteraction)]
 
 	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
 	postCommandHandler func(cmd Command, itx *CommandInteraction)
@@ -29,14 +28,12 @@ type BaseClient struct {
 
 	queuedComponents *SharedMap[string, *queuedComponent]
 	queuedModals     *SharedMap[string, *queuedModal]
-
-	sweeper interactionSweeper
+	Rest          *Rest
+	commandContexts  []InteractionContextType
+	ApplicationID Snowflake
 }
 
 type BaseClientOptions struct {
-	Token                      string
-	DefaultInteractionContexts []InteractionContextType
-	RestOptions                RestOptions
 
 	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
@@ -44,6 +41,9 @@ type BaseClientOptions struct {
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 
 	Logger *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
+	Token                      string
+	DefaultInteractionContexts []InteractionContextType
+	RestOptions                RestOptions
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {

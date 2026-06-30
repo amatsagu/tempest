@@ -40,23 +40,23 @@ func (s ShardState) String() string {
 // the full lifecycle of the connection, including identifying, heartbeating,
 // and resuming. It is designed to be managed by a Manager.
 type Shard struct {
-	ID           uint16
-	totalShards  uint16
-	token        string
-	intents      uint32
+	lastHeartbeatSend   time.Time
 	socket       *socket
-	traceLogger  *log.Logger // Inherited from the manager
 	eventHandler func(shardID uint16, packet EventPacket)
+	traceLogger  *log.Logger // Inherited from the manager
+	sessionID           string
+	token        string
+	resumeGatewayURL    string
+	heartbeatInterval   time.Duration
+	latency             time.Duration
 
 	// State
 	mu                  sync.RWMutex
-	sessionID           string
-	resumeGatewayURL    string
+	intents      uint32
 	lastSequence        uint32
-	heartbeatInterval   time.Duration
+	ID           uint16
+	totalShards  uint16
 	heartbeatAckMissing bool
-	lastHeartbeatSend   time.Time
-	latency             time.Duration
 	state               ShardState // New field to track the shard's state
 }
 

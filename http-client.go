@@ -15,13 +15,13 @@ import (
 
 type HTTPClient struct {
 	*BaseClient
-	PublicKey  ed25519.PublicKey
 	bufferPool *sync.Pool
+	PublicKey  ed25519.PublicKey
 }
 
 type HTTPClientOptions struct {
-	BaseClientOptions
 	PublicKey string
+	BaseClientOptions
 	Trace     bool // Whether to enable basic logging for the client actions.
 }
 

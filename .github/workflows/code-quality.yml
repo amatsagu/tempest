@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 env:
-  go_version: 1.25.5
+  go_version: 1.26.4
 
 concurrency:
   group: ${{github.workflow}}-${{ github.ref }}

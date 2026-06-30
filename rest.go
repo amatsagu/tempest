@@ -24,8 +24,8 @@ var (
 
 // Represents file you can attach to message on Discord.
 type File struct {
-	Name   string // File's display name
 	Reader io.Reader
+	Name   string // File's display name
 }
 
 type rateLimitError struct {
@@ -35,22 +35,22 @@ type rateLimitError struct {
 }
 
 type Rest struct {
-	HTTPClient     http.Client
-	maxRetries     uint8
-	maxWaitTime    time.Duration
-	token          string
 	limiter        *RateLimiter
+	HTTPClient     http.Client
+	token          string
+	maxWaitTime    time.Duration
 	retryCounter   atomic.Int64
 	retryThreshold int64
 	trippedUntil   atomic.Int64 // UnixNano
+	maxRetries     uint8
 }
 
 type RestOptions struct {
 	Token              string
-	MaxRetries         uint8         // By default: 3
+	RateLimiterOptions RateLimiterOptions
 	MaxWaitTime        time.Duration // Max duration it can take for each request.
 	RetryThreshold     uint32        // Max number of concurrent retries allowed before failing all ongoing requests (emergency breaks). By default: 60.
-	RateLimiterOptions RateLimiterOptions
+	MaxRetries         uint8         // By default: 3
 }
 
 func NewRest(opt RestOptions) *Rest {

@@ -57,39 +57,39 @@ const (
 
 // https://docs.discord.com/developers/resources/guild#guild-object-guild-structure
 type Guild struct {
-	ID                          Snowflake                `json:"id"`
+	PrefferedLocale             string                   `json:"preferred_locale,omitempty"`
 	Name                        string                   `json:"name"`
 	IconHash                    string                   `json:"icon,omitempty"`             // Hash code used to access guild's icon. Call Guild.IconURL to get direct url.
-	SplashHash                  string                   `json:"splash,omitempty"`           // Hash code used to access guild's splash background. Call Guild.SplashURL to get direct url.
+	VanityURL                   string                   `json:"vanity_url_code,omitempty"`
 	DiscoverySplashHash         string                   `json:"discovery_splash,omitempty"` // Hash code used to access guild's special discovery splash background (only available for "DISCOVERABLE" guilds). Call Guild.DiscoverySplashURL to get direct url.
-	OwnerID                     Snowflake                `json:"owner_id"`
-	AFKChannelID                Snowflake                `json:"afk_channel_id,omitempty"`
-	AFKChannelTimeout           uint32                   `json:"afk_timeout"`                 // AFK timeout value in seconds.
-	WidgetEnabled               bool                     `json:"widget_enabled"`              // Whether server uses widget.
-	WidgetChannelID             Snowflake                `json:"widget_channel_id,omitempty"` // The channel ID that the widget will generate an invite to, or null if set to no invite.
-	DefaultMessageNotifications MessageNotificationLevel `json:"default_message_notifications"`
-	ExplicitContentFilter       ExplicitContentFilter    `json:"explicit_content_filter"`
-	Roles                       []Role                   `json:"roles,omitzero"`
+	Description                 string                   `json:"description,omitempty"`
+	SplashHash                  string                   `json:"splash,omitempty"`           // Hash code used to access guild's splash background. Call Guild.SplashURL to get direct url.
+	BannerHash                  string                   `json:"banner,omitempty"` // Hash code used to access guild's icon. Call Guild.BannerURL to get direct url.
 	Emojis                      []Emoji                  `json:"emojis,omitzero"`
+	Roles                       []Role                   `json:"roles,omitzero"`
 	Features                    []string                 `json:"features,omitzero"` // // https://docs.discord.com/developers/resources/guild#guild-object-guild-features
-	MFALevel                    MFALevel                 `json:"mfa_level"`
+	ID                          Snowflake                `json:"id"`
+	AFKChannelID                Snowflake                `json:"afk_channel_id,omitempty"`
+	OwnerID                     Snowflake                `json:"owner_id"`
+	RulesChannelID              Snowflake                `json:"rules_channel_id,omitempty"`
+	WidgetChannelID             Snowflake                `json:"widget_channel_id,omitempty"` // The channel ID that the widget will generate an invite to, or null if set to no invite.
 	ApplicationID               Snowflake                `json:"application_id,omitempty"` // Application id of the guild creator if it is bot-created (never seen it in use).
 	SystemChannelID             Snowflake                `json:"system_channel_id,omitempty"`
 	SystemChannelFlags          SystemChannelFlags       `json:"system_channel_flags"`
-	RulesChannelID              Snowflake                `json:"rules_channel_id,omitempty"`
+	AFKChannelTimeout           uint32                   `json:"afk_timeout"`                 // AFK timeout value in seconds.
 	MaxPresences                uint32                   `json:"max_presences,omitempty"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
 	MaxMembers                  uint32                   `json:"max_members,omitempty"`
-	VanityURL                   string                   `json:"vanity_url_code,omitempty"`
-	Description                 string                   `json:"description,omitempty"`
-	BannerHash                  string                   `json:"banner,omitempty"` // Hash code used to access guild's icon. Call Guild.BannerURL to get direct url.
-	PremiumTier                 PremiumTier              `json:"premium_tier"`
 	PremiumSubscriptionCount    uint32                   `json:"premium_subscription_count,omitempty"` // The number of boosts this guild currently has.
-	PrefferedLocale             string                   `json:"preferred_locale,omitempty"`
 
 	// Some fields were ignored on purpose as they are random junk...
 
 	ApproximateMemberCount    uint32 `json:"approximate_member_count,omitempty"`
 	ApproximatePresenceCount  uint32 `json:"approximate_presence_count,omitempty"`
+	MFALevel                    MFALevel                 `json:"mfa_level"`
+	ExplicitContentFilter       ExplicitContentFilter    `json:"explicit_content_filter"`
+	DefaultMessageNotifications MessageNotificationLevel `json:"default_message_notifications"`
+	PremiumTier                 PremiumTier              `json:"premium_tier"`
+	WidgetEnabled               bool                     `json:"widget_enabled"`              // Whether server uses widget.
 	PremiumProgressBarEnabled bool   `json:"premium_progress_bar_enabled"`
 }
 

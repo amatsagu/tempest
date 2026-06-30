@@ -22,15 +22,15 @@ const (
 //
 // https://docs.discord.com/developers/resources/entitlement#entitlement-object
 type Entitlement struct {
+	StartsAt      *time.Time      `json:"starts_at"`
+	EndsAt        *time.Time      `json:"ends_at"`
 	ID            Snowflake       `json:"id"`
 	SkuID         Snowflake       `json:"sku_id"`
 	ApplicationID Snowflake       `json:"application_id"`
 	UserID        Snowflake       `json:"user_id,omitempty"` // ID of the user that is granted access to the entitlement's sku
+	GuildID       Snowflake       `json:"guild_id,omitempty"`
 	Type          EntitlementType `json:"type"`
 	Deleted       bool            `json:"deleted"` // Whether entitlement was deleted
-	StartsAt      *time.Time      `json:"starts_at"`
-	EndsAt        *time.Time      `json:"ends_at"`
-	GuildID       Snowflake       `json:"guild_id,omitempty"`
 	Consumed      bool            `json:"consumed"` // Whether entitlement was already used
 }
 
