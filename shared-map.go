@@ -8,8 +8,8 @@ import (
 // Map but wrapped with mutex so it's safe to use between goroutines.
 // It also supports few extra, helper methods that are new to std Map.
 type SharedMap[K comparable, V any] struct {
-	mu    sync.RWMutex
 	cache map[K]V
+	mu    sync.RWMutex
 }
 
 func NewSharedMap[K comparable, V any]() *SharedMap[K, V] {

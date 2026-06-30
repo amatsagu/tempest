@@ -91,16 +91,16 @@ type AllowedMentions struct {
 
 // https://docs.discord.com/developers/resources/channel#channel-object
 type PartialChannel struct {
-	ID              Snowflake       `json:"id"`
 	Name            string          `json:"name"`
+	ID              Snowflake       `json:"id"`
 	PermissionFlags PermissionFlags `json:"permissions,string"`
 	Type            ChannelType     `json:"type"`
 }
 
 // https://docs.discord.com/developers/resources/message#channel-mention-object
 type ChannelMention struct {
-	ID      Snowflake   `json:"id"`
 	Name    string      `json:"name"`
+	ID      Snowflake   `json:"id"`
 	GuildID Snowflake   `json:"guild_id"`
 	Type    ChannelType `json:"type"`
 }
@@ -113,27 +113,27 @@ type ReactionCountDetails struct {
 
 // https://docs.discord.com/developers/resources/message#reaction-object
 type Reaction struct {
-	Count        uint32               `json:"count"`
+	BurstColors  []string             `json:"burst_colors"` // HEX colors used for super reaction
+	Emoji        Emoji                `json:"emoji"`
 	CountDetails ReactionCountDetails `json:"count_details"`
+	Count        uint32               `json:"count"`
 	Me           bool                 `json:"me"`
 	MeBurst      bool                 `json:"me_burst"`
-	Emoji        Emoji                `json:"emoji"`
-	BurstColors  []string             `json:"burst_colors"` // HEX colors used for super reaction
 }
 
 // https://docs.discord.com/developers/resources/sticker#sticker-item-object-sticker-item-structure
 type StickerItem struct {
-	ID         Snowflake         `json:"id"`
 	Name       string            `json:"name"`
+	ID         Snowflake         `json:"id"`
 	FormatType StickerFormatType `json:"format_type"`
 }
 
 // https://docs.discord.com/developers/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
-	ID            Snowflake   `json:"id,omitempty"`
+	User          *User       `json:"user,omitempty"`
 	Name          string      `json:"name,omitempty"` // Note: may be empty for deleted emojis.
 	Roles         []Snowflake `json:"roles,omitzero"`
-	User          *User       `json:"user,omitempty"`
+	ID            Snowflake   `json:"id,omitempty"`
 	RequireColons bool        `json:"require_colons"`
 	Managed       bool        `json:"managed"`
 	Animated      bool        `json:"animated"`
@@ -142,18 +142,18 @@ type Emoji struct {
 
 // https://docs.discord.com/developers/resources/channel#embed-object-embed-structure (always rich embed type)
 type Embed struct {
-	Title       string          `json:"title,omitempty"`
-	URL         string          `json:"url,omitempty"`
 	Author      *EmbedAuthor    `json:"author,omitempty"`
-	Color       uint32          `json:"color,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
-	Description string          `json:"description,omitempty"`
-	Fields      []EmbedField    `json:"fields,omitzero"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Video       *EmbedVideo     `json:"video,omitempty"`
 	Provider    *EmbedProvider  `json:"provider,omitempty"`
 	Timestamp   *time.Time      `json:"timestamp,omitempty"`
+	Title       string          `json:"title,omitempty"`
+	URL         string          `json:"url,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Fields      []EmbedField    `json:"fields,omitzero"`
+	Color       uint32          `json:"color,omitempty"`
 }
 
 // https://docs.discord.com/developers/resources/channel#embed-object-embed-author-structure
@@ -210,38 +210,38 @@ type EmbedProvider struct {
 
 // https://docs.discord.com/developers/resources/message#message-object-message-structure
 type Message struct {
-	ID                  Snowflake                   `json:"id"`
-	ChannelID           Snowflake                   `json:"channel_id"`
+	MessageReference    *MessageReference           `json:"message_reference,omitempty"`
+	InteractionMetadata *MessageInteractionMetadata `json:"interaction_metadata,omitempty"`
 	Author              *User                       `json:"author,omitempty"`  // The author of this message.
-	Content             string                      `json:"content,omitempty"` // The message's content.
 	Timestamp           *time.Time                  `json:"timestamp"`
 	EditedTimestamp     *time.Time                  `json:"edited_timestamp,omitempty"`
-	TTS                 bool                        `json:"tts"`              // Whether this was a TTS message.
-	MentionEveryone     bool                        `json:"mention_everyone"` // Whether this message mentions everyone.
+	ReferencedMessage   *Message                    `json:"referenced_message,omitempty"`
+	Content             string                      `json:"content,omitempty"` // The message's content.
+	Embeds              []Embed                     `json:"embeds"`
 	Mentions            []User                      `json:"mentions"`         // All users specifically mentioned in the message.
 	MentionRoles        []Snowflake                 `json:"mention_roles"`
 	MentionChannels     []ChannelMention            `json:"mention_channels,omitzero"`
 	Attachments         []Attachment                `json:"attachments"`
-	Embeds              []Embed                     `json:"embeds"`
-	Reactions           []Reaction                  `json:"reactions,omitzero"`
-	Pinned              bool                        `json:"pinned"`
-	WebhookID           Snowflake                   `json:"webhook_id,omitempty"`
-	Type                BitSet                      `json:"type,omitempty"` // https://docs.discord.com/developers/resources/channel#message-object-message-types
-	ApplicationID       Snowflake                   `json:"application_id,omitempty"`
-	MessageReference    *MessageReference           `json:"message_reference,omitempty"`
-	Flags               MessageFlags                `json:"flags,omitempty"`
-	ReferencedMessage   *Message                    `json:"referenced_message,omitempty"`
-	InteractionMetadata *MessageInteractionMetadata `json:"interaction_metadata,omitempty"`
-	Components          []MessageComponent          `json:"components,omitzero"` // All components included in the message.
 	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
+	Reactions           []Reaction                  `json:"reactions,omitzero"`
+	Components          []MessageComponent          `json:"components,omitzero"` // All components included in the message.
+	Type                BitSet                      `json:"type,omitempty"` // https://docs.discord.com/developers/resources/channel#message-object-message-types
+	WebhookID           Snowflake                   `json:"webhook_id,omitempty"`
+	ApplicationID       Snowflake                   `json:"application_id,omitempty"`
+	Flags               MessageFlags                `json:"flags,omitempty"`
+	ChannelID           Snowflake                   `json:"channel_id"`
+	ID                  Snowflake                   `json:"id"`
+	MentionEveryone     bool                        `json:"mention_everyone"` // Whether this message mentions everyone.
+	TTS                 bool                        `json:"tts"`              // Whether this was a TTS message.
+	Pinned              bool                        `json:"pinned"`
 }
 
 // https://docs.discord.com/developers/resources/message#message-reference-structure
 type MessageReference struct {
-	Type            MessageReferenceType `json:"type,omitempty"`
 	MessageID       Snowflake            `json:"message_id,omitempty"`
 	ChannelID       Snowflake            `json:"channel_id,omitempty"`
 	GuildID         Snowflake            `json:"guild_id,omitempty"`
+	Type            MessageReferenceType `json:"type,omitempty"`
 	FailIfNotExists bool                 `json:"fail_if_not_exists"`
 }
 
@@ -255,29 +255,29 @@ const (
 
 // https://docs.discord.com/developers/resources/message#message-interaction-metadata-object-application-command-interaction-metadata-structure
 type MessageInteractionMetadata struct {
-	ID              Snowflake       `json:"id"`
-	Type            InteractionType `json:"type"`
-	User            User            `json:"user"`
 	TargetUser      *User           `json:"target_user,omitempty"`
+	User            User            `json:"user"`
+	ID              Snowflake       `json:"id"`
 	TargetMessageID Snowflake       `json:"target_message_id,omitempty"`
+	Type            InteractionType `json:"type"`
 }
 
 // https://docs.discord.com/developers/resources/channel#attachment-object
 type Attachment struct {
-	ID           Snowflake `json:"id"`
-	FileName     string    `json:"filename"`
+	URL          string    `json:"url"`
+	Waveform     string    `json:"waveform,omitempty"`
 	Title        string    `json:"title,omitempty"`
 	Description  string    `json:"description,omitempty"`
 	ContentType  string    `json:"content_type,omitempty"`
-	Size         uint64    `json:"size"`
-	URL          string    `json:"url"`
 	ProxyURL     string    `json:"proxy_url"`
+	FileName     string    `json:"filename"`
+	ID           Snowflake `json:"id"`
+	DurationSecs float64   `json:"duration_secs,omitempty"`
+	Size         uint64    `json:"size"`
+	Flags        uint64    `json:"flags,omitempty"`
 	Height       uint32    `json:"height,omitempty"`
 	Width        uint32    `json:"width,omitempty"`
 	Ephemeral    bool      `json:"ephemeral"`
-	DurationSecs float64   `json:"duration_secs,omitempty"`
-	Waveform     string    `json:"waveform,omitempty"`
-	Flags        uint64    `json:"flags,omitempty"`
 }
 
 // https://docs.discord.com/developers/resources/poll#poll-create-request-object
@@ -291,20 +291,20 @@ type Poll struct {
 
 // https://docs.discord.com/developers/resources/poll#poll-media-object-poll-media-object-structure
 type PollMedia struct {
-	Text  string `json:"text,omitempty"`
 	Emoji *Emoji `json:"emoji,omitempty"`
+	Text  string `json:"text,omitempty"`
 }
 
 // https://docs.discord.com/developers/resources/poll#poll-answer-object-poll-answer-object-structure
 type PollAnswer struct {
-	AnswerID  uint32    `json:"answer_id,omitempty"`
 	PollMedia PollMedia `json:"poll_media"`
+	AnswerID  uint32    `json:"answer_id,omitempty"`
 }
 
 // https://docs.discord.com/developers/resources/poll#poll-results-object-poll-results-object-structure
 type PoolResult struct {
-	Finalized    bool               `json:"is_finalized"`
 	AnswerCounts []PoolAnswerCounts `json:"answer_counts"`
+	Finalized    bool               `json:"is_finalized"`
 }
 
 // https://docs.discord.com/developers/resources/poll#poll-results-object-poll-answer-count-object-structure

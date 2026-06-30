@@ -12,31 +12,31 @@ import (
 
 // Represents a Discord rate limit bucket.
 type Bucket struct {
-	mu        sync.Mutex
+	ResetAt   time.Time
 	ID        string
 	Remaining int
 	Limit     int
-	ResetAt   time.Time
+	mu        sync.Mutex
 }
 
 type RateLimiterOptions struct {
+	TraceLogger    *log.Logger
 	SweepInterval  time.Duration // By default: 30 minutes
 	SweepThreshold int           // By default: 2500 buckets
-	TraceLogger    *log.Logger
 }
 
 type RateLimiter struct {
-	mu           sync.RWMutex
-	buckets      map[string]*Bucket // Bucket ID -> Bucket
-	routeMapping map[string]string  // Route (Method:Path) -> Bucket ID
 
 	globalWait time.Time
-	globalMu   sync.RWMutex
 
 	lastSweep      time.Time
+	buckets      map[string]*Bucket // Bucket ID -> Bucket
+	routeMapping map[string]string  // Route (Method:Path) -> Bucket ID
+	traceLogger    *log.Logger
 	sweepInterval  time.Duration
 	sweepThreshold int
-	traceLogger    *log.Logger
+	mu           sync.RWMutex
+	globalMu   sync.RWMutex
 }
 
 func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {

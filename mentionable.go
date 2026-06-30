@@ -67,18 +67,18 @@ const (
 
 // https://docs.discord.com/developers/resources/user#user-object-user-structure
 type User struct {
-	ID                   Snowflake         `json:"id"`
+	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 	Username             string            `json:"username"`
 	GlobalName           string            `json:"global_name,omitempty"`  // User's display name. Tempest lib will make it equal to user.Username if it was empty.
 	AvatarHash           string            `json:"avatar,omitempty"`       // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
+	BannerHash           string            `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
+	Locale               string            `json:"locale,omitempty"`
+	ID                   Snowflake         `json:"id"`
+	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
+	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
 	Bot                  bool              `json:"bot"`                    // Whether it's bot/app account.
 	System               bool              `json:"system"`                 // Whether user is Discord System Message account.
-	BannerHash           string            `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
-	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
-	Locale               string            `json:"locale,omitempty"`
 	PremiumType          NitroType         `json:"premium_type,omitempty"`
-	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
-	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 }
 
 func (u *User) UnmarshalJSON(data []byte) error {
@@ -149,23 +149,23 @@ const (
 
 // https://docs.discord.com/developers/resources/guild#guild-member-object-guild-member-structure
 type Member struct {
-	User                       *User             `json:"user,omitempty"`
-	Nickname                   string            `json:"nick,omitempty"`
-	GuildAvatarHash            string            `json:"avatar,omitempty"` // Hash code used to access member's custom, guild avatar. Call Member.GuildAvatarURL to get direct url.
-	GuildBannerHash            string            `json:"banner,omitempty"` // Hash code used to access member's custom, guild banner. Call Member.GuildBannerURL to get direct url.
-	RoleIDs                    []Snowflake       `json:"roles"`
 	JoinedAt                   *time.Time        `json:"joined_at"`
-	PremiumSince               *time.Time        `json:"premium_since,omitempty"`
-	Deaf                       bool              `json:"deaf"`
-	Mute                       bool              `json:"mute"`
-	Flags                      MemberFlags       `json:"flags"`
-	Pending                    bool              `json:"pending"`
-	PermissionFlags            PermissionFlags   `json:"permissions,string"`
-	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
+	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
+	User                       *User             `json:"user,omitempty"`
+	PremiumSince               *time.Time        `json:"premium_since,omitempty"`
+	GuildBannerHash            string            `json:"banner,omitempty"` // Hash code used to access member's custom, guild banner. Call Member.GuildBannerURL to get direct url.
+	GuildAvatarHash            string            `json:"avatar,omitempty"` // Hash code used to access member's custom, guild avatar. Call Member.GuildAvatarURL to get direct url.
+	Nickname                   string            `json:"nick,omitempty"`
+	RoleIDs                    []Snowflake       `json:"roles"`
+	Flags                      MemberFlags       `json:"flags"`
+	PermissionFlags            PermissionFlags   `json:"permissions,string"`
 
 	// It's not part of Member API data struct but tempest Client should always attach it for conveniency.
 	GuildID Snowflake `json:"-"`
+	Deaf                       bool              `json:"deaf"`
+	Mute                       bool              `json:"mute"`
+	Pending                    bool              `json:"pending"`
 }
 
 // Returns a direct url to members's guild specific avatar.
@@ -206,18 +206,18 @@ func (member *Member) GuildBannerURL() string {
 
 // https://docs.discord.com/developers/topics/permissions#role-object-role-structure
 type Role struct {
-	ID              Snowflake       `json:"id"`
 	Name            string          `json:"name"`
-	Color           uint32          `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
-	Hoist           bool            `json:"hoist"` // Whether this role is pinned in the user listing.
 	IconHash        string          `json:"icon,omitempty"`
 	UnicodeEmoji    string          `json:"unicode_emoji,omitempty"`
-	Position        uint8           `json:"position"`
+	Tags            RoleTag         `json:"tags"`
+	ID              Snowflake       `json:"id"`
 	PermissionFlags PermissionFlags `json:"permissions,string"`
+	Flags           BitSet          `json:"flags"` // https://docs.discord.com/developers/topics/permissions#role-object-role-flags
+	Color           uint32          `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
+	Hoist           bool            `json:"hoist"` // Whether this role is pinned in the user listing.
+	Position        uint8           `json:"position"`
 	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
 	Mentionable     bool            `json:"mentionable"` // Whether this role is mentionable.
-	Tags            RoleTag         `json:"tags"`
-	Flags           BitSet          `json:"flags"` // https://docs.discord.com/developers/topics/permissions#role-object-role-flags
 }
 
 func (role *Role) Mention() string {
@@ -241,8 +241,8 @@ func (role *Role) IconURL() string {
 type RoleTag struct {
 	BotID                 Snowflake `json:"bot_id,omitempty"`
 	IntegrationID         Snowflake `json:"integration_id,omitempty"`          // The id of the integration this role belongs to.
-	PremiumSubscriber     bool      `json:"premium_subscriber"`                // Whether this is the guild's Booster role.
 	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitempty"` // The id of this role's subscription sku and listing.
+	PremiumSubscriber     bool      `json:"premium_subscriber"`                // Whether this is the guild's Booster role.
 	AvailableForPurchase  bool      `json:"available_for_purchase"`
 	GuildConnections      bool      `json:"guild_connections"` // Whether this role is a guild's linked role.
 }

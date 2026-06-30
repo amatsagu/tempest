@@ -18,10 +18,10 @@ type queuedModal struct {
 }
 
 type interactionSweeper struct {
-	running     bool
-	mu          sync.Mutex
-	signal      chan struct{}
 	lowestTimes [3]time.Time
+	signal      chan struct{}
+	mu          sync.Mutex
+	running     bool
 }
 
 func insertLowestTime(arr *[3]time.Time, expire time.Time) {

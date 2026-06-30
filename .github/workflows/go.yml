@@ -27,5 +27,12 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Install fieldalignment
+      run: go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+
+    - name: Check field alignment
+      run: fieldalignment ./...
+
     - name: Test
       run: go test -v ./...
+

@@ -17,13 +17,13 @@ import (
 // It's designed to handle the basic lifecycle and data framing for a
 // connection to the Discord Gateway.
 type socket struct {
-	conn     *websocket.Conn
-	mu       sync.Mutex
-	compress bool
 
 	// zlib-stream
 	zreader io.ReadCloser
+	conn     *websocket.Conn
 	decoder *json.Decoder
+	mu       sync.Mutex
+	compress bool
 }
 
 // Handles zero-allocation streaming from WebSocket frames.

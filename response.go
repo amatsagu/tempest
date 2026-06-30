@@ -20,34 +20,34 @@ const (
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseMessage struct {
-	Type ResponseType         `json:"type"`
 	Data *ResponseMessageData `json:"data,omitempty"`
+	Type ResponseType         `json:"type"`
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseAutoComplete struct {
-	Type ResponseType              `json:"type"`
 	Data *ResponseAutoCompleteData `json:"data,omitempty"`
+	Type ResponseType              `json:"type"`
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type ResponseModal struct {
-	Type ResponseType       `json:"type"`
 	Data *ResponseModalData `json:"data,omitempty"`
+	Type ResponseType       `json:"type"`
 }
 
 // ResponseMessageData represents the data sent for message responses.
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-messages
 type ResponseMessageData struct {
-	TTS             bool               `json:"tts"`                        // Whether the message is a TTS message.
+	AllowedMentions *AllowedMentions   `json:"allowed_mentions,omitempty"` // Data pertaining to the message's allowed mentions.
+	Poll            *Poll              `json:"poll,omitempty"`             // An optional poll to include in the message.
 	Content         string             `json:"content,omitempty"`          // The message content.
 	Embeds          []Embed            `json:"embeds,omitzero"`            // Up to 10 rich content embeds to include.
-	AllowedMentions *AllowedMentions   `json:"allowed_mentions,omitempty"` // Data pertaining to the message's allowed mentions.
-	Flags           MessageFlags       `json:"flags,omitempty"`            // A bitfield containing message flags. Note that only [SUPPRESS_EMBEDS_MESSAGE_FLAG], [EPHEMERAL_MESSAGE_FLAG], [IS_COMPONENTS_V2_MESSAGE_FLAG], [IS_VOICE_MESSAGE_MESSAGE_FLAG] and [SUPPRESS_NOTIFICATIONS_MESSAGE_FLAG] can be set.
 	Components      []MessageComponent `json:"components,omitzero"`        // Any components to send alongside the message.
 	Attachments     []Attachment       `json:"attachments,omitzero"`       // Any attachments to send alongside the message.
-	Poll            *Poll              `json:"poll,omitempty"`             // An optional poll to include in the message.
+	Flags           MessageFlags       `json:"flags,omitempty"`            // A bitfield containing message flags. Note that only [SUPPRESS_EMBEDS_MESSAGE_FLAG], [EPHEMERAL_MESSAGE_FLAG], [IS_COMPONENTS_V2_MESSAGE_FLAG], [IS_VOICE_MESSAGE_MESSAGE_FLAG] and [SUPPRESS_NOTIFICATIONS_MESSAGE_FLAG] can be set.
+	TTS             bool               `json:"tts"`                        // Whether the message is a TTS message.
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-autocomplete

@@ -32,43 +32,43 @@ type InteractionTypeExtractor struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	// This struct is purposefully lacking some large but hardly ever used fields like Message or (partial) Guild.
-	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
-	// If you truly need them - apply changes and open pull request to discuss.
-
-	ID            Snowflake       `json:"id"`
-	ApplicationID Snowflake       `json:"application_id"`
-	Type          InteractionType `json:"type"`
-	Data          json.RawMessage `json:"data"`
-
-	// partial guild struct is skipped
-
-	GuildID Snowflake `json:"guild_id,omitempty"`
-
-	// partial channel struct is skipped
-
-	ChannelID Snowflake `json:"channel_id,omitempty"`
 	Member    *Member   `json:"member,omitempty"`
-	User      *User     `json:"user,omitempty"`
-	Token     string    `json:"token"` // Temporary token used for responding to the interaction. It's not the same as bot token.
-
-	// version is skipped (docs says it's always 1, read-only property)
-
-	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
-	Locale          Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
-	Entitlements    []Entitlement   `json:"entitlements,omitzero"`  // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
+	responder     func(res Response) error `json:"-"`
+	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
+	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
 
 	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
 	// attachment_size_limit is also skipped - appears to have no use anywhere
 
 	BaseClient    *BaseClient              `json:"-"` // Always provided.
-	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
-	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
+	User      *User     `json:"user,omitempty"`
+	Locale          Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+	Token     string    `json:"token"` // Temporary token used for responding to the interaction. It's not the same as bot token.
+	Data          json.RawMessage `json:"data"`
+	Entitlements    []Entitlement   `json:"entitlements,omitzero"`  // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
+
+	// partial guild struct is skipped
+
+	GuildID Snowflake `json:"guild_id,omitempty"`
+	// This struct is purposefully lacking some large but hardly ever used fields like Message or (partial) Guild.
+	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
+	// If you truly need them - apply changes and open pull request to discuss.
+
+	ID            Snowflake       `json:"id"`
+
+	// partial channel struct is skipped
+
+	ChannelID Snowflake `json:"channel_id,omitempty"`
+
+	// version is skipped (docs says it's always 1, read-only property)
+
+	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
+	ApplicationID Snowflake       `json:"application_id"`
 	ShardID       uint16                   `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	Type          InteractionType `json:"type"`
 	responded     bool                     `json:"-"`
 	deferred      bool                     `json:"-"`
-	responder     func(res Response) error `json:"-"`
 }
 
 // A CommandInteraction represents an interaction received from a user invoking an application command, such as a slash command or a context menu command.
@@ -100,23 +100,23 @@ type ModalInteraction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-data
 type CommandInteractionData struct {
-	ID       Snowflake                  `json:"id"`                  // The ID of the invoked command.
-	Name     string                     `json:"name"`                // The name of the invoked command, not including subcommand names.
-	Type     CommandType                `json:"type"`                // The type of comamnd that was invoked.
 	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`  // Data that Discord has resolved for the command, such as user and role objects. Fields will only be available to bots with the requisite permissions.
+	Name     string                     `json:"name"`                // The name of the invoked command, not including subcommand names.
 	Options  []CommandInteractionOption `json:"options,omitzero"`    // The options and values passed by the user.
+	ID       Snowflake                  `json:"id"`                  // The ID of the invoked command.
 	GuildID  Snowflake                  `json:"guild_id,omitempty"`  // The ID of the guild the command was invoked from. Will be null (i.e. 0) if invoked in a DM.
 	TargetID Snowflake                  `json:"target_id,omitempty"` // The ID of the user or message targeted by a user or message command from the context menu. Will be empty for slash commands.
+	Type     CommandType                `json:"type"`                // The type of comamnd that was invoked.
 }
 
 // A CommandInteractionOption represents data about a single option passed to a command.
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
 type CommandInteractionOption struct {
-	Name    string                     `json:"name"`             // The name of the option.
-	Type    OptionType                 `json:"type"`             // The type of option that was provided.
 	Value   any                        `json:"value,omitempty"`  // The value provided by the user; will always be of type string, float64 (double/integer) or bool. Mutually exclusive with options.
+	Name    string                     `json:"name"`             // The name of the option.
 	Options []CommandInteractionOption `json:"options,omitzero"` // For subcommands or grouped commands, the options passed to the subcommand or group. Mutually exclusive with value.
+	Type    OptionType                 `json:"type"`             // The type of option that was provided.
 	Focused bool                       `json:"focused"`          // Whether this option is currently focused by the user during autocomplete. Is exclusively used for autocomplete interactions and will always be false otherwise.
 }
 
@@ -132,18 +132,18 @@ type InteractionDataResolved struct {
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-choice-structure
 type CommandOptionChoice struct {
-	Name              string              `json:"name"`
-	NameLocalizations map[Language]string `json:"name_localizations,omitzero"` // https://docs.discord.com/developers/reference#locales
 	Value             any                 `json:"value"`                       // string, float64 (double or integer) or bool
+	NameLocalizations map[Language]string `json:"name_localizations,omitzero"` // https://docs.discord.com/developers/reference#locales
+	Name              string              `json:"name"`
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type ComponentInteractionData struct {
+	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 	// The CustomID of the Component having been interacted with.
 	CustomID string                   `json:"custom_id"`
-	Type     ComponentType            `json:"component_type"`  // The type of the component having been interacted with.
 	Values   []string                 `json:"values,omitzero"` // Values the user selected in a select menu component
-	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
+	Type     ComponentType            `json:"component_type"`  // The type of the component having been interacted with.
 }
 
 // ModalInteractionData represents the data received from a user submitting a modal.
@@ -159,7 +159,7 @@ type ModalInteractionData struct {
 // Data field holds one of three response data types (message/modal/auto-complete).
 // We're using "any" type because those types are not compatible with each other and will never be used at the same time.
 type Response struct {
-	Type  ResponseType `json:"type"`
 	Data  any          `json:"data,omitempty"`
 	Files []File       `json:"-"`
+	Type  ResponseType `json:"type"`
 }

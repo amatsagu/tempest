@@ -152,8 +152,8 @@ func (c *LabelComponent) UnmarshalJSON(data []byte) error {
 func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 	type alias ActionRowComponent
 	var raw struct {
-		alias
 		Components []json.RawMessage `json:"components"`
+		alias
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -179,8 +179,8 @@ func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 func (c *ContainerComponent) UnmarshalJSON(data []byte) error {
 	type alias ContainerComponent
 	var raw struct {
-		alias
 		Components []json.RawMessage `json:"components"`
+		alias
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -206,9 +206,9 @@ func (c *ContainerComponent) UnmarshalJSON(data []byte) error {
 func (c *SectionComponent) UnmarshalJSON(data []byte) error {
 	type alias SectionComponent
 	var raw struct {
-		alias
-		Components []json.RawMessage `json:"components"`
 		Accessory  *json.RawMessage  `json:"accessory,omitempty"`
+		Components []json.RawMessage `json:"components"`
+		alias
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {

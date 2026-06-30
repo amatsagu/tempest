@@ -7,8 +7,8 @@ import (
 func (msg *Message) UnmarshalJSON(data []byte) error {
 	type alias Message
 	var raw struct {
-		alias
 		Components []json.RawMessage `json:"components"`
+		alias
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {

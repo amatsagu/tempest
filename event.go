@@ -35,10 +35,10 @@ const (
 //
 // https://docs.discord.com/developers/events/gateway#gateway-events
 type EventPacket struct {
-	Opcode   Opcode          `json:"op"`
-	Sequence uint32          `json:"s,omitempty"`
 	Event    EventName       `json:"t,omitempty"`
 	Data     json.RawMessage `json:"d"`
+	Sequence uint32          `json:"s,omitempty"`
+	Opcode   Opcode          `json:"op"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#hello
@@ -54,17 +54,17 @@ type HeartbeatEvent struct {
 
 // https://docs.discord.com/developers/events/gateway-events#identify
 type IdentifyEvent struct {
-	Opcode Opcode              `json:"op"`
 	Data   IdentifyPayloadData `json:"d"`
+	Opcode Opcode              `json:"op"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#identify-identify-structure
 type IdentifyPayloadData struct {
+	Properties     IdentifyPayloadDataProperties `json:"properties"`
 	Token          string                        `json:"token"`
 	Intents        uint32                        `json:"intents"`
 	ShardOrder     [2]uint16                     `json:"shard"`           // [currentID, maxCount]
 	LargeThreshold uint8                         `json:"large_threshold"` // 50 - 250
-	Properties     IdentifyPayloadDataProperties `json:"properties"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#identify-identify-connection-properties
@@ -76,19 +76,19 @@ type IdentifyPayloadDataProperties struct {
 
 // https://docs.discord.com/developers/events/gateway-events#ready
 type ReadyEventData struct {
-	User             User               `json:"user"`
-	Version          uint8              `json:"v"` // Version of Discord API version
 	SessionID        string             `json:"session_id"`
 	ResumeGatewayURL string             `json:"resume_gateway_url"`
 	Guilds           []UnavailableGuild `json:"guilds"`
+	User             User               `json:"user"`
+	Version          uint8              `json:"v"` // Version of Discord API version
 	// + shard order, same like on identify payload
 	// + partial application object (docs)
 }
 
 // https://docs.discord.com/developers/events/gateway-events#resume
 type ResumeEvent struct {
-	Opcode Opcode          `json:"op"`
 	Data   ResumeEventData `json:"d"`
+	Opcode Opcode          `json:"op"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#resume-resume-structure
@@ -140,21 +140,21 @@ const (
 // Activity only in context of Discord Bot Presence via Gateway.
 type Activity struct {
 	Name string       `json:"name"`
-	Type ActivityType `json:"type"`
 	URL  string       `json:"url,omitempty"` // Stream URL, only for Streaming type
+	Type ActivityType `json:"type"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#update-presence
 type UpdatePresenceEvent struct {
-	Opcode Opcode                  `json:"op"`
 	Data   UpdatePresenceEventData `json:"d"`
+	Opcode Opcode                  `json:"op"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#update-presence-gateway-presence-update-structure
 type UpdatePresenceEventData struct {
-	Activities []Activity `json:"activities"`
-	Status     StatusType `json:"status"`
 	Since      *int64     `json:"since"` // Unix time (in milliseconds) of when the client went idle, or null if the client is not idle
+	Status     StatusType `json:"status"`
+	Activities []Activity `json:"activities"`
 	Emoji      Emoji      `json:"emoji"`
 	AFK        bool       `json:"afk"`
 }
@@ -167,11 +167,11 @@ type CreateGuildEventData struct {
 	*Guild
 
 	JoinedAt    *time.Time `json:"joined_at"`
-	Large       bool       `json:"large"`
-	Unavailable bool       `json:"unavailable,omitempty"`
-	MemberCount uint32     `json:"member_count"`
 
 	Members  []Member         `json:"members"`
 	Channels []PartialChannel `json:"channels"`
 	Threads  []PartialChannel `json:"threads"`
+	MemberCount uint32     `json:"member_count"`
+	Large       bool       `json:"large"`
+	Unavailable bool       `json:"unavailable,omitempty"`
 }
