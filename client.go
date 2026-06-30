@@ -12,9 +12,8 @@ import (
 // BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
 // You should avoid using base version unless you know what you're doing.
 type BaseClient struct {
-
-	sweeper interactionSweeper
-	staticModals     *SharedMap[string, func(ModalInteraction)]
+	sweeper      interactionSweeper
+	staticModals *SharedMap[string, func(ModalInteraction)]
 
 	traceLogger *log.Logger // Inherited from HTTPClient or GatewayClient
 
@@ -28,19 +27,18 @@ type BaseClient struct {
 
 	queuedComponents *SharedMap[string, *queuedComponent]
 	queuedModals     *SharedMap[string, *queuedModal]
-	Rest          *Rest
+	Rest             *Rest
 	commandContexts  []InteractionContextType
-	ApplicationID Snowflake
+	ApplicationID    Snowflake
 }
 
 type BaseClientOptions struct {
-
 	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
 	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
 	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 
-	Logger *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
+	Logger                     *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
 	Token                      string
 	DefaultInteractionContexts []InteractionContextType
 	RestOptions                RestOptions

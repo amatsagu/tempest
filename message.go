@@ -212,20 +212,20 @@ type EmbedProvider struct {
 type Message struct {
 	MessageReference    *MessageReference           `json:"message_reference,omitempty"`
 	InteractionMetadata *MessageInteractionMetadata `json:"interaction_metadata,omitempty"`
-	Author              *User                       `json:"author,omitempty"`  // The author of this message.
+	Author              *User                       `json:"author,omitempty"` // The author of this message.
 	Timestamp           *time.Time                  `json:"timestamp"`
 	EditedTimestamp     *time.Time                  `json:"edited_timestamp,omitempty"`
 	ReferencedMessage   *Message                    `json:"referenced_message,omitempty"`
 	Content             string                      `json:"content,omitempty"` // The message's content.
 	Embeds              []Embed                     `json:"embeds"`
-	Mentions            []User                      `json:"mentions"`         // All users specifically mentioned in the message.
+	Mentions            []User                      `json:"mentions"` // All users specifically mentioned in the message.
 	MentionRoles        []Snowflake                 `json:"mention_roles"`
 	MentionChannels     []ChannelMention            `json:"mention_channels,omitzero"`
 	Attachments         []Attachment                `json:"attachments"`
 	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
 	Reactions           []Reaction                  `json:"reactions,omitzero"`
 	Components          []MessageComponent          `json:"components,omitzero"` // All components included in the message.
-	Type                BitSet                      `json:"type,omitempty"` // https://docs.discord.com/developers/resources/channel#message-object-message-types
+	Type                BitSet                      `json:"type,omitempty"`      // https://docs.discord.com/developers/resources/channel#message-object-message-types
 	WebhookID           Snowflake                   `json:"webhook_id,omitempty"`
 	ApplicationID       Snowflake                   `json:"application_id,omitempty"`
 	Flags               MessageFlags                `json:"flags,omitempty"`

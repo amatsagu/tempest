@@ -32,7 +32,7 @@ type InteractionTypeExtractor struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	Member    *Member   `json:"member,omitempty"`
+	Member        *Member                  `json:"member,omitempty"`
 	responder     func(res Response) error `json:"-"`
 	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
 	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
@@ -40,13 +40,13 @@ type Interaction struct {
 	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
 	// attachment_size_limit is also skipped - appears to have no use anywhere
 
-	BaseClient    *BaseClient              `json:"-"` // Always provided.
-	User      *User     `json:"user,omitempty"`
-	Locale          Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale     string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
-	Token     string    `json:"token"` // Temporary token used for responding to the interaction. It's not the same as bot token.
-	Data          json.RawMessage `json:"data"`
-	Entitlements    []Entitlement   `json:"entitlements,omitzero"`  // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
+	BaseClient   *BaseClient     `json:"-"` // Always provided.
+	User         *User           `json:"user,omitempty"`
+	Locale       Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale  string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+	Token        string          `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot token.
+	Data         json.RawMessage `json:"data"`
+	Entitlements []Entitlement   `json:"entitlements,omitzero"` // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
 
 	// partial guild struct is skipped
 
@@ -55,7 +55,7 @@ type Interaction struct {
 	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
 	// If you truly need them - apply changes and open pull request to discuss.
 
-	ID            Snowflake       `json:"id"`
+	ID Snowflake `json:"id"`
 
 	// partial channel struct is skipped
 
@@ -64,11 +64,11 @@ type Interaction struct {
 	// version is skipped (docs says it's always 1, read-only property)
 
 	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
-	ApplicationID Snowflake       `json:"application_id"`
-	ShardID       uint16                   `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
-	Type          InteractionType `json:"type"`
-	responded     bool                     `json:"-"`
-	deferred      bool                     `json:"-"`
+	ApplicationID   Snowflake       `json:"application_id"`
+	ShardID         uint16          `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	Type            InteractionType `json:"type"`
+	responded       bool            `json:"-"`
+	deferred        bool            `json:"-"`
 }
 
 // A CommandInteraction represents an interaction received from a user invoking an application command, such as a slash command or a context menu command.
@@ -141,9 +141,9 @@ type CommandOptionChoice struct {
 type ComponentInteractionData struct {
 	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 	// The CustomID of the Component having been interacted with.
-	CustomID string                   `json:"custom_id"`
-	Values   []string                 `json:"values,omitzero"` // Values the user selected in a select menu component
-	Type     ComponentType            `json:"component_type"`  // The type of the component having been interacted with.
+	CustomID string        `json:"custom_id"`
+	Values   []string      `json:"values,omitzero"` // Values the user selected in a select menu component
+	Type     ComponentType `json:"component_type"`  // The type of the component having been interacted with.
 }
 
 // ModalInteractionData represents the data received from a user submitting a modal.

@@ -22,7 +22,7 @@ type HTTPClient struct {
 type HTTPClientOptions struct {
 	PublicKey string
 	BaseClientOptions
-	Trace     bool // Whether to enable basic logging for the client actions.
+	Trace bool // Whether to enable basic logging for the client actions.
 }
 
 func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {

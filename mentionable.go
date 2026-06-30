@@ -69,9 +69,9 @@ const (
 type User struct {
 	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 	Username             string            `json:"username"`
-	GlobalName           string            `json:"global_name,omitempty"`  // User's display name. Tempest lib will make it equal to user.Username if it was empty.
-	AvatarHash           string            `json:"avatar,omitempty"`       // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
-	BannerHash           string            `json:"banner,omitempty"`       // Hash code used to access user's baner. Call User.BannerURL to get direct url.
+	GlobalName           string            `json:"global_name,omitempty"` // User's display name. Tempest lib will make it equal to user.Username if it was empty.
+	AvatarHash           string            `json:"avatar,omitempty"`      // Hash code used to access user's profile. Call User.AvatarURL to get direct url.
+	BannerHash           string            `json:"banner,omitempty"`      // Hash code used to access user's baner. Call User.BannerURL to get direct url.
 	Locale               string            `json:"locale,omitempty"`
 	ID                   Snowflake         `json:"id"`
 	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
@@ -163,9 +163,9 @@ type Member struct {
 
 	// It's not part of Member API data struct but tempest Client should always attach it for conveniency.
 	GuildID Snowflake `json:"-"`
-	Deaf                       bool              `json:"deaf"`
-	Mute                       bool              `json:"mute"`
-	Pending                    bool              `json:"pending"`
+	Deaf    bool      `json:"deaf"`
+	Mute    bool      `json:"mute"`
+	Pending bool      `json:"pending"`
 }
 
 // Returns a direct url to members's guild specific avatar.

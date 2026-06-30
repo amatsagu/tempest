@@ -19,9 +19,9 @@ import (
 type socket struct {
 
 	// zlib-stream
-	zreader io.ReadCloser
+	zreader  io.ReadCloser
 	conn     *websocket.Conn
-	decoder *json.Decoder
+	decoder  *json.Decoder
 	mu       sync.Mutex
 	compress bool
 }
