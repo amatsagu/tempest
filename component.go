@@ -309,7 +309,25 @@ type FileUploadComponent struct {
 	CustomID  string `json:"custom_id,omitempty"`
 	MinValues uint8  `json:"min_values,omitempty"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
 	MaxValues uint8  `json:"max_values,omitempty"` // The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
-	Required  bool   `json:"required"`             // Whether a file upload is required to submit the modal.
+	// A list of max 10 (discord supported) file type extensions that you want this component to accept.
+	//
+	// For example: .png, .jpg, .qt, .mp3, .wav
+	// It also supports 3 groups (by typing "image", "video" or "audio" as type, please do not hardcode these lists as they are subject to change):
+	//
+	// IMAGE_EXTENSIONS = ('.png', '.gif', '.jpg', '.jpeg', '.jfif', '.webp', '.avif')
+	//
+	// VIDEO_EXTENSIONS = ('.mp4', '.mov', '.qt', '.webm')
+	//
+	// AUDIO_EXTENSIONS = ('.mp3', '.m4a', '.wav', '.ogg', '.opus', '.flac')
+	//
+	// We recommend using the provided file groups. if you are specifying only extensions,
+	// you must include .jpg for image uploads, and both .mp4 and .mov for video uploads,
+	// due to mobile schenanigans
+	//
+	// This feature only checks the extension on the filename - it does not actually inspect
+	// the contents of the file. You still need to make sure that the file is valid.
+	FileTypes []string `json:"file_types,omitzero"`
+	Required  bool     `json:"required"` // Whether a file upload is required to submit the modal.
 }
 
 // A RadioGroupComponent allows selecting exactly one option from a defined list of choices.
