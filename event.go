@@ -166,12 +166,12 @@ type UpdatePresenceEventData struct {
 type CreateGuildEventData struct {
 	*Guild
 
-	JoinedAt    *time.Time `json:"joined_at"`
+	JoinedAt *time.Time `json:"joined_at"`
 
-	Members  []Member         `json:"members"`
-	Channels []PartialChannel `json:"channels"`
-	Threads  []PartialChannel `json:"threads"`
-	MemberCount uint32     `json:"member_count"`
-	Large       bool       `json:"large"`
-	Unavailable bool       `json:"unavailable,omitempty"`
+	Members     []Member         `json:"members"`
+	Channels    []PartialChannel `json:"channels"`
+	Threads     []PartialChannel `json:"threads"`
+	MemberCount uint32           `json:"member_count"`
+	Large       bool             `json:"large"`
+	Unavailable bool             `json:"unavailable,omitempty"`
 }

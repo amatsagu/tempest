@@ -81,24 +81,24 @@ const (
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-structure
 type Command struct {
-	SlashCommandHandler func(itx *CommandInteraction)                      `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
+	SlashCommandHandler func(itx *CommandInteraction) `json:"-"` // Custom handler for slash command interactions. It's a Tempest specific field. It receives pointer to CommandInteraction as it's being used with pre & post client hooks.
 
-	AutoCompleteHandler func(itx CommandInteraction) []CommandOptionChoice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
-	DescriptionLocalizations map[Language]string          `json:"description_localizations,omitzero"`
-	NameLocalizations        map[Language]string          `json:"name_localizations,omitzero"`
-	Description              string                       `json:"description"`
-	Name                     string                       `json:"name"`
-	Options                  []CommandOption              `json:"options,omitzero"`
-	IntegrationTypes         []ApplicationIntegrationType `json:"integration_types,omitzero"`
-	Contexts                 []InteractionContextType     `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	GuildID                  Snowflake                    `json:"guild_id,omitempty"`
-	ID                       Snowflake                    `json:"-"` // It's not needed on app side to work.
-	RequiredPermissions      PermissionFlags              `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
-	Version                  Snowflake                    `json:"version,omitempty"` // Autoincrementing version identifier updated during substantial record changes.
-	ApplicationID            Snowflake                    `json:"application_id"`
-	NSFW                     bool                         `json:"nsfw"`              // https://docs.discord.com/developers/interactions/application-commands#agerestricted-commands
-	Handler                  CommandHandlerType           `json:"handler,omitempty"`
-	Type                     CommandType                  `json:"type,omitempty"`
+	AutoCompleteHandler      func(itx CommandInteraction) []CommandOptionChoice `json:"-"` // Custom handler for auto complete interactions. It's a Tempest specific field.
+	DescriptionLocalizations map[Language]string                                `json:"description_localizations,omitzero"`
+	NameLocalizations        map[Language]string                                `json:"name_localizations,omitzero"`
+	Description              string                                             `json:"description"`
+	Name                     string                                             `json:"name"`
+	Options                  []CommandOption                                    `json:"options,omitzero"`
+	IntegrationTypes         []ApplicationIntegrationType                       `json:"integration_types,omitzero"`
+	Contexts                 []InteractionContextType                           `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
+	GuildID                  Snowflake                                          `json:"guild_id,omitempty"`
+	ID                       Snowflake                                          `json:"-"`                                           // It's not needed on app side to work.
+	RequiredPermissions      PermissionFlags                                    `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
+	Version                  Snowflake                                          `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes.
+	ApplicationID            Snowflake                                          `json:"application_id"`
+	NSFW                     bool                                               `json:"nsfw"` // https://docs.discord.com/developers/interactions/application-commands#agerestricted-commands
+	Handler                  CommandHandlerType                                 `json:"handler,omitempty"`
+	Type                     CommandType                                        `json:"type,omitempty"`
 }
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure
@@ -127,12 +127,12 @@ type CommandOption struct {
 	//
 	// This feature only checks the extension on the filename - it does not actually inspect
 	// the contents of the file. You still need to make sure that the file is valid.
-	FileTypes []string `json:"file_types,omitzero"`
-	MinValue                 float64               `json:"min_value,omitempty"`
-	MaxValue                 float64               `json:"max_value,omitempty"`
-	MinLength                uint16                `json:"min_length,omitempty"`
-	MaxLength                uint16                `json:"max_length,omitempty"`
-	Required                 bool                  `json:"required"`
-	Type                     OptionType            `json:"type"`
-	AutoComplete             bool                  `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
+	FileTypes    []string   `json:"file_types,omitzero"`
+	MinValue     float64    `json:"min_value,omitempty"`
+	MaxValue     float64    `json:"max_value,omitempty"`
+	MinLength    uint16     `json:"min_length,omitempty"`
+	MaxLength    uint16     `json:"max_length,omitempty"`
+	Required     bool       `json:"required"`
+	Type         OptionType `json:"type"`
+	AutoComplete bool       `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
 }

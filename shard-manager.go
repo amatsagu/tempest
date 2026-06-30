@@ -15,17 +15,16 @@ import (
 // ShardManager is responsible for orchestrating multiple Shard connections to the
 // Discord Gateway. It handles everything that is required for Bot to start receiving packets with event data.
 type ShardManager struct {
-
-	ctx    context.Context
+	ctx          context.Context
 	traceLogger  *log.Logger
 	eventHandler func(shardID uint16, packet EventPacket)
-	shards map[uint16]*Shard
-	cancel context.CancelFunc
+	shards       map[uint16]*Shard
+	cancel       context.CancelFunc
 	token        string
-	wg     sync.WaitGroup
+	wg           sync.WaitGroup
 
-	mu     sync.RWMutex
-	compress     bool
+	mu       sync.RWMutex
+	compress bool
 }
 
 // Creates a new gateway connection manager.

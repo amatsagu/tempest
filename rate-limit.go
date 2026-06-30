@@ -26,17 +26,16 @@ type RateLimiterOptions struct {
 }
 
 type RateLimiter struct {
-
 	globalWait time.Time
 
 	lastSweep      time.Time
-	buckets      map[string]*Bucket // Bucket ID -> Bucket
-	routeMapping map[string]string  // Route (Method:Path) -> Bucket ID
+	buckets        map[string]*Bucket // Bucket ID -> Bucket
+	routeMapping   map[string]string  // Route (Method:Path) -> Bucket ID
 	traceLogger    *log.Logger
 	sweepInterval  time.Duration
 	sweepThreshold int
-	mu           sync.RWMutex
-	globalMu   sync.RWMutex
+	mu             sync.RWMutex
+	globalMu       sync.RWMutex
 }
 
 func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
