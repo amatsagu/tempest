@@ -174,6 +174,7 @@ type SelectComponent struct {
 	Placeholder   string               `json:"placeholder,omitempty"`   // Placeholder text if nothing is selected, max: 150 characters.
 	ChannelTypes  []ChannelType        `json:"channel_types,omitzero"`  // List of channel types to include in the channel select component; should be omitted for all other select types.
 	DefaultValues []DefaultValueOption `json:"default_values,omitzero"` // List of default values for auto-populated select menu components; must have between MinValues and MaxValues entries.
+	Values        []Snowflake          `json:"values,omitzero"`
 	ID            uint32               `json:"id,omitempty"`
 	Type          ComponentType        `json:"type"`                 // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
 	MinValues     uint8                `json:"min_values,omitempty"` // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
@@ -248,7 +249,6 @@ type MediaGalleryItem struct {
 
 // https://docs.discord.com/developers/components/reference#file-file-structure
 type FileComponent struct {
-
 	// Below 2 fields are controlled by API and should be readonly for us, developers.
 
 	Name    string            `json:"name,omitempty"` // This field is ignored and provided by the API as part of the response.

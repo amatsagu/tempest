@@ -150,6 +150,7 @@ type ComponentInteractionData struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-modal-submit-data-structure
 type ModalInteractionData struct {
+	Resolved *InteractionDataResolved `json:"resolved,omitempty"`
 	// The CustomID of the modal having been submitted.
 	CustomID   string           `json:"custom_id"`
 	Components []ModalComponent `json:"components,omitzero"` // The components that were sent inside the modal, having been filled with user input.
