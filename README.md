@@ -14,9 +14,6 @@
     <a href="https://pkg.go.dev/github.com/amatsagu/tempest">
         <img src="https://pkg.go.dev/badge/github.com/amatsagu/tempest.svg" alt="Go Reference">
     </a>
-    <a href="https://goreportcard.com/report/github.com/amatsagu/tempest">
-        <img src="https://goreportcard.com/badge/github.com/amatsagu/tempest" alt="Go Report">
-    </a>
     <a href="https://golang.org/doc/devel/release.html">
         <img src="https://img.shields.io/github/go-mod/go-version/amatsagu/tempest" alt="Go Version">
     </a>
