@@ -209,11 +209,11 @@ type Role struct {
 	Name            string          `json:"name"`
 	IconHash        string          `json:"icon,omitempty"`
 	UnicodeEmoji    string          `json:"unicode_emoji,omitempty"`
-	Tags            RoleTag         `json:"tags"`
+	Tags            *RoleTag        `json:"tags,omitempty"`
 	ID              Snowflake       `json:"id"`
 	PermissionFlags PermissionFlags `json:"permissions,string"`
 	Flags           BitSet          `json:"flags"` // https://docs.discord.com/developers/topics/permissions#role-object-role-flags
-	Color           uint32          `json:"color"` // Integer representation of hexadecimal color code. Roles without colors (color == 0) do not count towards the final computed color in the user list.
+	Colors          RoleColors      `json:"colors"`
 	Hoist           bool            `json:"hoist"` // Whether this role is pinned in the user listing.
 	Position        uint8           `json:"position"`
 	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
@@ -245,4 +245,11 @@ type RoleTag struct {
 	PremiumSubscriber     bool      `json:"premium_subscriber"`                // Whether this is the guild's Booster role.
 	AvailableForPurchase  bool      `json:"available_for_purchase"`
 	GuildConnections      bool      `json:"guild_connections"` // Whether this role is a guild's linked role.
+}
+
+// https://docs.discord.com/developers/topics/permissions#role-object-role-colors-object
+type RoleColors struct {
+	PrimaryColor   uint32  `json:"primary_color"`
+	SecondaryColor *uint32 `json:"secondary_color,omitempty"` // Secondary color for the role, this will make the role a gradient between the other provided colors.
+	TertiaryColor  *uint32 `json:"tertiary_color,omitempty"`  // Tertiary color for the role, this will turn the gradient into a holographic style. Right now - when sending tertiary_color the API enforces the role color to be a holographic style with values of: primary_color = 11127295, secondary_color = 16759788, and tertiary_color = 16761760.
 }
