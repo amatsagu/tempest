@@ -206,18 +206,18 @@ func (member *Member) GuildBannerURL() string {
 
 // https://docs.discord.com/developers/topics/permissions#role-object-role-structure
 type Role struct {
+	Colors          RoleColors      `json:"colors"`
+	Tags            *RoleTag        `json:"tags,omitempty"`
 	Name            string          `json:"name"`
 	IconHash        string          `json:"icon,omitempty"`
 	UnicodeEmoji    string          `json:"unicode_emoji,omitempty"`
-	Tags            *RoleTag        `json:"tags,omitempty"`
 	ID              Snowflake       `json:"id"`
 	PermissionFlags PermissionFlags `json:"permissions,string"`
-	Flags           BitSet          `json:"flags"` // https://docs.discord.com/developers/topics/permissions#role-object-role-flags
-	Colors          RoleColors      `json:"colors"`
-	Hoist           bool            `json:"hoist"` // Whether this role is pinned in the user listing.
+	Flags           BitSet          `json:"flags"`
+	Hoist           bool            `json:"hoist"`
 	Position        uint8           `json:"position"`
-	Managed         bool            `json:"managed"`     // Whether this role is managed by an integration.
-	Mentionable     bool            `json:"mentionable"` // Whether this role is mentionable.
+	Managed         bool            `json:"managed"`
+	Mentionable     bool            `json:"mentionable"`
 }
 
 func (role *Role) Mention() string {
@@ -249,7 +249,7 @@ type RoleTag struct {
 
 // https://docs.discord.com/developers/topics/permissions#role-object-role-colors-object
 type RoleColors struct {
+	SecondaryColor *uint32 `json:"secondary_color,omitempty"`
+	TertiaryColor  *uint32 `json:"tertiary_color,omitempty"`
 	PrimaryColor   uint32  `json:"primary_color"`
-	SecondaryColor *uint32 `json:"secondary_color,omitempty"` // Secondary color for the role, this will make the role a gradient between the other provided colors.
-	TertiaryColor  *uint32 `json:"tertiary_color,omitempty"`  // Tertiary color for the role, this will turn the gradient into a holographic style. Right now - when sending tertiary_color the API enforces the role color to be a holographic style with values of: primary_color = 11127295, secondary_color = 16759788, and tertiary_color = 16761760.
 }
