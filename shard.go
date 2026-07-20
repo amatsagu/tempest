@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -53,7 +54,7 @@ type Shard struct {
 	// State
 	mu                  sync.RWMutex
 	intents             uint32
-	lastSequence        uint32
+	lastSequence        atomic.Uint32
 	ID                  uint16
 	totalShards         uint16
 	heartbeatAckMissing bool
@@ -200,9 +201,7 @@ func (s *Shard) readLoop() error {
 		s.tracef("RECV Op: %d, Seq: %d, Event: %s", packet.Opcode, packet.Sequence, packet.Event)
 
 		if packet.Sequence > 0 {
-			s.mu.Lock()
-			s.lastSequence = packet.Sequence
-			s.mu.Unlock()
+			s.lastSequence.Store(packet.Sequence)
 		}
 
 		if err := s.handlePacket(packet); err != nil {
@@ -280,7 +279,7 @@ func (s *Shard) handlePacket(p EventPacket) error {
 
 		if !resume {
 			s.mu.Lock()
-			s.lastSequence = 0
+			s.lastSequence.Store(0)
 			s.sessionID = ""
 			s.resumeGatewayURL = ""
 			s.mu.Unlock()
@@ -331,8 +330,8 @@ func (s *Shard) sendIdentify() error {
 func (s *Shard) sendResume() error {
 	s.mu.RLock()
 	sessionID := s.sessionID
-	seq := s.lastSequence
 	s.mu.RUnlock()
+	seq := s.lastSequence.Load()
 
 	s.tracef("RESUME session ID = %s with sequence = %d.", sessionID, seq)
 
@@ -393,9 +392,9 @@ func (s *Shard) heartbeatLoop(ctx context.Context) {
 
 func (s *Shard) sendHeartbeat() error {
 	s.mu.Lock()
-	seq := s.lastSequence
 	s.lastHeartbeatSend = time.Now()
 	s.mu.Unlock()
+	seq := s.lastSequence.Load()
 
 	s.tracef("Sending heartbeat with sequence = %d.", seq)
 
