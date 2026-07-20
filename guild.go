@@ -34,7 +34,7 @@ const (
 )
 
 // https://docs.discord.com/developers/resources/guild#guild-object-system-channel-flags
-type SystemChannelFlags BitSet
+type SystemChannelFlags = BitSet
 
 const (
 	SUPPRESS_JOIN_NOTIFICATIONS_SYSTEM_FLAG = 1 << iota

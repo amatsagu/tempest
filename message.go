@@ -6,7 +6,7 @@ import (
 )
 
 // https://docs.discord.com/developers/resources/message#message-object-message-flags
-type MessageFlags BitSet
+type MessageFlags = BitSet
 
 const (
 	CROSSPOSTED_MESSAGE_FLAG MessageFlags = 1 << iota

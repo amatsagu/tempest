@@ -37,7 +37,7 @@ func (adc *AvatarDecoration) DecorationURL() string {
 }
 
 // https://docs.discord.com/developers/resources/user#user-object-user-flags
-type UserFlags BitSet
+type UserFlags = BitSet
 
 const (
 	DISCORD_EMPLOYEE_USER_FLAG       UserFlags = 1 << iota // Discord Employee, Staff
@@ -132,7 +132,7 @@ func (user *User) BannerURL() string {
 }
 
 // https://docs.discord.com/developers/resources/guild#guild-member-object-guild-member-flags
-type MemberFlags BitSet
+type MemberFlags = BitSet
 
 const (
 	DID_REJOIN_MEMBER_FLAG MemberFlags = 1 << iota
@@ -231,10 +231,10 @@ func (role *Role) IconURL() string {
 	}
 
 	if strings.HasPrefix(role.IconHash, "a_") {
-		return DiscordCDNBaseURL() + "/avatars/" + role.ID.String() + "/" + role.IconHash + ".gif"
+		return DiscordCDNBaseURL() + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".gif"
 	}
 
-	return DiscordCDNBaseURL() + "/avatars/" + role.ID.String() + "/" + role.IconHash
+	return DiscordCDNBaseURL() + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"
 }
 
 // https://docs.discord.com/developers/topics/permissions#role-object-role-tags-structure

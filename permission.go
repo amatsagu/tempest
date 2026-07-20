@@ -1,7 +1,7 @@
 package tempest
 
 // https://docs.discord.com/developers/topics/permissions#permissions
-type PermissionFlags BitSet
+type PermissionFlags = BitSet
 
 const (
 	CREATE_INSTANT_INVITE_PERMISSION_FLAG PermissionFlags = 1 << iota
