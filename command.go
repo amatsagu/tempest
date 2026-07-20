@@ -66,7 +66,7 @@ const (
 	SWEDISH_LANGUAGE        Language = "sv-SE"
 	VIETNAMESE_LANGUAGE     Language = "vi"
 	TURKISH_LANGUAGE        Language = "tr"
-	CHECH_LANGUAGE          Language = "cs"
+	CZECH_LANGUAGE          Language = "cs"
 	GREEK_LANGUAGE          Language = "el"
 	BULGARIAN_LANGUAGE      Language = "bg"
 	RUSSIAN_LANGUAGE        Language = "ru"
@@ -128,8 +128,8 @@ type CommandOption struct {
 	// This feature only checks the extension on the filename - it does not actually inspect
 	// the contents of the file. You still need to make sure that the file is valid.
 	FileTypes    []string   `json:"file_types,omitzero"`
-	MinValue     float64    `json:"min_value,omitempty"`
-	MaxValue     float64    `json:"max_value,omitempty"`
+	MinValue     *float64   `json:"min_value,omitempty"`
+	MaxValue     *float64   `json:"max_value,omitempty"`
 	MinLength    uint16     `json:"min_length,omitempty"`
 	MaxLength    uint16     `json:"max_length,omitempty"`
 	Required     bool       `json:"required"`

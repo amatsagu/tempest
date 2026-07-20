@@ -13,11 +13,10 @@ func (itx *Interaction) Responded() bool {
 
 // Returns user data either from member or from user (depending if interaction was used in a server).
 func (itx *Interaction) BaseUser() *User {
-	if itx.GuildID == 0 {
-		return itx.User
-	} else {
+	if itx.Member != nil && itx.Member.User != nil {
 		return itx.Member.User
 	}
+	return itx.User
 }
 
 // Returns value of any type. Check second value to check whether option was provided or not (true if yes).
@@ -38,11 +37,17 @@ func (itx *CommandInteraction) GetOptionValue(name string) (any, bool) {
 
 // Returns pointer to user if present in interaction.data.resolved. It'll return empty struct if there's no resolved user.
 func (itx *CommandInteraction) ResolveUser(id Snowflake) User {
+	if itx.Data.Resolved == nil {
+		return User{}
+	}
 	return itx.Data.Resolved.Users[id]
 }
 
 // Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return empty struct if there's no resolved member.
 func (itx *CommandInteraction) ResolveMember(id Snowflake) Member {
+	if itx.Data.Resolved == nil {
+		return Member{}
+	}
 	member, available := itx.Data.Resolved.Members[id]
 	if available {
 		user := itx.Data.Resolved.Users[id]
@@ -54,22 +59,34 @@ func (itx *CommandInteraction) ResolveMember(id Snowflake) Member {
 
 // Returns pointer to guild role if present in interaction.data.resolved. It'll return empty struct if there's no resolved role.
 func (itx *CommandInteraction) ResolveRole(id Snowflake) (Role, bool) {
+	if itx.Data.Resolved == nil {
+		return Role{}, false
+	}
 	role, ok := itx.Data.Resolved.Roles[id]
 	return role, ok
 }
 
 // Returns pointer to partial channel if present in interaction.data.resolved.  It'll return empty struct if there's no resolved partial channel.
 func (itx *CommandInteraction) ResolveChannel(id Snowflake) PartialChannel {
+	if itx.Data.Resolved == nil {
+		return PartialChannel{}
+	}
 	return itx.Data.Resolved.Channels[id]
 }
 
 // Returns pointer to message if present in interaction.data.resolved.  It'll return empty struct if there's no resolved message.
 func (itx *CommandInteraction) ResolveMessage(id Snowflake) Message {
+	if itx.Data.Resolved == nil {
+		return Message{}
+	}
 	return itx.Data.Resolved.Messages[id]
 }
 
 // Returns pointer to attachment if present in interaction.data.resolved.  It'll return empty struct if there's no resolved attachment.
 func (itx *CommandInteraction) ResolveAttachment(id Snowflake) Attachment {
+	if itx.Data.Resolved == nil {
+		return Attachment{}
+	}
 	return itx.Data.Resolved.Attachments[id]
 }
 
