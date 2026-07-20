@@ -2,11 +2,13 @@ package tempest
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,10 +25,11 @@ type RateLimiterOptions struct {
 	TraceLogger    *log.Logger
 	SweepInterval  time.Duration // By default: 30 minutes
 	SweepThreshold int           // By default: 2500 buckets
+	Trace          bool
 }
 
 type RateLimiter struct {
-	globalWait time.Time
+	globalWait atomic.Int64
 
 	lastSweep      time.Time
 	buckets        map[string]*Bucket // Bucket ID -> Bucket
@@ -35,7 +38,7 @@ type RateLimiter struct {
 	sweepInterval  time.Duration
 	sweepThreshold int
 	mu             sync.RWMutex
-	globalMu       sync.RWMutex
+	trace          bool
 }
 
 func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
@@ -49,6 +52,11 @@ func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 		sweepThreshold = 2500
 	}
 
+	trace := opt.Trace
+	if !trace && opt.TraceLogger != nil {
+		trace = opt.TraceLogger.Writer() != io.Discard
+	}
+
 	return &RateLimiter{
 		buckets:        make(map[string]*Bucket),
 		routeMapping:   make(map[string]string),
@@ -56,24 +64,27 @@ func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 		sweepInterval:  sweepInterval,
 		sweepThreshold: sweepThreshold,
 		traceLogger:    opt.TraceLogger,
+		trace:          trace,
 	}
 }
 
 func (rl *RateLimiter) tracef(format string, v ...any) {
-	if rl.traceLogger != nil {
+	if rl.trace && rl.traceLogger != nil {
 		rl.traceLogger.Printf("[(REST) LIMITER] "+format, v...)
 	}
 }
 
 func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
-	rl.globalMu.RLock()
-	if !rl.globalWait.IsZero() && time.Now().Before(rl.globalWait) {
-		wait := time.Until(rl.globalWait)
-		rl.globalMu.RUnlock()
-		rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
-		time.Sleep(wait)
-	} else {
-		rl.globalMu.RUnlock()
+	globalWaitNano := rl.globalWait.Load()
+	if globalWaitNano != 0 {
+		globalWait := time.Unix(0, globalWaitNano)
+		if time.Now().Before(globalWait) {
+			wait := time.Until(globalWait)
+			if rl.trace {
+				rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
+			}
+			time.Sleep(wait)
+		}
 	}
 
 	rl.mu.Lock()
@@ -113,31 +124,38 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 
 	bucket.mu.Lock()
 
-	now := time.Now()
-	if bucket.Remaining <= 0 && bucket.ResetAt.After(now) {
-		waitDuration := bucket.ResetAt.Sub(now)
-		rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
-		time.Sleep(waitDuration)
+	if bucket.Remaining <= 0 {
+		if time.Now().Before(bucket.ResetAt) {
+			waitDuration := time.Until(bucket.ResetAt)
+			bucket.mu.Unlock()
+			if rl.trace {
+				rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
+			}
+			time.Sleep(waitDuration)
+			return rl.Wait(route)
+		}
 	}
 
 	bucket.Remaining--
+	bucket.mu.Unlock()
 
 	return func(headers http.Header) {
-		defer bucket.mu.Unlock()
-
 		if headers == nil {
 			return
 		}
 
+		bucket.mu.Lock()
+		defer bucket.mu.Unlock()
+
+		retryAfterStr := headers.Get("Retry-After")
 		if headers.Get("X-RateLimit-Global") == "true" {
-			retryAfter, _ := strconv.ParseFloat(headers.Get("Retry-After"), 64)
-			resetAt := time.Now().Add(time.Duration(retryAfter * float64(time.Second)))
-
-			rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
-
-			rl.globalMu.Lock()
-			rl.globalWait = resetAt
-			rl.globalMu.Unlock()
+			if retryAfterStr != "" {
+				retryAfter, _ := strconv.ParseFloat(retryAfterStr, 64)
+				rl.globalWait.Store(time.Now().Add(time.Duration(retryAfter*float64(time.Second)) + 250*time.Millisecond).UnixNano())
+				if rl.trace {
+					rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
+				}
+			}
 			return
 		}
 
@@ -197,6 +215,7 @@ func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func extractRoute(path string) string {
+	orig := path
 	if strings.HasPrefix(path, "/api/v") {
 		idx := strings.Index(path[6:], "/")
 		if idx != -1 {
@@ -204,19 +223,31 @@ func extractRoute(path string) string {
 		}
 	}
 
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) < 2 {
+	var rest string
+	var major string
+	if strings.HasPrefix(path, "/channels/") {
+		major = "/channels/"
+		rest = path[10:]
+	} else if strings.HasPrefix(path, "/guilds/") {
+		major = "/guilds/"
+		rest = path[8:]
+	} else if strings.HasPrefix(path, "/webhooks/") {
+		major = "/webhooks/"
+		rest = path[10:]
+	} else {
+		return orig
+	}
+
+	idx1 := strings.Index(rest, "/")
+	if idx1 == -1 {
 		return path
 	}
 
-	// Major parameters: /channels/{id}, /guilds/{id}, /webhooks/{id}
-	if parts[0] == "guilds" || parts[0] == "channels" || parts[0] == "webhooks" {
-		// Identify the resource after the ID to group buckets (e.g., /guilds/{id}/roles)
-		if len(parts) >= 3 {
-			return "/" + parts[0] + "/" + parts[1] + "/" + parts[2]
-		}
-		return "/" + parts[0] + "/" + parts[1]
+	idx2 := strings.Index(rest[idx1+1:], "/")
+	if idx2 == -1 {
+		return path
 	}
 
-	return path
+	totalLen := len(major) + idx1 + 1 + idx2
+	return path[:totalLen]
 }
