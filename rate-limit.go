@@ -29,12 +29,11 @@ type RateLimiterOptions struct {
 }
 
 type RateLimiter struct {
-	globalWait atomic.Int64
-
 	lastSweep      time.Time
 	buckets        map[string]*Bucket // Bucket ID -> Bucket
 	routeMapping   map[string]string  // Route (Method:Path) -> Bucket ID
 	traceLogger    *log.Logger
+	globalWait     atomic.Int64
 	sweepInterval  time.Duration
 	sweepThreshold int
 	mu             sync.RWMutex

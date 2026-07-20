@@ -103,11 +103,12 @@ type Command struct {
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure
 type CommandOption struct {
-	DescriptionLocalizations map[Language]string   `json:"description_localizations,omitzero"`
+	MinValue                 *float64              `json:"min_value,omitempty"`
 	NameLocalizations        map[Language]string   `json:"name_localizations,omitzero"`
-	Name                     string                `json:"name"`
+	MaxValue                 *float64              `json:"max_value,omitempty"`
+	DescriptionLocalizations map[Language]string   `json:"description_localizations,omitzero"`
 	Description              string                `json:"description"`
-	Choices                  []CommandOptionChoice `json:"choices,omitzero"`
+	Name                     string                `json:"name"`
 	Options                  []CommandOption       `json:"options,omitzero"`
 	ChannelTypes             []ChannelType         `json:"channel_types,omitzero"`
 	// A list of max 10 (discord supported) file type extensions that you want this component to accept.
@@ -127,12 +128,11 @@ type CommandOption struct {
 	//
 	// This feature only checks the extension on the filename - it does not actually inspect
 	// the contents of the file. You still need to make sure that the file is valid.
-	FileTypes    []string   `json:"file_types,omitzero"`
-	MinValue     *float64   `json:"min_value,omitempty"`
-	MaxValue     *float64   `json:"max_value,omitempty"`
-	MinLength    uint16     `json:"min_length,omitempty"`
-	MaxLength    uint16     `json:"max_length,omitempty"`
-	Required     bool       `json:"required"`
-	Type         OptionType `json:"type"`
-	AutoComplete bool       `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
+	FileTypes    []string              `json:"file_types,omitzero"`
+	Choices      []CommandOptionChoice `json:"choices,omitzero"`
+	MinLength    uint16                `json:"min_length,omitempty"`
+	MaxLength    uint16                `json:"max_length,omitempty"`
+	Required     bool                  `json:"required"`
+	Type         OptionType            `json:"type"`
+	AutoComplete bool                  `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
 }

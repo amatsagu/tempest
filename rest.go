@@ -37,6 +37,7 @@ type rateLimitError struct {
 
 type Rest struct {
 	limiter        *RateLimiter
+	traceLogger    *log.Logger
 	HTTPClient     http.Client
 	token          string
 	maxWaitTime    time.Duration
@@ -44,17 +45,16 @@ type Rest struct {
 	retryThreshold int64
 	trippedUntil   atomic.Int64 // UnixNano
 	maxRetries     uint8
-	traceLogger    *log.Logger
 	trace          bool
 }
 
 type RestOptions struct {
+	TraceLogger        *log.Logger
 	Token              string
 	RateLimiterOptions RateLimiterOptions
 	MaxWaitTime        time.Duration // Max duration it can take for each request.
 	RetryThreshold     uint32        // Max number of concurrent retries allowed before failing all ongoing requests (emergency breaks). By default: 60.
 	MaxRetries         uint8         // By default: 3
-	TraceLogger        *log.Logger
 	Trace              bool
 }
 
