@@ -40,7 +40,9 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 		if w == nil || w == io.Discard {
 			client.traceLogger.SetOutput(os.Stdout)
 		}
-		client.tracef("Gateway Client tracing enabled.")
+		if client.trace {
+			client.tracef("Gateway Client tracing enabled.")
+		}
 	}
 
 	client.Gateway = NewShardManager(
@@ -69,7 +71,9 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 
 	var extractor InteractionTypeExtractor
 	if err := json.Unmarshal(packet.Data, &extractor); err != nil {
-		client.tracef("Received interaction event but failed to extract type: %v", err)
+		if client.trace {
+			client.tracef("Received interaction event but failed to extract type: %v", err)
+		}
 		return
 	}
 
@@ -77,7 +81,9 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
-			client.tracef("Received command interaction event but failed to parse its data: %v", err)
+			if client.trace {
+				client.tracef("Received command interaction event but failed to parse its data: %v", err)
+			}
 			return
 		}
 		interaction.BaseClient = client.BaseClient
@@ -92,7 +98,9 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var interaction ComponentInteraction
 		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
-			client.tracef("Received component interaction event but failed to parse its data: %v", err)
+			if client.trace {
+				client.tracef("Received component interaction event but failed to parse its data: %v", err)
+			}
 			return
 		}
 
@@ -108,7 +116,9 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
-			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
+			if client.trace {
+				client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
+			}
 			return
 		}
 
@@ -124,7 +134,9 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
 		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
-			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
+			if client.trace {
+				client.tracef("Received modal interaction event but failed to parse its data: %v", err)
+			}
 			return
 		}
 
@@ -143,17 +155,27 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 func (client *GatewayClient) commandInteractionHandler(interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
-		client.tracef("Received command interaction but there's no matching command! (requested \"%s\")", itx.Data.Name)
+		if client.trace {
+			client.tracef("Received command interaction (ID = %s) but there's no matching command! (requested \"%s\")", itx.ID.String(), itx.Data.Name)
+		}
 		return
 	}
 
-	client.tracef("Received command interaction - moved to target command's handler.")
+	if client.trace {
+		client.tracef("Received command interaction (ID = %s, Command = \"%s\") - moved to target command's handler.", itx.ID.String(), itx.Data.Name)
+	}
 
 	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
 		return
 	}
 
-	command.SlashCommandHandler(&itx)
+	if client.trace {
+		start := time.Now()
+		command.SlashCommandHandler(&itx)
+		client.tracef("Command %s execution took %v", command.Name, time.Since(start))
+	} else {
+		command.SlashCommandHandler(&itx)
+	}
 
 	if client.postCommandHandler != nil {
 		client.postCommandHandler(command, &itx)
@@ -163,11 +185,15 @@ func (client *GatewayClient) commandInteractionHandler(interaction CommandIntera
 func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandInteraction) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available || command.AutoCompleteHandler == nil {
-		client.tracef("Dropped auto complete interaction. You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.")
+		if client.trace {
+			client.tracef("Dropped auto complete interaction (ID = %s). You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.", itx.ID.String())
+		}
 		return
 	}
 
-	client.tracef("Received slash command's auto complete interaction - moved to target (sub) command auto complete handler.")
+	if client.trace {
+		client.tracef("Received slash command's auto complete interaction (ID = %s, Command = \"%s\") - moved to target (sub) command auto complete handler.", itx.ID.String(), itx.Data.Name)
+	}
 	choices := command.AutoCompleteHandler(itx)
 	err := itx.responder(Response{
 		Type: AUTOCOMPLETE_RESPONSE_TYPE,
@@ -176,13 +202,17 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 		},
 	})
 	if err != nil {
-		client.tracef("Failed to acknowledge auto complete interaction: %v.", err)
+		if client.trace {
+			client.tracef("Failed to acknowledge auto complete interaction: %v.", err)
+		}
 	}
 }
 
 func (client *GatewayClient) componentInteractionHandler(interaction ComponentInteraction) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
-		client.tracef("Received component interaction with matching custom ID for static handler - moved to registered handler.")
+		if client.trace {
+			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		fn(interaction)
 		return
 	}
@@ -199,26 +229,36 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 	hasGlobal := client.componentHandler != nil
 
 	if isQueued {
-		client.tracef("Received component interaction with matching custom ID for dynamic handler - moved to listener.")
+		if client.trace {
+			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		if err := interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE}); err != nil {
-			client.tracef("failed to send deferred update message response: %v", err)
+			if client.trace {
+				client.tracef("failed to send deferred update message response: %v", err)
+			}
 		}
 		handler.Handler(&interaction)
 		return
 	}
 
 	if hasGlobal {
-		client.tracef("Received component interaction - moved to defined component handler.")
+		if client.trace {
+			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") - moved to defined component handler.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		client.componentHandler(&interaction)
 		return
 	}
 
-	client.tracef("Dropped component interaction. You see this trace message because client received component interaction but there's no defined handler for it.")
+	if client.trace {
+		client.tracef("Dropped component interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received component interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
+	}
 }
 
 func (client *GatewayClient) modalInteractionHandler(interaction ModalInteraction) {
 	if fn, ok := client.staticModals.Get(interaction.Data.CustomID); ok {
-		client.tracef("Received modal interaction with matching custom ID for static handler - moved to registered handler.")
+		if client.trace {
+			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		fn(interaction)
 		return
 	}
@@ -235,19 +275,27 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 	hasGlobal := client.modalHandler != nil
 
 	if isQueued {
-		client.tracef("Received modal interaction with matching custom ID for dynamic handler - moved to listener.")
+		if client.trace {
+			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		if err := interaction.responder(Response{Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE}); err != nil {
-			client.tracef("failed to send deferred update message response: %v", err)
+			if client.trace {
+				client.tracef("failed to send deferred update message response: %v", err)
+			}
 		}
 		handler.Handler(&interaction)
 		return
 	}
 
 	if hasGlobal {
-		client.tracef("Received modal interaction - moved to defined modal handler.")
+		if client.trace {
+			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") - moved to defined modal handler.", interaction.ID.String(), interaction.Data.CustomID)
+		}
 		client.modalHandler(&interaction)
 		return
 	}
 
-	client.tracef("Dropped modal interaction. You see this trace message because client received modal interaction but there's no defined handler for it.")
+	if client.trace {
+		client.tracef("Dropped modal interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received modal interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
+	}
 }

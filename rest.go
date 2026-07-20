@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -43,6 +44,8 @@ type Rest struct {
 	retryThreshold int64
 	trippedUntil   atomic.Int64 // UnixNano
 	maxRetries     uint8
+	traceLogger    *log.Logger
+	trace          bool
 }
 
 type RestOptions struct {
@@ -51,6 +54,8 @@ type RestOptions struct {
 	MaxWaitTime        time.Duration // Max duration it can take for each request.
 	RetryThreshold     uint32        // Max number of concurrent retries allowed before failing all ongoing requests (emergency breaks). By default: 60.
 	MaxRetries         uint8         // By default: 3
+	TraceLogger        *log.Logger
+	Trace              bool
 }
 
 func NewRest(opt RestOptions) *Rest {
@@ -91,10 +96,23 @@ func NewRest(opt RestOptions) *Rest {
 		retryThreshold = 60
 	}
 
+	traceLogger := opt.TraceLogger
+	if traceLogger == nil {
+		traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
+	}
+
+	limiterOptions := opt.RateLimiterOptions
+	limiterOptions.Trace = opt.Trace
+	if limiterOptions.TraceLogger == nil {
+		limiterOptions.TraceLogger = traceLogger
+	}
+	limiter := NewRateLimiter(limiterOptions)
+
 	return &Rest{
+		limiter: limiter,
 		HTTPClient: http.Client{
 			Transport: &rateLimitTransport{
-				limiter:        NewRateLimiter(opt.RateLimiterOptions),
+				limiter:        limiter,
 				innerTransport: transport,
 			},
 			Timeout: maxTimeout,
@@ -103,7 +121,13 @@ func NewRest(opt RestOptions) *Rest {
 		maxRetries:     maxRetries,
 		maxWaitTime:    maxTimeout,
 		retryThreshold: int64(retryThreshold),
+		traceLogger:    traceLogger,
+		trace:          traceLogger.Writer() != io.Discard,
 	}
+}
+
+func (rest *Rest) tracef(format string, v ...any) {
+	rest.traceLogger.Printf("[(REST) CLIENT] "+format, v...)
 }
 
 func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error) {
@@ -259,7 +283,18 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
 	req.Header.Set("User-Agent", USER_AGENT)
 	req.Header.Set("Authorization", rest.token)
 
-	res, err := rest.HTTPClient.Do(req)
+	var res *http.Response
+	var err error
+	if rest.trace {
+		start := time.Now()
+		res, err = rest.HTTPClient.Do(req)
+		if err == nil {
+			rest.tracef("%s %s - Status: %s (took %v)", req.Method, req.URL.Path, res.Status, time.Since(start))
+		}
+	} else {
+		res, err = rest.HTTPClient.Do(req)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
 	}

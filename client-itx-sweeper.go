@@ -49,20 +49,26 @@ func (s *interactionSweeper) tryRun(client *BaseClient, expire time.Time) {
 	if !s.running {
 		s.running = true
 		s.mu.Unlock()
-		client.tracef("Starting interaction sweeper (initial timer: %s)", time.Until(expire).Round(time.Millisecond))
+		if client.trace {
+			client.tracef("Starting interaction sweeper (initial timer: %s)", time.Until(expire).Round(time.Millisecond))
+		}
 		go s.run(client)
 		return
 	}
 	s.mu.Unlock()
 
 	if isNewShortest {
-		client.tracef("Interaction Sweeper interrupted! New listener expires earlier (in %s).", time.Until(expire).Round(time.Millisecond))
+		if client.trace {
+			client.tracef("Interaction Sweeper interrupted! New listener expires earlier (in %s).", time.Until(expire).Round(time.Millisecond))
+		}
 		select {
 		case s.signal <- struct{}{}:
 		default:
 		}
 	} else {
-		client.tracef("Interaction Sweeper ignored new listener (expires in %s) as current lowest timer has lower time value", time.Until(expire).Round(time.Millisecond))
+		if client.trace {
+			client.tracef("Interaction Sweeper ignored new listener (expires in %s) as current lowest timer has lower time value", time.Until(expire).Round(time.Millisecond))
+		}
 	}
 }
 
@@ -101,13 +107,17 @@ func (s *interactionSweeper) run(client *BaseClient) {
 					upcoming = append(upcoming, t.Sub(now).Round(time.Millisecond))
 				}
 			}
-			client.tracef("Interaction Sweeper timer set to %s. Run cleanup in: %v", shortest.Round(time.Millisecond), upcoming)
+			if client.trace {
+				client.tracef("Interaction Sweeper timer set to %s. Run cleanup in: %v", shortest.Round(time.Millisecond), upcoming)
+			}
 		}
 
 		select {
 		case <-timer.C:
 		case <-s.signal:
-			client.tracef("Interaction Sweeper timer reset to adapt to new shorter listener timeouts.")
+			if client.trace {
+				client.tracef("Interaction Sweeper timer reset to adapt to new shorter listener timeouts.")
+			}
 			continue
 		}
 
