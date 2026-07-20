@@ -168,7 +168,6 @@ func (m *ShardManager) Status() map[uint16]ShardState {
 	defer m.mu.RUnlock()
 
 	if len(m.shards) == 0 {
-		m.mu.RUnlock()
 		return nil
 	}
 
