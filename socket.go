@@ -2,10 +2,11 @@ package tempest
 
 import (
 	"compress/zlib"
-	"encoding/json"
 	"errors"
 	"io"
 	"sync"
+
+	"github.com/amatsagu/tempest/internal/json"
 
 	"github.com/gorilla/websocket"
 )
@@ -17,7 +18,6 @@ import (
 // It's designed to handle the basic lifecycle and data framing for a
 // connection to the Discord Gateway.
 type socket struct {
-
 	// zlib-stream
 	zreader  io.ReadCloser
 	conn     *websocket.Conn

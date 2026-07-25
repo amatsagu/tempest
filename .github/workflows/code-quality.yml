@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 env:
-  go_version: '1.23.x'
+  go_version: '1.25.x'
 
 concurrency:
   group: ${{github.workflow}}-${{ github.ref }}
@@ -40,7 +40,7 @@ jobs:
           cache: true
 
       - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
       - name: Install Lefthook
         run: go install github.com/evilmartians/lefthook/v2@latest

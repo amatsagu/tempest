@@ -103,14 +103,14 @@ type Command struct {
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure
 type CommandOption struct {
-	MinValue                 *float64              `json:"min_value,omitempty"`
-	NameLocalizations        map[Language]string   `json:"name_localizations,omitzero"`
-	MaxValue                 *float64              `json:"max_value,omitempty"`
-	DescriptionLocalizations map[Language]string   `json:"description_localizations,omitzero"`
-	Description              string                `json:"description"`
-	Name                     string                `json:"name"`
-	Options                  []CommandOption       `json:"options,omitzero"`
-	ChannelTypes             []ChannelType         `json:"channel_types,omitzero"`
+	MinValue                 *float64            `json:"min_value,omitempty"`
+	NameLocalizations        map[Language]string `json:"name_localizations,omitzero"`
+	MaxValue                 *float64            `json:"max_value,omitempty"`
+	DescriptionLocalizations map[Language]string `json:"description_localizations,omitzero"`
+	Description              string              `json:"description"`
+	Name                     string              `json:"name"`
+	Options                  []CommandOption     `json:"options,omitzero"`
+	ChannelTypes             []ChannelType       `json:"channel_types,omitzero"`
 	// A list of max 10 (discord supported) file type extensions that you want this component to accept.
 	//
 	// For example: .png, .jpg, .qt, .mp3, .wav

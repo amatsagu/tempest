@@ -2,12 +2,13 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/amatsagu/tempest/internal/json"
 )
 
 type ShardState uint8

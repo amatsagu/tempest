@@ -1,6 +1,6 @@
 package tempest
 
-import "encoding/json"
+import "github.com/amatsagu/tempest/internal/json"
 
 func (msd *ModalInteractionData) UnmarshalJSON(data []byte) error {
 	type alias ModalInteractionData

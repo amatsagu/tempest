@@ -3,7 +3,6 @@ package tempest
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/amatsagu/tempest/internal/json"
 )
 
 var (

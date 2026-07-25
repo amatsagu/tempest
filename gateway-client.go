@@ -1,11 +1,12 @@
 package tempest
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/amatsagu/tempest/internal/json"
 )
 
 type GatewayClient struct {

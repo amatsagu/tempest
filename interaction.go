@@ -1,6 +1,6 @@
 package tempest
 
-import "encoding/json"
+import "github.com/amatsagu/tempest/internal/json"
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8

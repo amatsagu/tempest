@@ -1,8 +1,9 @@
 package tempest
 
 import (
-	"encoding/json"
 	"time"
+
+	"github.com/amatsagu/tempest/internal/json"
 )
 
 // https://docs.discord.com/developers/events/gateway-events#receive-events
