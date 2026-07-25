@@ -102,8 +102,8 @@ type ButtonComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#string-select
 type StringSelectComponent struct {
-	MinValues *uint8 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
-	MaxValues *uint8 `json:"max_values,omitempty"` // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
+	MinValues uint8 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
+	MaxValues uint8 `json:"max_values,omitempty"` // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -162,9 +162,9 @@ type TextInputComponent struct {
 // [Channel Select]: https://docs.discord.com/developers/components/reference#channel-select-channel-select-structure
 type SelectComponent struct {
 	// The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
-	MinValues *uint8 `json:"min_values,omitempty"`
+	MinValues uint8 `json:"min_values,omitempty"`
 	// The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
-	MaxValues *uint8 `json:"max_values,omitempty"`
+	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -298,9 +298,9 @@ type LabelComponent struct {
 // https://docs.discord.com/developers/components/reference#file-upload
 type FileUploadComponent struct {
 	// The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
-	MinValues *uint8 `json:"min_values,omitempty"`
+	MinValues uint8 `json:"min_values,omitempty"`
 	// The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
-	MaxValues *uint8 `json:"max_values,omitempty"`
+	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -359,9 +359,9 @@ type RadioGroupOption struct {
 // https://docs.discord.com/developers/components/reference#checkbox-group
 type CheckboxGroupComponent struct {
 	// The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
-	MinValues *uint8 `json:"min_values,omitempty"`
+	MinValues uint8 `json:"min_values,omitempty"`
 	// The maximum number of options that can be chosen; must be between 1 and 10.
-	MaxValues *uint8 `json:"max_values,omitempty"`
+	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
