@@ -2,11 +2,10 @@ package tempest
 
 import (
 	"compress/zlib"
+	"encoding/json"
 	"errors"
 	"io"
 	"sync"
-
-	"github.com/amatsagu/tempest/internal/json"
 
 	"github.com/gorilla/websocket"
 )

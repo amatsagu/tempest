@@ -1,9 +1,8 @@
 package tempest
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // UnmarshalComponent inspects the "type" field and returns the proper component struct.

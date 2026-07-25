@@ -1,11 +1,10 @@
 package tempest
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // Represents a Discord's ID snowflake.

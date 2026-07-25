@@ -1,10 +1,9 @@
 package tempest
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // Returns whether this interaction already was responded to.

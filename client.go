@@ -1,13 +1,12 @@
 package tempest
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.

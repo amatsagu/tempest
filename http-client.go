@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"os"
 	"sync"
 	"time"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 type HTTPClient struct {

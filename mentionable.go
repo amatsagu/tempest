@@ -1,11 +1,10 @@
 package tempest
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // https://docs.discord.com/developers/resources/user#user-object-premium-types

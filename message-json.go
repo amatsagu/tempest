@@ -1,7 +1,7 @@
 package tempest
 
 import (
-	"github.com/amatsagu/tempest/internal/json"
+	"encoding/json"
 )
 
 func (msg *Message) UnmarshalJSON(data []byte) error {

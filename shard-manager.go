@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -9,8 +10,6 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"github.com/amatsagu/tempest/internal/json"
 )
 
 // ShardManager is responsible for orchestrating multiple Shard connections to the

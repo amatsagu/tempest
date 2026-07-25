@@ -3,7 +3,7 @@ Thank you for considering contributing to Tempest!
 We accept contributions of all shapes and sizes, from bug fixes and typo corrections to new features and enhancements.
 
 ## Prerequisites
-- Go 1.25 or later (downloadable from [the official Go website](https://go.dev/dl/))
+- Go 1.23 or later (downloadable from [the official Go website](https://go.dev/dl/))
 - A suitable version of `golangci-lint` installed on your device (instructions on [their website](https://golangci-lint.run/docs/welcome/install/local/))
 - The repository [forked](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) and [cloned](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) locally on your device
 
