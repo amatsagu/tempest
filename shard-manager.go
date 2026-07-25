@@ -155,11 +155,18 @@ func (m *ShardManager) Stop() {
 		m.mu.RUnlock()
 		return
 	}
-	m.mu.RUnlock()
-
 	m.tracef("Stopping all shards...")
-	m.cancel()  // Signal all shards to stop
-	m.wg.Wait() // Wait for all shards to exit gracefully
+	m.cancel()
+
+	// Close each active shard WebSocket so blocking readLoop() unblocks immediately
+	for _, s := range m.shards {
+		if s != nil {
+			s.Close()
+		}
+	}
+
+	m.mu.RUnlock()
+	m.wg.Wait()
 	m.tracef("All shards have stopped.")
 }
 
