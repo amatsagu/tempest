@@ -30,7 +30,7 @@ func (adc *AvatarDecoration) DecorationURL() string {
 	}
 
 	if strings.HasPrefix(adc.AssetHash, "a_") {
-		return DiscordCDNBaseURL() + "/avatar-decoration-presets/" + adc.AssetHash + ".gif"
+		return DiscordCDNBaseURL() + "/avatar-decoration-presets/" + adc.AssetHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/avatar-decoration-presets/" + adc.AssetHash
@@ -112,7 +112,7 @@ func (user *User) AvatarURL() string {
 	}
 
 	if strings.HasPrefix(user.AvatarHash, "a_") {
-		return DiscordCDNBaseURL() + "/avatars/" + user.ID.String() + "/" + user.AvatarHash + ".gif"
+		return DiscordCDNBaseURL() + "/avatars/" + user.ID.String() + "/" + user.AvatarHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/avatars/" + user.ID.String() + "/" + user.AvatarHash
@@ -125,7 +125,7 @@ func (user *User) BannerURL() string {
 	}
 
 	if strings.HasPrefix(user.BannerHash, "a_") {
-		return DiscordCDNBaseURL() + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".gif"
+		return DiscordCDNBaseURL() + "/banners/" + user.ID.String() + "/" + user.BannerHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/banners/" + user.ID.String() + "/" + user.BannerHash
@@ -180,7 +180,7 @@ func (member *Member) GuildAvatarURL() string {
 	}
 
 	if strings.HasPrefix(member.GuildAvatarHash, "a_") {
-		return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash + ".gif"
+		return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/avatars/" + member.GuildAvatarHash
@@ -198,7 +198,7 @@ func (member *Member) GuildBannerURL() string {
 	}
 
 	if strings.HasPrefix(member.GuildBannerHash, "a_") {
-		return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash + ".gif"
+		return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash
@@ -231,7 +231,7 @@ func (role *Role) IconURL() string {
 	}
 
 	if strings.HasPrefix(role.IconHash, "a_") {
-		return DiscordCDNBaseURL() + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".gif"
+		return DiscordCDNBaseURL() + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/role-icons/" + role.ID.String() + "/" + role.IconHash + ".png"

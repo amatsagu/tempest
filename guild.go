@@ -100,7 +100,7 @@ func (guild *Guild) IconURL() string {
 	}
 
 	if strings.HasPrefix(guild.IconHash, "a_") {
-		return DiscordCDNBaseURL() + "/icons/" + guild.ID.String() + "/" + guild.IconHash + ".gif"
+		return DiscordCDNBaseURL() + "/icons/" + guild.ID.String() + "/" + guild.IconHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/icons/" + guild.ID.String() + "/" + guild.IconHash
@@ -131,7 +131,7 @@ func (guild *Guild) BannerURL() string {
 	}
 
 	if strings.HasPrefix(guild.BannerHash, "a_") {
-		return DiscordCDNBaseURL() + "/banners/" + guild.ID.String() + "/" + guild.BannerHash + ".gif"
+		return DiscordCDNBaseURL() + "/banners/" + guild.ID.String() + "/" + guild.BannerHash + ".webp?animated=true"
 	}
 
 	return DiscordCDNBaseURL() + "/banners/" + guild.ID.String() + "/" + guild.BannerHash
