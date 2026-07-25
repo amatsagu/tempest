@@ -102,8 +102,6 @@ type ButtonComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#string-select
 type StringSelectComponent struct {
-	MinValues uint8 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
-	MaxValues uint8 `json:"max_values,omitempty"` // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -114,6 +112,8 @@ type StringSelectComponent struct {
 	ID            uint32             `json:"id,omitempty"`
 	Type          ComponentType      `json:"type"`                     // Always = STRING_SELECT_COMPONENT_TYPE (3). Omitted inside interaction responses from messages.
 	ComponentType ComponentType      `json:"component_type,omitempty"` // Always = STRING_SELECT_COMPONENT_TYPE (3). Omitted in anything BUT interaction responses from messages.
+	MinValues     uint8              `json:"min_values,omitempty"`     // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
+	MaxValues     uint8              `json:"max_values,omitempty"`     // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	Disabled      bool               `json:"disabled"`                 // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 	Required      bool               `json:"required"`                 // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
 }
@@ -161,10 +161,6 @@ type TextInputComponent struct {
 // [Mentionable Select]: https://docs.discord.com/developers/components/reference#mentionable-select-mentionable-select-structure
 // [Channel Select]: https://docs.discord.com/developers/components/reference#channel-select-channel-select-structure
 type SelectComponent struct {
-	// The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
-	MinValues uint8 `json:"min_values,omitempty"`
-	// The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
-	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -174,8 +170,10 @@ type SelectComponent struct {
 	DefaultValues []DefaultValueOption `json:"default_values,omitzero"` // List of default values for auto-populated select menu components; must have between MinValues and MaxValues entries.
 	Values        []Snowflake          `json:"values,omitzero"`
 	ID            uint32               `json:"id,omitempty"`
-	Type          ComponentType        `json:"type"`     // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
-	Disabled      bool                 `json:"disabled"` // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
+	MinValues     uint8                `json:"min_values,omitempty"` // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
+	MaxValues     uint8                `json:"max_values,omitempty"` // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
+	Type          ComponentType        `json:"type"`                 // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
+	Disabled      bool                 `json:"disabled"`             // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
 // https://docs.discord.com/developers/components/reference#user-select-select-default-value-structure
@@ -297,10 +295,6 @@ type LabelComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#file-upload
 type FileUploadComponent struct {
-	// The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
-	MinValues uint8 `json:"min_values,omitempty"`
-	// The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
-	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
@@ -323,9 +317,11 @@ type FileUploadComponent struct {
 	// This feature only checks the extension on the filename - it does not actually inspect
 	// the contents of the file. You still need to make sure that the file is valid.
 	FileTypes []string      `json:"file_types,omitzero"`
-	ID        uint32        `json:"id,omitempty"` // Optional identifier for component
-	Type      ComponentType `json:"type"`         // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
-	Required  bool          `json:"required"`     // Whether a file upload is required to submit the modal.
+	ID        uint32        `json:"id,omitempty"`         // Optional identifier for component
+	Type      ComponentType `json:"type"`                 // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
+	MinValues uint8         `json:"min_values,omitempty"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MaxValues uint8         `json:"max_values,omitempty"` // The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
+	Required  bool          `json:"required"`             // Whether a file upload is required to submit the modal.
 }
 
 // A RadioGroupComponent allows selecting exactly one option from a defined list of choices.
@@ -358,18 +354,16 @@ type RadioGroupOption struct {
 //
 // https://docs.discord.com/developers/components/reference#checkbox-group
 type CheckboxGroupComponent struct {
-	// The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
-	MinValues uint8 `json:"min_values,omitempty"`
-	// The maximum number of options that can be chosen; must be between 1 and 10.
-	MaxValues uint8 `json:"max_values,omitempty"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
-	CustomID string                `json:"custom_id,omitempty"`
-	Options  []CheckboxGroupOption `json:"options,omitzero"` // The options to show in this checkbox group; must be between 1 and 10 options.
-	ID       uint32                `json:"id,omitempty"`     // Optional identifier for component
-	Type     ComponentType         `json:"type"`             // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
-	Required bool                  `json:"required"`         // Whether a selection is required to submit the modal (defaults to true).
+	CustomID  string                `json:"custom_id,omitempty"`
+	Options   []CheckboxGroupOption `json:"options,omitzero"`     // The options to show in this checkbox group; must be between 1 and 10 options.
+	ID        uint32                `json:"id,omitempty"`         // Optional identifier for component
+	Type      ComponentType         `json:"type"`                 // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
+	MinValues uint8                 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MaxValues uint8                 `json:"max_values,omitempty"` // The maximum number of options that can be chosen; must be between 1 and 10.
+	Required  bool                  `json:"required"`             // Whether a selection is required to submit the modal (defaults to true).
 }
 
 // https://docs.discord.com/developers/components/reference#checkbox-group-option-structure
