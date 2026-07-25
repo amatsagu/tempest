@@ -20,15 +20,15 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.26.4'
+        go-version: '1.23.x'
 
     - name: Build
       run: go build -v ./...
 
     - name: Install fieldalignment
-      run: go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+      run: go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.26.0
 
     - name: Check field alignment
       run: fieldalignment ./...

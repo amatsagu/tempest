@@ -16,6 +16,8 @@ const (
 	ROOT_PLACEHOLDER                   = "-"
 )
 
+// discordAPIBaseURL / discordCDNBaseURL are mutable so that unit tests
+// (or advanced users) can replace them with mock endpoints.
 var (
 	discordAPIBaseURL = "https://discord.com/api/v10"
 	discordCDNBaseURL = "https://cdn.discordapp.com"

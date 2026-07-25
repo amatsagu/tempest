@@ -17,15 +17,15 @@ permissions:
   contents: read
 
 env:
-  go_version: 1.26.4
+  go_version: '1.23.x'
 
 concurrency:
   group: ${{github.workflow}}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  golangci-lint:
-    name: Lint with golangci-lint
+  lefthook:
+    name: Lint with Lefthook
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +39,11 @@ jobs:
           check-latest: true
           cache: true
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.5.0
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+
+      - name: Install Lefthook
+        run: go install github.com/evilmartians/lefthook/v2@latest
+
+      - name: Run Lefthook
+        run: lefthook run pre-commit
