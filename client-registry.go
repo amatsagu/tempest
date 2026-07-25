@@ -18,17 +18,15 @@ import (
 func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Duration, onActionFn func(itx *ComponentInteraction) bool, onTimeoutFn func()) error {
 	client.staticComponents.mu.RLock()
 	client.queuedComponents.mu.Lock()
+	defer client.staticComponents.mu.RUnlock()
+	defer client.queuedComponents.mu.Unlock()
 
 	for _, id := range customIDs {
 		if _, ok := client.staticComponents.cache[id]; ok {
-			client.queuedComponents.mu.Unlock()
-			client.staticComponents.mu.RUnlock()
 			return fmt.Errorf("static component with custom ID %q is already registered", id)
 		}
 
 		if _, ok := client.queuedComponents.cache[id]; ok {
-			client.queuedComponents.mu.Unlock()
-			client.staticComponents.mu.RUnlock()
 			return fmt.Errorf("dynamic component with custom ID %q is already registered", id)
 		}
 	}
@@ -72,14 +70,11 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 		}
 	}
 
-	client.queuedComponents.mu.Unlock()
-	client.staticComponents.mu.RUnlock()
-
 	if client.trace {
 		client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
 	}
-	client.sweeper.tryRun(client, expire)
 
+	client.sweeper.tryRun(client, expire)
 	return nil
 }
 
@@ -88,17 +83,15 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, onActionFn func(itx *ModalInteraction) bool, onTimeoutFn func()) error {
 	client.staticModals.mu.RLock()
 	client.queuedModals.mu.Lock()
+	defer client.queuedModals.mu.Unlock()
+	defer client.staticModals.mu.RUnlock()
 
 	for _, id := range customIDs {
 		if _, ok := client.staticModals.cache[id]; ok {
-			client.queuedModals.mu.Unlock()
-			client.staticModals.mu.RUnlock()
 			return fmt.Errorf("static modal with custom ID %q is already registered", id)
 		}
 
 		if _, ok := client.queuedModals.cache[id]; ok {
-			client.queuedModals.mu.Unlock()
-			client.staticModals.mu.RUnlock()
 			return fmt.Errorf("dynamic modal with custom ID %q is already registered", id)
 		}
 	}
@@ -143,14 +136,11 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 		}
 	}
 
-	client.queuedModals.mu.Unlock()
-	client.staticModals.mu.RUnlock()
-
 	if client.trace {
 		client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
 	}
-	client.sweeper.tryRun(client, expire)
 
+	client.sweeper.tryRun(client, expire)
 	return nil
 }
 
@@ -231,6 +221,7 @@ func (client *BaseClient) RegisterComponent(customIDs []string, handler func(Com
 	if client.trace {
 		client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
 	}
+
 	return nil
 }
 
@@ -253,6 +244,7 @@ func (client *BaseClient) RegisterModal(customID string, handler func(ModalInter
 	if client.trace {
 		client.tracef("Registered static modal handler for custom ID = %s", customID)
 	}
+
 	return nil
 }
 
@@ -276,6 +268,7 @@ func (client *BaseClient) DeleteComponent(customIDs []string) error {
 	if client.trace {
 		client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
 	}
+
 	return nil
 }
 
@@ -299,6 +292,7 @@ func (client *BaseClient) DeleteModal(customIDs []string) error {
 	if client.trace {
 		client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
 	}
+
 	return nil
 }
 
