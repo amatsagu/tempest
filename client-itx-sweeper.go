@@ -146,9 +146,12 @@ func (s *interactionSweeper) run(client *BaseClient) {
 			return false
 		})
 
+		qSize := client.queuedComponents.Size()
+		mSize := client.queuedModals.Size()
+
 		s.mu.Lock()
 		s.lowestTimes = newLowest
-		if client.queuedComponents.Size() == 0 && client.queuedModals.Size() == 0 {
+		if qSize == 0 && mSize == 0 {
 			s.running = false
 			s.mu.Unlock()
 			return
