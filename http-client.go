@@ -56,15 +56,18 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 		if w == nil || w == io.Discard {
 			client.traceLogger.SetOutput(os.Stdout)
 		}
-		if client.trace {
-			client.tracef("HTTP Client tracing enabled.")
-		}
+
+		client.tracef("HTTP Client tracing enabled.")
 	}
 
 	return &client
 }
 
 func (m *HTTPClient) tracef(format string, v ...any) {
+	if !m.trace {
+		return
+	}
+
 	m.traceLogger.Printf("[(HTTP) CLIENT] "+format, v...)
 }
 
@@ -81,9 +84,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 	var extractor InteractionTypeExtractor
 	if err := json.Unmarshal(rawData, &extractor); err != nil {
-		if client.trace {
-			client.tracef("Received interaction event but failed to extract type: %v", err)
-		}
+		client.tracef("Received interaction event but failed to extract type: %v", err)
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
@@ -108,17 +109,14 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		if _, err := w.Write(bodyPingResponse); err != nil {
-			if client.trace {
-				client.tracef("Failed to write ping response: %v.", err)
-			}
+			client.tracef("Failed to write ping response: %v.", err)
 		}
+
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			if client.trace {
-				client.tracef("Received command interaction event but failed to parse its data: %v", err)
-			}
+			client.tracef("Received command interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
@@ -134,9 +132,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
 		var interaction ComponentInteraction
 		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			if client.trace {
-				client.tracef("Received component interaction event but failed to parse its data: %v", err)
-			}
+			client.tracef("Received component interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
@@ -152,9 +148,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			if client.trace {
-				client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
-			}
+			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
@@ -178,17 +172,14 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		if _, err := w.Write(body); err != nil {
-			if client.trace {
-				client.tracef("Failed to write auto complete response: %v.", err)
-			}
+			client.tracef("Failed to write auto complete response: %v.", err)
 		}
+
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
 		var interaction ModalInteraction
 		if err := json.Unmarshal(rawData, &interaction); err != nil {
-			if client.trace {
-				client.tracef("Received modal interaction event but failed to parse its data: %v", err)
-			}
+			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
@@ -232,9 +223,7 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			if client.trace {
-				client.tracef("failed to close request body: %v", err)
-			}
+			client.tracef("failed to close request body: %v", err)
 		}
 	}()
 	_, err = buf.ReadFrom(io.LimitReader(r.Body, maxSize))
@@ -262,9 +251,7 @@ func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
 	case response := <-ch:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		if _, err := w.Write(response); err != nil {
-			if client.trace {
-				client.tracef("failed to write response: %v", err)
-			}
+			client.tracef("failed to write response: %v", err)
 		}
 	case <-time.After(2500 * time.Millisecond):
 		w.WriteHeader(http.StatusNoContent)
@@ -274,16 +261,12 @@ func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
 func (client *HTTPClient) commandInteractionHandler(interaction CommandInteraction, responseCh chan []byte) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
-		if client.trace {
-			client.tracef("Received command interaction (ID = %s) but there's no matching command! (requested \"%s\")", itx.ID.String(), itx.Data.Name)
-		}
+		client.tracef("Received command interaction (ID = %s) but there's no matching command! (requested \"%s\")", itx.ID.String(), itx.Data.Name)
 		responseCh <- bodyUnknownCommandResponse
 		return
 	}
 
-	if client.trace {
-		client.tracef("Received command interaction (ID = %s, Command = \"%s\") - moved to target command's handler.", itx.ID.String(), itx.Data.Name)
-	}
+	client.tracef("Received command interaction (ID = %s, Command = \"%s\") - moved to target command's handler.", itx.ID.String(), itx.Data.Name)
 
 	if client.preCommandHandler != nil && !client.preCommandHandler(command, &itx) {
 		return
@@ -305,23 +288,17 @@ func (client *HTTPClient) commandInteractionHandler(interaction CommandInteracti
 func (client *HTTPClient) autoCompleteInteractionHandler(interaction CommandInteraction) []CommandOptionChoice {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available || command.AutoCompleteHandler == nil {
-		if client.trace {
-			client.tracef("Dropped auto complete interaction (ID = %s). You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.", itx.ID.String())
-		}
+		client.tracef("Dropped auto complete interaction (ID = %s). You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.", itx.ID.String())
 		return nil
 	}
 
-	if client.trace {
-		client.tracef("Received slash command's auto complete interaction (ID = %s, Command = \"%s\") - moved to target (sub) command auto complete handler.", itx.ID.String(), itx.Data.Name)
-	}
+	client.tracef("Received slash command's auto complete interaction (ID = %s, Command = \"%s\") - moved to target (sub) command auto complete handler.", itx.ID.String(), itx.Data.Name)
 	return command.AutoCompleteHandler(itx)
 }
 
 func (client *HTTPClient) componentInteractionHandler(interaction ComponentInteraction, responseCh chan []byte) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
-		if client.trace {
-			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
 		fn(interaction)
 		return
 	}
@@ -338,9 +315,8 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 	hasGlobal := client.componentHandler != nil
 
 	if isQueued {
-		if client.trace {
-			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
+
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:
@@ -352,23 +328,17 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 	}
 
 	if hasGlobal {
-		if client.trace {
-			client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") - moved to defined component handler.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") - moved to defined component handler.", interaction.ID.String(), interaction.Data.CustomID)
 		client.componentHandler(&interaction)
 		return
 	}
 
-	if client.trace {
-		client.tracef("Dropped component interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received component interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
-	}
+	client.tracef("Dropped component interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received component interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
 }
 
 func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, responseCh chan []byte) {
 	if fn, ok := client.staticModals.Get(interaction.Data.CustomID); ok {
-		if client.trace {
-			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
 		fn(interaction)
 		return
 	}
@@ -385,9 +355,8 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 	hasGlobal := client.modalHandler != nil
 
 	if isQueued {
-		if client.trace {
-			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
+
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:
@@ -399,14 +368,10 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 	}
 
 	if hasGlobal {
-		if client.trace {
-			client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") - moved to defined modal handler.", interaction.ID.String(), interaction.Data.CustomID)
-		}
+		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") - moved to defined modal handler.", interaction.ID.String(), interaction.Data.CustomID)
 		client.modalHandler(&interaction)
 		return
 	}
 
-	if client.trace {
-		client.tracef("Dropped modal interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received modal interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
-	}
+	client.tracef("Dropped modal interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received modal interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
 }

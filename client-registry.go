@@ -70,11 +70,9 @@ func (client *BaseClient) AwaitComponent(customIDs []string, timeout time.Durati
 		}
 	}
 
-	if client.trace {
-		client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
-	}
-
+	client.tracef("Registered dynamic component(s) IDs = %+v", customIDs)
 	client.sweeper.tryRun(client, expire)
+
 	return nil
 }
 
@@ -136,11 +134,9 @@ func (client *BaseClient) AwaitModal(customIDs []string, timeout time.Duration, 
 		}
 	}
 
-	if client.trace {
-		client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
-	}
-
+	client.tracef("Registered dynamic modal(s) IDs = %+v", customIDs)
 	client.sweeper.tryRun(client, expire)
+
 	return nil
 }
 
@@ -162,9 +158,8 @@ func (client *BaseClient) RegisterCommand(cmd Command) error {
 	}
 
 	client.commands.Set(cmd.Name, cmd)
-	if client.trace {
-		client.tracef("Registered %s command.", cmd.Name)
-	}
+	client.tracef("Registered %s command.", cmd.Name)
+
 	return nil
 }
 
@@ -191,9 +186,8 @@ func (client *BaseClient) RegisterSubCommand(subCommand Command, parentCommandNa
 	}
 
 	client.commands.Set(finalName, subCommand)
-	if client.trace {
-		client.tracef("Registered %s sub command (part of %s command).", finalName, parentCommandName)
-	}
+	client.tracef("Registered %s sub command (part of %s command).", finalName, parentCommandName)
+
 	return nil
 }
 
@@ -218,10 +212,7 @@ func (client *BaseClient) RegisterComponent(customIDs []string, handler func(Com
 		client.staticComponents.cache[key] = handler
 	}
 
-	if client.trace {
-		client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
-	}
-
+	client.tracef("Registered static component handler for custom IDs = %+v", customIDs)
 	return nil
 }
 
@@ -241,9 +232,7 @@ func (client *BaseClient) RegisterModal(customID string, handler func(ModalInter
 	}
 
 	client.staticModals.cache[customID] = handler
-	if client.trace {
-		client.tracef("Registered static modal handler for custom ID = %s", customID)
-	}
+	client.tracef("Registered static modal handler for custom ID = %s", customID)
 
 	return nil
 }
@@ -265,10 +254,7 @@ func (client *BaseClient) DeleteComponent(customIDs []string) error {
 		delete(client.staticComponents.cache, key)
 	}
 
-	if client.trace {
-		client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
-	}
-
+	client.tracef("Removed static component handler for custom IDs = %+v", customIDs)
 	return nil
 }
 
@@ -289,10 +275,7 @@ func (client *BaseClient) DeleteModal(customIDs []string) error {
 		delete(client.staticModals.cache, key)
 	}
 
-	if client.trace {
-		client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
-	}
-
+	client.tracef("Removed static modal handler for custom IDs = %+v", customIDs)
 	return nil
 }
 

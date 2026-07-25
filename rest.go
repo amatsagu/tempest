@@ -127,6 +127,10 @@ func NewRest(opt RestOptions) *Rest {
 }
 
 func (rest *Rest) tracef(format string, v ...any) {
+	if !rest.trace {
+		return
+	}
+
 	rest.traceLogger.Printf("[(REST) CLIENT] "+format, v...)
 }
 

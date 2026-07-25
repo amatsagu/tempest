@@ -68,6 +68,10 @@ func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 }
 
 func (rl *RateLimiter) tracef(format string, v ...any) {
+	if !rl.trace {
+		return
+	}
+
 	if rl.trace && rl.traceLogger != nil {
 		rl.traceLogger.Printf("[(REST) LIMITER] "+format, v...)
 	}
@@ -79,9 +83,7 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 		globalWait := time.Unix(0, globalWaitNano)
 		if time.Now().Before(globalWait) {
 			wait := time.Until(globalWait)
-			if rl.trace {
-				rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
-			}
+			rl.tracef("Global rate limit hit! Waiting %s...", wait.Round(time.Millisecond))
 			time.Sleep(wait)
 		}
 	}
@@ -127,9 +129,7 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 		if time.Now().Before(bucket.ResetAt) {
 			waitDuration := time.Until(bucket.ResetAt)
 			bucket.mu.Unlock()
-			if rl.trace {
-				rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
-			}
+			rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
 			time.Sleep(waitDuration)
 			return rl.Wait(route)
 		}
@@ -151,9 +151,8 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 			if retryAfterStr != "" {
 				retryAfter, _ := strconv.ParseFloat(retryAfterStr, 64)
 				rl.globalWait.Store(time.Now().Add(time.Duration(retryAfter*float64(time.Second)) + 250*time.Millisecond).UnixNano())
-				if rl.trace {
-					rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
-				}
+
+				rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
 			}
 			return
 		}

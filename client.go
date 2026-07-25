@@ -97,6 +97,10 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 }
 
 func (s *BaseClient) tracef(format string, v ...any) {
+	if !s.trace {
+		return
+	}
+
 	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
 }
 
@@ -112,9 +116,7 @@ func (client *BaseClient) SendMessage(channelID Snowflake, message Message, file
 		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
-	if client.trace {
-		client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
-	}
+	client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
 	return res, nil
 }
 
@@ -157,30 +159,27 @@ func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, 
 func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
 	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
-		}
+		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
 	}
+
 	return err
 }
 
 func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
-		}
+		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
+
 	return err
 }
 
 func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
-		}
+		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
+
 	return err
 }
 
@@ -196,9 +195,7 @@ func (client *BaseClient) FetchUser(id Snowflake) (User, error) {
 		return User{}, errors.New("failed to parse received data from discord")
 	}
 
-	if client.trace {
-		client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
-	}
+	client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
 	return res, nil
 }
 
@@ -214,9 +211,7 @@ func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Me
 		return Member{}, errors.New("failed to parse received data from discord")
 	}
 
-	if client.trace {
-		client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
-	}
+	client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
 	return res, nil
 }
 
@@ -241,9 +236,7 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitleme
 		return res, errors.New("failed to parse received data from discord")
 	}
 
-	if client.trace {
-		client.tracef("Successfully fetched %d entitlement(s).", len(res))
-	}
+	client.tracef("Successfully fetched %d entitlement(s).", len(res))
 	return res, nil
 }
 
@@ -260,9 +253,7 @@ func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement
 		return Entitlement{}, errors.New("failed to parse received data from discord")
 	}
 
-	if client.trace {
-		client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
-	}
+	client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
 	return res, nil
 }
 
@@ -273,10 +264,9 @@ func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement
 func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
-		}
+		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
 	}
+
 	return err
 }
 
@@ -284,10 +274,9 @@ func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) error {
 	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully created test entitlement.")
-		}
+		client.tracef("Successfully created test entitlement.")
 	}
+
 	return err
 }
 
@@ -295,10 +284,9 @@ func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) 
 func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
 	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
 	if err == nil {
-		if client.trace {
-			client.tracef("Successfully deleted test entitlement.")
-		}
+		client.tracef("Successfully deleted test entitlement.")
 	}
+
 	return err
 }
 
@@ -317,9 +305,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelis
 		}
 	}
 
-	if client.trace {
-		client.tracef("Successfully synced command data with discord.")
-	}
+	client.tracef("Successfully synced command data with discord.")
 	return nil
 }
 
