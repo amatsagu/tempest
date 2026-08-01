@@ -129,7 +129,10 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			targetURL := gatewayURL
 			s.mu.RLock()
 			if s.resumeGatewayURL != "" {
-				targetURL = s.resumeGatewayURL
+				targetURL = s.resumeGatewayURL + "/?v=10&encoding=json"
+				if s.socket.compress {
+					targetURL += "&compress=zlib-stream"
+				}
 			}
 			s.mu.RUnlock()
 
