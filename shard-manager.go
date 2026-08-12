@@ -253,7 +253,7 @@ func (m *ShardManager) UpdateStatus(statusGeneratorFn func(shardID uint16) *Upda
 		}
 
 		go func(s *Shard, p *UpdatePresenceEvent) {
-			if err := s.Send(p); err != nil {
+			if err := s.UpdatePresence(p); err != nil {
 				m.tracef("Failed to update status for shard %d: %v", s.ID, err)
 			}
 		}(shard, payload)

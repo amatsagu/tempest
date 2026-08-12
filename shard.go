@@ -44,6 +44,7 @@ type Shard struct {
 	lastHeartbeatSend time.Time
 	socket            *socket
 	eventHandler      func(shardID uint16, packet EventPacket)
+	presence          *UpdatePresenceEventData
 	traceLogger       *log.Logger // Inherited from the manager
 	sessionID         string
 	token             string
@@ -98,6 +99,13 @@ func (s *Shard) Ping() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.latency
+}
+
+func (s *Shard) UpdatePresence(payload *UpdatePresenceEvent) error {
+	s.mu.Lock()
+	s.presence = &payload.Data
+	s.mu.Unlock()
+	return s.Send(payload)
 }
 
 // Start establishes a connection to the Discord Gateway and starts handling events.
@@ -313,9 +321,14 @@ func (s *Shard) identifyOrResume() error {
 
 func (s *Shard) sendIdentify() error {
 	s.tracef("IDENTIFY as a new session.")
+	s.mu.RLock()
+	presence := s.presence
+	s.mu.RUnlock()
+
 	payload := IdentifyEvent{
 		Opcode: IDENTIFY_OPCODE,
 		Data: IdentifyPayloadData{
+			Presence:   presence,
 			Token:      s.token,
 			Intents:    s.intents,
 			ShardOrder: [2]uint16{s.ID, s.totalShards},

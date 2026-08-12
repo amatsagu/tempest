@@ -60,6 +60,7 @@ type IdentifyEvent struct {
 
 // https://docs.discord.com/developers/events/gateway-events#identify-identify-structure
 type IdentifyPayloadData struct {
+	Presence       *UpdatePresenceEventData      `json:"presence,omitempty"`
 	Properties     IdentifyPayloadDataProperties `json:"properties"`
 	Token          string                        `json:"token"`
 	Intents        uint32                        `json:"intents"`
