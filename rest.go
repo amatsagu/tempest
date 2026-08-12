@@ -202,9 +202,10 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if contentType != "" {
+		if contentType == "" {
 			return nil, errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
 		}
+		req.Header.Set("Content-Type", contentType)
 
 		if auditLogReason != "" {
 			req.Header.Set("X-Audit-Log-Reason", url.QueryEscape(auditLogReason))
