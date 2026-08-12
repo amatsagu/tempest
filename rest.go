@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -146,15 +147,32 @@ func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error)
 		body = bytes.NewReader(buf.Bytes())
 	}
 
-	return rest.request(method, route, body, CONTENT_TYPE_JSON)
+	return rest.DirectRequest(method, route, body, CONTENT_TYPE_JSON, "")
+}
+
+// Prepares new json buffered request payload that can be used by DirectRequest() method.
+// Please use regular Request() or RequestWithFiles() if you're not sure what you're doing.
+func (rest *Rest) BufferJSON(jsonPayload any) (io.ReadSeeker, error) {
+	var body io.ReadSeeker
+	if jsonPayload != nil {
+		var buf bytes.Buffer
+		encoder := json.NewEncoder(&buf)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(jsonPayload); err != nil {
+			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
+		}
+		body = bytes.NewReader(buf.Bytes())
+	}
+
+	return body, nil
 }
 
 func (rest *Rest) isTripped() bool {
 	return rest.trippedUntil.Load() > time.Now().UnixNano()
 }
 
-// Internal handler for buffered requests. It's used by Request and RequestWithFiles (for PATCH only).
-func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType string) ([]byte, error) {
+// Internal handler for buffered requests. It's used by Request() and RequestWithFiles() (for PATCH only) methods.
+func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, contentType string, auditLogReason string) ([]byte, error) {
 	var (
 		responseBody []byte
 		lastErr      error
@@ -183,7 +201,14 @@ func (rest *Rest) request(method, route string, body io.ReadSeeker, contentType 
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
-		req.Header.Set("Content-Type", contentType)
+
+		if contentType != "" {
+			return nil, errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
+		}
+
+		if auditLogReason != "" {
+			req.Header.Set("X-Audit-Log-Reason", url.QueryEscape(auditLogReason))
+		}
 
 		responseBody, err = rest.executeOnce(req)
 		if err != nil {
@@ -228,7 +253,7 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 		return nil, err
 	}
 
-	return rest.request(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType())
+	return rest.DirectRequest(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "")
 }
 
 // Writes the JSON payload and files to a multipart writer.
