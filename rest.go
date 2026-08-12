@@ -208,7 +208,7 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 		req.Header.Set("Content-Type", contentType)
 
 		if auditLogReason != "" {
-			req.Header.Set("X-Audit-Log-Reason", url.QueryEscape(auditLogReason))
+			req.Header.Set("X-Audit-Log-Reason", url.PathEscape(auditLogReason))
 		}
 
 		responseBody, err = rest.executeOnce(req)
