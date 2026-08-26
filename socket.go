@@ -103,16 +103,16 @@ func (s *socket) close() error {
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 	)
 
-	// Close the underlying TCP connection.
 	err := s.conn.Close()
-	s.conn = nil // Mark as disconnected.
-
-	if s.zreader != nil {
-		_ = s.zreader.Close()
-		s.zreader = nil
-	}
-
+	s.conn = nil
 	s.decoder = nil
+
+	// Intentionally skip zreader.Close() as it only sets an internal error flag
+	// (flate: f.err = io.EOF) and holds no OS resources. Calling it here would
+	// race with a concurrent Decode() still draining the zlib stream on the read
+	// goroutine. The abandoned reader is safely garbage collected.
+	s.zreader = nil
+
 	return err
 }
 

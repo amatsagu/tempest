@@ -1,0 +1,314 @@
+WARNING: DATA RACE
+Write at 0x00c0006d23e8 by goroutine 53:
+  compress/flate.(*decompressor).nextBlock()
+      /usr/lib/go/src/compress/flate/inflate.go:304 +0x6d
+  compress/flate.(*decompressor).Read()
+      /usr/lib/go/src/compress/flate/inflate.go:348 +0xb9
+  compress/zlib.(*reader).Read()
+      /usr/lib/go/src/compress/zlib/reader.go:98 +0xb5
+  encoding/json/jsontext.(*decoderState).fetch()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:240 +0xc8b
+  encoding/json/jsontext.(*decoderState).consumeWhitespace()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:844 +0x1c4
+  encoding/json/jsontext.(*decoderState).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:702 +0x1859
+  encoding/json/jsontext.(*Decoder).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:679 +0x8e
+  encoding/json.(*Decoder).Decode()
+      /usr/lib/go/src/encoding/json/v2_stream.go:78 +0x6a
+  github.com/amatsagu/tempest.(*socket).readJSON()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:139 +0x124
+  github.com/amatsagu/tempest.(*Shard).readLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:208 +0xb2
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:166 +0x709
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Previous read at 0x00c0006d23e8 by goroutine 98:
+  compress/flate.(*decompressor).Close()
+      /usr/lib/go/src/compress/flate/inflate.go:356 +0x3b
+  compress/zlib.(*reader).Close()
+      /usr/lib/go/src/compress/zlib/reader.go:129 +0xdd
+  github.com/amatsagu/tempest.(*socket).close()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:111 +0x22c
+  github.com/amatsagu/tempest.(*Shard).heartbeatLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:388 +0x3ca
+  github.com/amatsagu/tempest.(*Shard).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x46
+
+Goroutine 53 (running) created at:
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:123 +0xe4
+  github.com/amatsagu/tempest.(*ShardManager).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:137 +0x38
+
+Goroutine 98 (finished) created at:
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x6fc
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+==================
+==================
+WARNING: DATA RACE
+Write at 0x00c000289200 by goroutine 53:
+  compress/zlib.(*reader).Read()
+      /usr/lib/go/src/compress/zlib/reader.go:98 +0xd4
+  encoding/json/jsontext.(*decoderState).fetch()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:240 +0xc8b
+  encoding/json/jsontext.(*decoderState).consumeWhitespace()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:844 +0x1c4
+  encoding/json/jsontext.(*decoderState).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:702 +0x1859
+  encoding/json/jsontext.(*Decoder).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:679 +0x8e
+  encoding/json.(*Decoder).Decode()
+      /usr/lib/go/src/encoding/json/v2_stream.go:78 +0x6a
+  github.com/amatsagu/tempest.(*socket).readJSON()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:139 +0x124
+  github.com/amatsagu/tempest.(*Shard).readLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:208 +0xb2
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:166 +0x709
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Previous write at 0x00c000289200 by goroutine 98:
+  compress/zlib.(*reader).Close()
+      /usr/lib/go/src/compress/zlib/reader.go:129 +0xf1
+  github.com/amatsagu/tempest.(*socket).close()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:111 +0x22c
+  github.com/amatsagu/tempest.(*Shard).heartbeatLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:388 +0x3ca
+  github.com/amatsagu/tempest.(*Shard).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x46
+
+Goroutine 53 (running) created at:
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:123 +0xe4
+  github.com/amatsagu/tempest.(*ShardManager).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:137 +0x38
+
+Goroutine 98 (finished) created at:
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x6fc
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c000416710 by goroutine 105:
+  compress/zlib.(*reader).Close()
+      /usr/lib/go/src/compress/zlib/reader.go:126 +0x39
+  github.com/amatsagu/tempest.(*socket).close()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:111 +0x22c
+  github.com/amatsagu/tempest.(*Shard).heartbeatLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:388 +0x3ca
+  github.com/amatsagu/tempest.(*Shard).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x46
+
+Previous write at 0x00c000416710 by goroutine 53:
+  compress/zlib.(*reader).Read()
+      /usr/lib/go/src/compress/zlib/reader.go:98 +0xd4
+  encoding/json/jsontext.(*decoderState).fetch()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:240 +0xc8b
+  encoding/json/jsontext.(*decoderState).consumeWhitespace()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:844 +0x1c4
+  encoding/json/jsontext.(*decoderState).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:702 +0x1859
+  encoding/json/jsontext.(*Decoder).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:679 +0x8e
+  encoding/json.(*Decoder).Decode()
+      /usr/lib/go/src/encoding/json/v2_stream.go:78 +0x6a
+  github.com/amatsagu/tempest.(*socket).readJSON()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:139 +0x124
+  github.com/amatsagu/tempest.(*Shard).readLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:208 +0xb2
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:166 +0x709
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Goroutine 105 (running) created at:
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x6fc
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Goroutine 53 (running) created at:
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:123 +0xe4
+  github.com/amatsagu/tempest.(*ShardManager).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:137 +0x38
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0002f90e8 by goroutine 105:
+  compress/flate.(*decompressor).Close()
+      /usr/lib/go/src/compress/flate/inflate.go:356 +0x3b
+  compress/zlib.(*reader).Close()
+      /usr/lib/go/src/compress/zlib/reader.go:129 +0xdd
+  github.com/amatsagu/tempest.(*socket).close()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:111 +0x22c
+  github.com/amatsagu/tempest.(*Shard).heartbeatLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:388 +0x3ca
+  github.com/amatsagu/tempest.(*Shard).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x46
+
+Previous write at 0x00c0002f90e8 by goroutine 53:
+  compress/flate.(*decompressor).nextBlock()
+      /usr/lib/go/src/compress/flate/inflate.go:304 +0x6d
+  compress/flate.(*decompressor).Read()
+      /usr/lib/go/src/compress/flate/inflate.go:348 +0xb9
+  compress/zlib.(*reader).Read()
+      /usr/lib/go/src/compress/zlib/reader.go:98 +0xb5
+  encoding/json/jsontext.(*decoderState).fetch()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:240 +0xc8b
+  encoding/json/jsontext.(*decoderState).consumeWhitespace()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:844 +0x1c4
+  encoding/json/jsontext.(*decoderState).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:702 +0x1859
+  encoding/json/jsontext.(*Decoder).ReadValue()
+      /usr/lib/go/src/encoding/json/jsontext/decode.go:679 +0x8e
+  encoding/json.(*Decoder).Decode()
+      /usr/lib/go/src/encoding/json/v2_stream.go:78 +0x6a
+  github.com/amatsagu/tempest.(*socket).readJSON()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:139 +0x124
+  github.com/amatsagu/tempest.(*Shard).readLoop()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:208 +0xb2
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:166 +0x709
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Goroutine 105 (running) created at:
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:163 +0x6fc
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/gorilla/websocket.(*Dialer).Dial()
+      /home/amatsagu/go/pkg/mod/github.com/gorilla/websocket@v1.5.3/client.go:117 +0x1c4
+  github.com/amatsagu/tempest.(*socket).connect()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/socket.go:71 +0x187
+  github.com/amatsagu/tempest.(*Shard).Start()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard.go:148 +0x42c
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1.1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:129 +0x158
+
+Goroutine 53 (running) created at:
+  github.com/amatsagu/tempest.(*ShardManager).Start.func1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:123 +0xe4
+  github.com/amatsagu/tempest.(*ShardManager).Start.gowrap1()
+      /home/amatsagu/go/pkg/mod/github.com/amatsagu/tempest@v1.10.5-0.20260812175435-eca59bd185c8/shard-manager.go:137 +0x38
