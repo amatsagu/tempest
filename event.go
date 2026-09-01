@@ -48,8 +48,8 @@ type HelloEventData struct {
 
 // https://docs.discord.com/developers/events/gateway-events#heartbeat
 type HeartbeatEvent struct {
-	Opcode   Opcode  `json:"op"`
-	Sequence *uint32 `json:"d"`
+	Opcode   Opcode `json:"op"`
+	Sequence uint32 `json:"d"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#identify

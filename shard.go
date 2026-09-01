@@ -457,14 +457,9 @@ func (s *Shard) sendHeartbeat() error {
 
 	s.tracef("Sending heartbeat with sequence = %d.", seq)
 
-	var seqPtr *uint32
-	if seq > 0 {
-		seqPtr = &seq
-	}
-
 	payload := HeartbeatEvent{
 		Opcode:   HEARTBEAT_OPCODE,
-		Sequence: seqPtr,
+		Sequence: seq,
 	}
 
 	return s.socket.writeJSON(payload)
