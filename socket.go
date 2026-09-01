@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -90,18 +91,15 @@ func (s *socket) connect(urlStr string) error {
 	return nil
 }
 
-func (s *socket) close() error {
+// closeForReconnect terminates the network connection without sending a CloseNormalClosure (1000) frame.
+// This preserves the session on Discord's side and allows the client to RESUME.
+func (s *socket) closeForReconnect() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.conn == nil {
 		return nil // Nothing to do
 	}
-
-	_ = s.conn.WriteMessage(
-		websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
-	)
 
 	err := s.conn.Close()
 	s.conn = nil
@@ -111,6 +109,30 @@ func (s *socket) close() error {
 	// (flate: f.err = io.EOF) and holds no OS resources. Calling it here would
 	// race with a concurrent Decode() still draining the zlib stream on the read
 	// goroutine. The abandoned reader is safely garbage collected.
+	s.zreader = nil
+
+	return err
+}
+
+// closeGracefully closes the WebSocket connection by sending a CloseNormalClosure (1000) control frame.
+// Used when shutting down the shard/bot permanently.
+func (s *socket) closeGracefully() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.conn == nil {
+		return nil // Nothing to do
+	}
+
+	_ = s.conn.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+		time.Now().Add(time.Second),
+	)
+
+	err := s.conn.Close()
+	s.conn = nil
+	s.decoder = nil
 	s.zreader = nil
 
 	return err
