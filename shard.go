@@ -3,11 +3,16 @@ package tempest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
+	"math/rand/v2"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type ShardState uint8
@@ -59,7 +64,7 @@ type Shard struct {
 	ID                  uint16
 	totalShards         uint16
 	heartbeatAckMissing bool
-	state               ShardState // New field to track the shard's state
+	state               ShardState
 }
 
 // Creates a new Shard instance
@@ -85,7 +90,6 @@ func NewShard(
 		socket:       &socket{compress: compress},
 		traceLogger:  traceLogger,
 		eventHandler: eventHandler,
-		// state:        ShardStateOffline,
 	}
 }
 
@@ -117,38 +121,49 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 		select {
 		case <-ctx.Done():
 			s.tracef("Context cancellation received. Exiting connection loop.")
-			if err := s.socket.close(); err != nil { // Explicitly close the socket.
-				s.tracef("failed to close socket: %v", err)
+			if err := s.socket.closeGracefully(); err != nil {
+				s.tracef("Failed to close socket: %v", err)
 			}
 			s.mu.Lock()
 			s.state = OFFLINE_SHARD_STATE
 			s.mu.Unlock()
 			return
 		default:
-			if err := s.socket.close(); err != nil {
-				s.tracef("Failed to close socket gracefully during reconnect: %v.", err)
+			if err := s.socket.closeForReconnect(); err != nil {
+				s.tracef("Failed to close socket during reconnect: %v.", err)
 			}
 
 			s.mu.Lock()
 			s.state = CONNECTING_SHARD_STATE
+			s.heartbeatInterval = 0
+			s.heartbeatAckMissing = false
 			s.mu.Unlock()
 			s.tracef("Changing state to %s.", s.state.String())
 
 			targetURL := gatewayURL
 			s.mu.RLock()
-			if s.resumeGatewayURL != "" {
-				targetURL = s.resumeGatewayURL + "/?v=10&encoding=json"
+			resumeURL := s.resumeGatewayURL
+			s.mu.RUnlock()
+
+			if resumeURL != "" {
+				targetURL = strings.TrimRight(resumeURL, "/") + "/?v=10&encoding=json"
 				if s.socket.compress {
 					targetURL += "&compress=zlib-stream"
 				}
 			}
-			s.mu.RUnlock()
 
 			s.tracef("Attempting to connect to %s", targetURL)
 			if err := s.socket.connect(targetURL); err != nil {
 				s.tracef("Connection failed: %v. Retrying in 5 seconds.", err)
-				time.Sleep(5 * time.Second)
-				continue
+				s.mu.Lock()
+				s.resumeGatewayURL = ""
+				s.mu.Unlock()
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(5 * time.Second):
+					continue
+				}
 			}
 			s.tracef("WebSocket connection established.")
 
@@ -160,10 +175,8 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			// Create a context for this connection lifecycle to manage the heartbeat loop.
 			connCtx, cancelConn := context.WithCancel(ctx)
 
-			go s.heartbeatLoop(connCtx)
-
 			// Start the read loop. This is blocking.
-			err := s.readLoop()
+			err := s.readLoop(connCtx)
 
 			// Stop the heartbeat loop immediately upon disconnection.
 			cancelConn()
@@ -173,11 +186,29 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			s.mu.Unlock()
 			s.tracef("Disconnected from gateway: %v", err)
 
+			// Check if Discord closed with a specific close code.
+			var closeErr *websocket.CloseError
+			if errors.As(err, &closeErr) {
+				s.tracef("Gateway closed with code %d: %s", closeErr.Code, closeErr.Text)
+				switch closeErr.Code {
+				case 4004, 4010, 4011, 4012, 4013, 4014:
+					s.tracef("Fatal gateway close code %d. Stopping shard.", closeErr.Code)
+					return
+				case 4007, 4009:
+					s.mu.Lock()
+					s.lastSequence.Store(0)
+					s.sessionID = ""
+					s.resumeGatewayURL = ""
+					s.mu.Unlock()
+					s.tracef("Session invalidated by gateway (code %d). Reset session for fresh IDENTIFY.", closeErr.Code)
+				}
+			}
+
 			select {
 			case <-ctx.Done():
 				s.tracef("Context cancellation received. Not reconnecting.")
 				return
-			default:
+			case <-time.After(1 * time.Second):
 				s.tracef("Reconnecting...")
 			}
 		}
@@ -186,7 +217,7 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 
 func (s *Shard) Close() {
 	s.tracef("Closing shard connection.")
-	if err := s.socket.close(); err != nil {
+	if err := s.socket.closeGracefully(); err != nil {
 		s.tracef("Failed to close socket gracefully: %v.", err)
 	}
 	s.mu.Lock()
@@ -202,7 +233,7 @@ func (s *Shard) tracef(format string, v ...any) {
 	s.traceLogger.Printf("[SHARD %d (%s)] "+format, append([]any{s.ID, s.Status()}, v...)...)
 }
 
-func (s *Shard) readLoop() error {
+func (s *Shard) readLoop(connCtx context.Context) error {
 	for {
 		var packet EventPacket
 		if err := s.socket.readJSON(&packet); err != nil {
@@ -215,7 +246,7 @@ func (s *Shard) readLoop() error {
 			s.lastSequence.Store(packet.Sequence)
 		}
 
-		if err := s.handlePacket(packet); err != nil {
+		if err := s.handlePacket(connCtx, packet); err != nil {
 			s.tracef("HANDLE_EVENT Error: %v", err)
 			return err
 		}
@@ -248,7 +279,7 @@ func (s *Shard) handleDispatchEvent(p EventPacket) error {
 	return nil
 }
 
-func (s *Shard) handlePacket(p EventPacket) error {
+func (s *Shard) handlePacket(connCtx context.Context, p EventPacket) error {
 	switch p.Opcode {
 	case DISPATCH_OPCODE:
 		if err := s.handleDispatchEvent(p); err != nil {
@@ -259,11 +290,15 @@ func (s *Shard) handlePacket(p EventPacket) error {
 		if err := json.Unmarshal(p.Data, &hello); err != nil {
 			return err
 		}
+
+		interval := time.Duration(hello.HeartbeatInterval) * time.Millisecond
 		s.mu.Lock()
-		s.heartbeatInterval = time.Duration(hello.HeartbeatInterval) * time.Millisecond
+		s.heartbeatInterval = interval
 		s.heartbeatAckMissing = false
 		s.mu.Unlock()
-		s.tracef("HELLO Heartbeat interval set to %s.", s.heartbeatInterval)
+		s.tracef("HELLO Heartbeat interval set to %s.", interval)
+
+		go s.runHeartbeat(connCtx, interval)
 
 		return s.identifyOrResume()
 	case HEARTBEAT_ACK_OPCODE:
@@ -277,29 +312,27 @@ func (s *Shard) handlePacket(p EventPacket) error {
 		return s.sendHeartbeat()
 	case RECONNECT_OPCODE:
 		s.tracef("RECONNECT Server requested reconnect. Closing connection to reconnect.")
-
-		// Add a small delay to throttle reconnect attempts
 		time.Sleep(1 * time.Second)
-
-		return s.socket.close()
+		return s.socket.closeForReconnect()
 	case INVALID_SESSION_OPCODE:
-		var resume bool
-		if err := json.Unmarshal(p.Data, &resume); err != nil {
+		var resumable bool
+		if err := json.Unmarshal(p.Data, &resumable); err != nil {
 			return err
 		}
 
-		if !resume {
+		if !resumable {
 			s.mu.Lock()
 			s.lastSequence.Store(0)
 			s.sessionID = ""
 			s.resumeGatewayURL = ""
 			s.mu.Unlock()
+			s.tracef("INVALID_SESSION received (resumable: false). Invalidated session state.")
+		} else {
+			s.tracef("INVALID_SESSION received (resumable: true). Will reconnect and retry.")
 		}
 
-		// Add a small delay to throttle reconnect attempts
 		time.Sleep(1 * time.Second)
-
-		return s.socket.close()
+		return s.socket.closeForReconnect()
 	default:
 		s.tracef("Received unknown Opcode: %d", p.Opcode)
 	}
@@ -363,45 +396,55 @@ func (s *Shard) sendResume() error {
 	return s.socket.writeJSON(payload)
 }
 
-func (s *Shard) heartbeatLoop(ctx context.Context) {
-	s.mu.RLock()
-	interval := s.heartbeatInterval
-	s.mu.RUnlock()
+func (s *Shard) runHeartbeat(ctx context.Context, interval time.Duration) {
+	s.tracef("Starting heartbeat loop with interval %s.", interval)
 
-	if interval == 0 {
-		s.tracef("Invalid heartbeat interval (0). Aborting heartbeat loop.")
+	// Discord Gateway docs: First heartbeat should be sent after heartbeat_interval * jitter (where jitter is between 0 and 1).
+	firstWait := time.Duration(float64(interval) * rand.Float64())
+	firstTimer := time.NewTimer(firstWait)
+
+	select {
+	case <-ctx.Done():
+		firstTimer.Stop()
+		s.tracef("Context cancellation received before first heartbeat. Exiting heartbeat loop.")
 		return
+	case <-firstTimer.C:
+		s.mu.Lock()
+		s.heartbeatAckMissing = true
+		s.mu.Unlock()
+
+		if err := s.sendHeartbeat(); err != nil {
+			s.tracef("Failed to send first heartbeat: %v", err)
+		}
 	}
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	s.tracef("Starting heartbeat loop.")
 	for {
-		s.mu.Lock()
-		if s.heartbeatAckMissing {
-			s.mu.Unlock()
-			s.tracef("Zombied connection detected. Reconnecting!")
-
-			// Close the socket to force the main readLoop to exit.
-			// This will cause the Start loop to trigger a reconnect.
-			if err := s.socket.close(); err != nil {
-				s.tracef("failed to close socket: %v", err)
-			}
-			return
-		}
-		s.heartbeatAckMissing = true
-		s.mu.Unlock()
-
-		if err := s.sendHeartbeat(); err != nil {
-			s.tracef("Failed to send heartbeat: %v", err)
-		}
-
 		select {
-		case <-ticker.C:
 		case <-ctx.Done():
 			s.tracef("Context cancellation received. Exiting heartbeat loop.")
 			return
+		case <-ticker.C:
+			s.mu.Lock()
+			if s.heartbeatAckMissing {
+				s.mu.Unlock()
+				s.tracef("Zombied connection detected (missing heartbeat ACK). Reconnecting!")
+
+				// Close the socket to force the main readLoop to exit.
+				// This will cause the Start loop to trigger a reconnect and resume.
+				if err := s.socket.closeForReconnect(); err != nil {
+					s.tracef("Failed to close socket: %v", err)
+				}
+				return
+			}
+			s.heartbeatAckMissing = true
+			s.mu.Unlock()
+
+			if err := s.sendHeartbeat(); err != nil {
+				s.tracef("Failed to send heartbeat: %v", err)
+			}
 		}
 	}
 }
@@ -414,9 +457,14 @@ func (s *Shard) sendHeartbeat() error {
 
 	s.tracef("Sending heartbeat with sequence = %d.", seq)
 
+	var seqPtr *uint32
+	if seq > 0 {
+		seqPtr = &seq
+	}
+
 	payload := HeartbeatEvent{
 		Opcode:   HEARTBEAT_OPCODE,
-		Sequence: seq,
+		Sequence: seqPtr,
 	}
 
 	return s.socket.writeJSON(payload)
