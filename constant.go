@@ -8,6 +8,7 @@ import (
 const (
 	DISCORD_EPOCH                      = 1420070400000 // Discord epoch in milliseconds
 	USER_AGENT                         = "DiscordApp https://github.com/amatsagu/tempest"
+	GATEWAY_AGENT                      = "tempest"
 	CONTENT_TYPE_JSON                  = "application/json"
 	CONTENT_TYPE_OCTET_STREAM          = "application/octet-stream"
 	CONTENT_MULTIPART_JSON_DESCRIPTION = `form-data; name="payload_json"`

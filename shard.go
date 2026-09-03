@@ -186,9 +186,7 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			s.mu.Unlock()
 			s.tracef("Disconnected from gateway: %v", err)
 
-			// Check if Discord closed with a specific close code.
-			var closeErr *websocket.CloseError
-			if errors.As(err, &closeErr) {
+			if closeErr, ok := errors.AsType[*websocket.CloseError](err); ok {
 				s.tracef("Gateway closed with code %d: %s", closeErr.Code, closeErr.Text)
 				switch closeErr.Code {
 				case 4004, 4010, 4011, 4012, 4013, 4014:
@@ -367,8 +365,8 @@ func (s *Shard) sendIdentify() error {
 			ShardOrder: [2]uint16{s.ID, s.totalShards},
 			Properties: IdentifyPayloadDataProperties{
 				OS:      runtime.GOOS,
-				Browser: "tempest",
-				Device:  "tempest",
+				Browser: GATEWAY_AGENT,
+				Device:  GATEWAY_AGENT,
 			},
 		},
 	}
@@ -399,7 +397,8 @@ func (s *Shard) sendResume() error {
 func (s *Shard) runHeartbeat(ctx context.Context, interval time.Duration) {
 	s.tracef("Starting heartbeat loop with interval %s.", interval)
 
-	// Discord Gateway docs: First heartbeat should be sent after heartbeat_interval * jitter (where jitter is between 0 and 1).
+	// Discord Gateway docs: First heartbeat should be sent after:
+	// heartbeat_interval * jitter (where jitter is between 0 and 1).
 	firstWait := time.Duration(float64(interval) * rand.Float64())
 	firstTimer := time.NewTimer(firstWait)
 
@@ -432,13 +431,13 @@ func (s *Shard) runHeartbeat(ctx context.Context, interval time.Duration) {
 				s.mu.Unlock()
 				s.tracef("Zombied connection detected (missing heartbeat ACK). Reconnecting!")
 
-				// Close the socket to force the main readLoop to exit.
-				// This will cause the Start loop to trigger a reconnect and resume.
 				if err := s.socket.closeForReconnect(); err != nil {
 					s.tracef("Failed to close socket: %v", err)
 				}
+
 				return
 			}
+
 			s.heartbeatAckMissing = true
 			s.mu.Unlock()
 

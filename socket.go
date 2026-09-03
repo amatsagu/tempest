@@ -91,8 +91,8 @@ func (s *socket) connect(urlStr string) error {
 	return nil
 }
 
-// closeForReconnect terminates the network connection without sending a CloseNormalClosure (1000) frame.
-// This preserves the session on Discord's side and allows the client to RESUME.
+// Closes the network connection without sending a CloseNormalClosure (1000) frame.
+// This can preserve the session on Discord's side and allows the client to RESUME.
 func (s *socket) closeForReconnect() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -114,7 +114,7 @@ func (s *socket) closeForReconnect() error {
 	return err
 }
 
-// closeGracefully closes the WebSocket connection by sending a CloseNormalClosure (1000) control frame.
+// Closes ws connection by sending a CloseNormalClosure (1000) control frame.
 // Used when shutting down the shard/bot permanently.
 func (s *socket) closeGracefully() error {
 	s.mu.Lock()
