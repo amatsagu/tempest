@@ -140,9 +140,10 @@ const (
 //
 // Activity only in context of Discord Bot Presence via Gateway.
 type Activity struct {
-	Name string       `json:"name"`
-	URL  string       `json:"url,omitempty"` // Stream URL, only for Streaming type
-	Type ActivityType `json:"type"`
+	Name  string       `json:"name"`
+	State string       `json:"state,omitempty"` // User’s current custom status text (name must be still defined to work)
+	URL   string       `json:"url,omitempty"`   // Stream URL, only for Streaming type
+	Type  ActivityType `json:"type"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#update-presence
