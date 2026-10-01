@@ -318,6 +318,7 @@ type FileUploadComponent struct {
 	// This feature only checks the extension on the filename - it does not actually inspect
 	// the contents of the file. You still need to make sure that the file is valid.
 	FileTypes []string      `json:"file_types,omitzero"`
+	Values    []Snowflake   `json:"values,omitzero"`      // IDs of the uploaded files found in the resolved data. Populated on modal submission.
 	ID        uint32        `json:"id,omitempty"`         // Optional identifier for component
 	Type      ComponentType `json:"type"`                 // Always = FILE_UPLOAD_COMPONENT_TYPE (19)
 	MinValues uint8         `json:"min_values,omitempty"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
@@ -335,6 +336,7 @@ type RadioGroupComponent struct {
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID string             `json:"custom_id,omitempty"`
+	Value    *string            `json:"value,omitempty"`  // The value of the selected option, or null if no option is selected. Populated on modal submission.
 	Options  []RadioGroupOption `json:"options,omitzero"` // List of options to show; min 2, max 10
 	ID       uint32             `json:"id,omitempty"`     // Optional identifier for component
 	Type     ComponentType      `json:"type"`             // Always = RADIO_GROUP_COMPONENT_TYPE (21)
@@ -360,6 +362,7 @@ type CheckboxGroupComponent struct {
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID  string                `json:"custom_id,omitempty"`
 	Options   []CheckboxGroupOption `json:"options,omitzero"`     // The options to show in this checkbox group; must be between 1 and 10 options.
+	Values    []string              `json:"values,omitzero"`      // The values of the selected options. Populated on modal submission.
 	ID        uint32                `json:"id,omitempty"`         // Optional identifier for component
 	Type      ComponentType         `json:"type"`                 // Always = CHECKBOX_GROUP_COMPONENT_TYPE (22)
 	MinValues uint8                 `json:"min_values,omitempty"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
@@ -385,7 +388,8 @@ type CheckboxComponent struct {
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID string        `json:"custom_id,omitempty"`
-	ID       uint32        `json:"id,omitempty"` // Optional identifier for component
-	Type     ComponentType `json:"type"`         // Always = CHECKBOX_COMPONENT_TYPE (23)
-	Default  bool          `json:"default"`      // Whether to render this option as selected by default.
+	ID       uint32        `json:"id,omitempty"`    // Optional identifier for component
+	Type     ComponentType `json:"type"`            // Always = CHECKBOX_COMPONENT_TYPE (23)
+	Default  bool          `json:"default"`         // Whether to render this option as selected by default.
+	Value    bool          `json:"value,omitempty"` // The state of the checkbox (true if checked, false if unchecked). Populated on modal submission.
 }

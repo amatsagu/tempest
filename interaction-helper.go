@@ -327,7 +327,7 @@ func (itx *ComponentInteraction) AcknowledgeWithLinearUpdate(content string) err
 	})
 }
 
-// GetInputValue retrieves the contents of the first [TextInputComponent] inside the modal (at any depth) with the given customID.
+// Retrieves the contents of the first [TextInputComponent] inside the modal (at any depth) with the given customID.
 //
 // If no such component exists, an empty string is returned instead.
 func (itx *ModalInteraction) GetInputValue(customID string) string {
@@ -350,6 +350,151 @@ func (itx *ModalInteraction) GetInputValue(customID string) string {
 	}
 
 	return ""
+}
+
+// Retrieves the uploaded file attachment IDs of the first [FileUploadComponent] inside the modal (at any depth) with the given customID.
+//
+// If no such component exists, nil is returned instead.
+func (itx *ModalInteraction) GetFileUploadValues(customID string) []Snowflake {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetFileUploadValues was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return nil
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if upload, ok := label.Component.(FileUploadComponent); ok && upload.CustomID == customID {
+				return upload.Values
+			}
+		}
+	}
+
+	return nil
+}
+
+// Retrieves the selected value of the first [RadioGroupComponent] inside the modal (at any depth) with the given customID.
+// The second return value indicates whether a value was selected.
+func (itx *ModalInteraction) GetRadioGroupValue(customID string) (string, bool) {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetRadioGroupValue was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return "", false
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if radio, ok := label.Component.(RadioGroupComponent); ok && radio.CustomID == customID {
+				if radio.Value != nil {
+					return *radio.Value, true
+				}
+				return "", false
+			}
+		}
+	}
+
+	return "", false
+}
+
+// Retrieves the selected values of the first [CheckboxGroupComponent] inside the modal (at any depth) with the given customID.
+//
+// If no such component exists, nil is returned instead.
+func (itx *ModalInteraction) GetCheckboxGroupValues(customID string) []string {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetCheckboxGroupValues was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return nil
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if group, ok := label.Component.(CheckboxGroupComponent); ok && group.CustomID == customID {
+				return group.Values
+			}
+		}
+	}
+
+	return nil
+}
+
+// Retrieves the state of the first [CheckboxComponent] inside the modal (at any depth) with the given customID.
+// The second return value indicates whether the component was found.
+func (itx *ModalInteraction) GetCheckboxValue(customID string) (bool, bool) {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetCheckboxValue was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return false, false
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if checkbox, ok := label.Component.(CheckboxComponent); ok && checkbox.CustomID == customID {
+				return checkbox.Value, true
+			}
+		}
+	}
+
+	return false, false
+}
+
+// Retrieves the selected values of the first [StringSelectComponent] inside the modal (at any depth) with the given customID.
+//
+// If no such component exists, nil is returned instead.
+func (itx *ModalInteraction) GetStringSelectValues(customID string) []string {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetStringSelectValues was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return nil
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if selectMenu, ok := label.Component.(StringSelectComponent); ok && selectMenu.CustomID == customID {
+				return selectMenu.Values
+			}
+		}
+	}
+
+	return nil
+}
+
+// Retrieves the selected snowflake IDs of the first [SelectComponent] (user, role, mentionable, or channel select) inside the modal (at any depth) with the given customID.
+//
+// If no such component exists, nil is returned instead.
+func (itx *ModalInteraction) GetSelectValues(customID string) []Snowflake {
+	if customID == "" {
+		// TODO: Display warning even if tracing is disabled
+		itx.BaseClient.tracef(
+			"Warning: ModalInteraction.GetSelectValues was called with an empty customID, " +
+				"which is invalid and will never appear inside a component.",
+		)
+		return nil
+	}
+
+	for _, row := range itx.Data.Components {
+		if label, ok := row.(LabelComponent); ok {
+			if selectMenu, ok := label.Component.(SelectComponent); ok && selectMenu.CustomID == customID {
+				return selectMenu.Values
+			}
+		}
+	}
+
+	return nil
 }
 
 // Sends to discord info that this component was handled successfully without sending anything more.
