@@ -37,16 +37,14 @@ type Interaction struct {
 	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
 	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
 
-	// authorizing_integration_owners or contexts are pointless as they essentially duplicate data you already have :)
-	// attachment_size_limit is also skipped - appears to have no use anywhere
-
-	BaseClient   *BaseClient     `json:"-"` // Always provided.
-	User         *User           `json:"user,omitempty"`
-	Locale       Language        `json:"locale,omitempty"`       // Selected language of the invoking user.
-	GuildLocale  string          `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
-	Token        string          `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot token.
-	Data         json.RawMessage `json:"data"`
-	Entitlements []Entitlement   `json:"entitlements,omitzero"` // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
+	BaseClient                   *BaseClient                              `json:"-"` // Always provided.
+	User                         *User                                    `json:"user,omitempty"`
+	Locale                       Language                                 `json:"locale,omitempty"`       // Selected language of the invoking user.
+	GuildLocale                  string                                   `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
+	Token                        string                                   `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot token.
+	Data                         json.RawMessage                          `json:"data"`
+	AuthorizingIntegrationOwners map[ApplicationIntegrationType]Snowflake `json:"authorizing_integration_owners,omitzero"` // Mapping of installation contexts that the interaction was authorized for to related user or guild IDs.
+	Entitlements                 []Entitlement                            `json:"entitlements,omitzero"`                   // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
 
 	// partial guild struct is skipped
 
@@ -63,12 +61,14 @@ type Interaction struct {
 
 	// version is skipped (docs says it's always 1, read-only property)
 
-	PermissionFlags PermissionFlags `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
-	ApplicationID   Snowflake       `json:"application_id"`
-	ShardID         uint16          `json:"-"` // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
-	Type            InteractionType `json:"type"`
-	responded       bool            `json:"-"`
-	deferred        bool            `json:"-"`
+	PermissionFlags     PermissionFlags        `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
+	ApplicationID       Snowflake              `json:"application_id"`
+	AttachmentSizeLimit uint64                 `json:"attachment_size_limit,omitempty"` // Attachment size limit in bytes.
+	Context             InteractionContextType `json:"context,omitempty"`               // Context where the interaction was triggered from.
+	ShardID             uint16                 `json:"-"`                               // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	Type                InteractionType        `json:"type"`
+	responded           bool                   `json:"-"`
+	deferred            bool                   `json:"-"`
 }
 
 // A CommandInteraction represents an interaction received from a user invoking an application command, such as a slash command or a context menu command.

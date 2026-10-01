@@ -35,59 +35,59 @@ func (itx *CommandInteraction) GetOptionValue(name string) (any, bool) {
 	return nil, false
 }
 
-// Returns pointer to user if present in interaction.data.resolved. It'll return empty struct if there's no resolved user.
-func (itx *CommandInteraction) ResolveUser(id Snowflake) User {
-	if itx.Data.Resolved == nil {
+// Returns pointer to user if present in resolved data. It'll return empty struct if there's no resolved user.
+func (r *InteractionDataResolved) ResolveUser(id Snowflake) User {
+	if r == nil {
 		return User{}
 	}
-	return itx.Data.Resolved.Users[id]
+	return r.Users[id]
 }
 
-// Returns pointer to member if present in interaction.data.resolved and binds member.user. It'll return empty struct if there's no resolved member.
-func (itx *CommandInteraction) ResolveMember(id Snowflake) Member {
-	if itx.Data.Resolved == nil {
+// Returns pointer to member if present in resolved data and binds member.user. It'll return empty struct if there's no resolved member.
+func (r *InteractionDataResolved) ResolveMember(id Snowflake) Member {
+	if r == nil {
 		return Member{}
 	}
-	member, available := itx.Data.Resolved.Members[id]
+	member, available := r.Members[id]
 	if available {
-		user := itx.Data.Resolved.Users[id]
+		user := r.Users[id]
 		member.User = &user
 		return member
 	}
 	return Member{}
 }
 
-// Returns pointer to guild role if present in interaction.data.resolved. It'll return empty struct if there's no resolved role.
-func (itx *CommandInteraction) ResolveRole(id Snowflake) (Role, bool) {
-	if itx.Data.Resolved == nil {
+// Returns pointer to guild role if present in resolved data. It'll return empty struct if there's no resolved role.
+func (r *InteractionDataResolved) ResolveRole(id Snowflake) (Role, bool) {
+	if r == nil {
 		return Role{}, false
 	}
-	role, ok := itx.Data.Resolved.Roles[id]
+	role, ok := r.Roles[id]
 	return role, ok
 }
 
-// Returns pointer to partial channel if present in interaction.data.resolved.  It'll return empty struct if there's no resolved partial channel.
-func (itx *CommandInteraction) ResolveChannel(id Snowflake) PartialChannel {
-	if itx.Data.Resolved == nil {
+// Returns pointer to partial channel if present in resolved data. It'll return empty struct if there's no resolved partial channel.
+func (r *InteractionDataResolved) ResolveChannel(id Snowflake) PartialChannel {
+	if r == nil {
 		return PartialChannel{}
 	}
-	return itx.Data.Resolved.Channels[id]
+	return r.Channels[id]
 }
 
-// Returns pointer to message if present in interaction.data.resolved.  It'll return empty struct if there's no resolved message.
-func (itx *CommandInteraction) ResolveMessage(id Snowflake) Message {
-	if itx.Data.Resolved == nil {
+// Returns pointer to message if present in resolved data. It'll return empty struct if there's no resolved message.
+func (r *InteractionDataResolved) ResolveMessage(id Snowflake) Message {
+	if r == nil {
 		return Message{}
 	}
-	return itx.Data.Resolved.Messages[id]
+	return r.Messages[id]
 }
 
-// Returns pointer to attachment if present in interaction.data.resolved.  It'll return empty struct if there's no resolved attachment.
-func (itx *CommandInteraction) ResolveAttachment(id Snowflake) Attachment {
-	if itx.Data.Resolved == nil {
+// Returns pointer to attachment if present in resolved data. It'll return empty struct if there's no resolved attachment.
+func (r *InteractionDataResolved) ResolveAttachment(id Snowflake) Attachment {
+	if r == nil {
 		return Attachment{}
 	}
-	return itx.Data.Resolved.Attachments[id]
+	return r.Attachments[id]
 }
 
 // Use to let user/member know that bot is processing command.
@@ -374,6 +374,29 @@ func (itx *ModalInteraction) GetFileUploadValues(customID string) []Snowflake {
 	}
 
 	return nil
+}
+
+// Retrieves the resolved [Attachment] objects of the first [FileUploadComponent] inside the modal (at any depth) with the given customID.
+//
+// If no such component exists or no attachments were resolved, nil is returned instead.
+func (itx *ModalInteraction) GetFileUploadAttachments(customID string) []Attachment {
+	ids := itx.GetFileUploadValues(customID)
+	if len(ids) == 0 || itx.Data.Resolved == nil || len(itx.Data.Resolved.Attachments) == 0 {
+		return nil
+	}
+
+	attachments := make([]Attachment, 0, len(ids))
+	for _, id := range ids {
+		if attachment, ok := itx.Data.Resolved.Attachments[id]; ok {
+			attachments = append(attachments, attachment)
+		}
+	}
+
+	if len(attachments) == 0 {
+		return nil
+	}
+
+	return attachments
 }
 
 // Retrieves the selected value of the first [RadioGroupComponent] inside the modal (at any depth) with the given customID.
