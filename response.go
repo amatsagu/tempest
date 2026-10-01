@@ -9,8 +9,8 @@ const (
 	CHANNEL_MESSAGE_RESPONSE_TYPE
 	CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE
 	DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE
-	DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE // Only valid for component-based interactions.
-	UPDATE_MESSAGE_RESPONSE_TYPE          // Only valid for component-based interactions.
+	DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE // Only valid for component-based and modal submit interactions.
+	UPDATE_MESSAGE_RESPONSE_TYPE          // Only valid for component-based and modal submit interactions.
 	AUTOCOMPLETE_RESPONSE_TYPE
 	MODAL_RESPONSE_TYPE // Not available for MODAL_SUBMIT and PING interactions.
 	_

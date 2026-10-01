@@ -313,6 +313,20 @@ func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) e
 	})
 }
 
+// Acknowledges the interaction by updating the message on which the component was attached.
+func (itx *ComponentInteraction) AcknowledgeWithUpdate(reply ResponseMessageData) error {
+	return itx.responder(Response{
+		Type: UPDATE_MESSAGE_RESPONSE_TYPE,
+		Data: &reply,
+	})
+}
+
+func (itx *ComponentInteraction) AcknowledgeWithLinearUpdate(content string) error {
+	return itx.AcknowledgeWithUpdate(ResponseMessageData{
+		Content: content,
+	})
+}
+
 // GetInputValue retrieves the contents of the first [TextInputComponent] inside the modal (at any depth) with the given customID.
 //
 // If no such component exists, an empty string is returned instead.
@@ -366,6 +380,20 @@ func (itx *ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error
 	return itx.responder(Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
+	})
+}
+
+// Acknowledges the interaction by updating the message on which the component was attached.
+func (itx *ModalInteraction) AcknowledgeWithUpdate(response ResponseMessageData) error {
+	return itx.responder(Response{
+		Type: UPDATE_MESSAGE_RESPONSE_TYPE,
+		Data: &response,
+	})
+}
+
+func (itx *ModalInteraction) AcknowledgeWithLinearUpdate(content string) error {
+	return itx.AcknowledgeWithUpdate(ResponseMessageData{
+		Content: content,
 	})
 }
 
