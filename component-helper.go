@@ -27,7 +27,9 @@ func FindInteractiveComponent[CC AnyComponent, T InteractiveComponent](component
 				return casted, true
 			}
 		case ContainerComponent:
-			return FindInteractiveComponent(c.Components, filter)
+			if found, ok := FindInteractiveComponent(c.Components, filter); ok {
+				return found, true
+			}
 		case LabelComponent:
 			if casted, ok := c.Component.(T); ok && filter(casted) {
 				return casted, true
