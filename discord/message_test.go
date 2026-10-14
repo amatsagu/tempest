@@ -36,6 +36,33 @@ func TestMessage(t *testing.T) {
 	}
 }
 
+func TestNonce_DecodesStringAndNumber(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  Nonce
+	}{
+		{"json string", `"abc123"`, "abc123"},
+		{"json number", `12345`, "12345"},
+		{"null", `null`, ""},
+		{"empty string", `""`, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var msg struct {
+				Nonce Nonce `json:"nonce"`
+			}
+			if err := json.Unmarshal([]byte(`{"nonce":`+tt.input+`}`), &msg); err != nil {
+				t.Fatalf("Unmarshal failed: %v", err)
+			}
+			if msg.Nonce != tt.want {
+				t.Errorf("Nonce = %q, want %q", msg.Nonce, tt.want)
+			}
+		})
+	}
+}
+
 func BenchmarkMessage_JSON(b *testing.B) {
 	now := time.Now().UTC().Truncate(time.Second)
 	msg := Message{

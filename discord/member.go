@@ -27,9 +27,10 @@ type Member struct {
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitzero"`
 	User                       *User             `json:"user,omitzero"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitzero"`
-	Nick                       string            `json:"nick,omitzero"`
+	Collectibles               *Collectibles     `json:"collectibles,omitzero"`
 	Avatar                     string            `json:"avatar,omitzero"`
 	Banner                     string            `json:"banner,omitzero"`
+	Nick                       string            `json:"nick,omitzero"`
 	Roles                      []RoleID          `json:"roles"`
 	Permissions                Permissions       `json:"permissions,string,omitzero"`
 	Flags                      MemberFlags       `json:"flags,omitzero"`

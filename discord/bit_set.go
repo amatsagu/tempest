@@ -1,6 +1,6 @@
 package discord
 
-// https://docs.discord.com/developers/reference#bitwise-permission-flags
+// https://docs.discord.com/developers/topics/permissions#permissions-bitwise-permission-flags
 type BitSet uint64
 
 func (f BitSet) Add(bits ...BitSet) BitSet {

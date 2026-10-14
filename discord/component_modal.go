@@ -26,44 +26,44 @@ func (l Label) MarshalJSON() ([]byte, error) {
 	type rawLabel Label
 	if l.TextInput != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *TextInput `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.TextInput})
 	}
 	if l.StringSelect != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *StringSelect `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.StringSelect})
 	}
 	if l.SelectMenu != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *SelectMenu `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.SelectMenu})
 	}
 	if l.FileUpload != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *FileUpload `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.FileUpload})
 	}
 	if l.RadioGroup != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *RadioGroup `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.RadioGroup})
 	}
 	if l.CheckboxGroup != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *CheckboxGroup `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.CheckboxGroup})
 	}
 	if l.Checkbox != nil {
 		return json.Marshal(struct {
-			rawLabel
 			Component *Checkbox `json:"component"`
+			rawLabel
 		}{rawLabel: rawLabel(l), Component: l.Checkbox})
 	}
 	return json.Marshal(rawLabel(l))
@@ -136,10 +136,10 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 
 // https://docs.discord.com/developers/components/reference#file-upload-file-upload-structure
 type FileUpload struct {
-	CustomID  string        `json:"custom_id"`
-	FileTypes []string      `json:"file_types,omitzero"`
 	MinValues *uint8        `json:"min_values,omitzero"`
 	MaxValues *uint8        `json:"max_values,omitzero"`
+	CustomID  string        `json:"custom_id"`
+	FileTypes []string      `json:"file_types,omitzero"`
 	ID        uint32        `json:"id,omitzero"`
 	Type      ComponentType `json:"type"`
 	Required  bool          `json:"required,omitzero"`
@@ -172,10 +172,10 @@ type CheckboxGroupOption struct {
 
 // https://docs.discord.com/developers/components/reference#checkbox-group
 type CheckboxGroup struct {
-	CustomID  string                `json:"custom_id"`
-	Options   []CheckboxGroupOption `json:"options"`
 	MinValues *uint8                `json:"min_values,omitzero"`
 	MaxValues *uint8                `json:"max_values,omitzero"`
+	CustomID  string                `json:"custom_id"`
+	Options   []CheckboxGroupOption `json:"options"`
 	ID        uint32                `json:"id,omitzero"`
 	Type      ComponentType         `json:"type"`
 	Required  bool                  `json:"required,omitzero"`

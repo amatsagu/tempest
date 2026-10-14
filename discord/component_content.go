@@ -29,8 +29,8 @@ func (t TextDisplay) ComponentType() ComponentType { return ComponentTextDisplay
 
 // https://docs.discord.com/developers/components/reference#thumbnail-thumbnail-structure
 type Thumbnail struct {
-	Media       UnfurledMediaItem `json:"media"`
 	Description string            `json:"description,omitzero"`
+	Media       UnfurledMediaItem `json:"media"`
 	ID          uint32            `json:"id,omitzero"`
 	Type        ComponentType     `json:"type"`
 	Spoiler     bool              `json:"spoiler,omitzero"`
@@ -40,8 +40,8 @@ func (t Thumbnail) ComponentType() ComponentType { return ComponentThumbnail }
 
 // https://docs.discord.com/developers/components/reference#media-gallery-media-gallery-item-structure
 type MediaGalleryItem struct {
-	Media       UnfurledMediaItem `json:"media"`
 	Description string            `json:"description,omitzero"`
+	Media       UnfurledMediaItem `json:"media"`
 	Spoiler     bool              `json:"spoiler,omitzero"`
 }
 

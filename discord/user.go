@@ -3,6 +3,7 @@ package discord
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 const CDNBaseURL = "https://cdn.discordapp.com"
@@ -44,9 +45,33 @@ type AvatarDecoration struct {
 	SkuID SkuID  `json:"sku_id"`
 }
 
+// https://docs.discord.com/developers/resources/user#nameplate-nameplate-structure
+type Nameplate struct {
+	ExpiresAt *time.Time `json:"expires_at,omitzero"`
+	Asset     string     `json:"asset"`
+	Label     string     `json:"label"`
+	Palette   string     `json:"palette"`
+	SkuID     SkuID      `json:"sku_id"`
+}
+
+// https://docs.discord.com/developers/resources/user#collectibles-collectible-structure
+type Collectibles struct {
+	Nameplate *Nameplate `json:"nameplate,omitzero"`
+}
+
+// https://docs.discord.com/developers/resources/user#user-object-user-primary-guild
+type UserPrimaryGuild struct {
+	Tag             string  `json:"tag,omitzero"`
+	Badge           string  `json:"badge,omitzero"`
+	IdentityGuildID GuildID `json:"identity_guild_id,omitzero"`
+	IdentityEnabled bool    `json:"identity_enabled,omitzero"`
+}
+
 // https://docs.discord.com/developers/resources/user#user-object
 type User struct {
 	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitzero"`
+	Collectibles         *Collectibles     `json:"collectibles,omitzero"`
+	PrimaryGuild         *UserPrimaryGuild `json:"primary_guild,omitzero"`
 	Username             string            `json:"username"`
 	Discriminator        string            `json:"discriminator,omitzero"`
 	GlobalName           string            `json:"global_name,omitzero"`

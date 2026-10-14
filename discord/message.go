@@ -1,6 +1,10 @@
 package discord
 
-import "time"
+import (
+	"bytes"
+	"encoding/json/v2"
+	"time"
+)
 
 // https://docs.discord.com/developers/resources/message#message-object-message-types
 type MessageType uint8
@@ -60,23 +64,139 @@ const (
 	MessageFlagIsComponentsV2                   MessageFlags = 1 << 15
 )
 
+// Nonce is a message nonce. Discord accepts and sends it as either an integer
+// or a string, so it is normalized to a string while decoding accepts both.
+//
+// https://docs.discord.com/developers/resources/message#message-object
+type Nonce string
+
+func (n *Nonce) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
+	if len(b) == 0 || bytes.Equal(b, nullLiteral) {
+		*n = ""
+		return nil
+	}
+
+	if b[0] == '"' {
+		var s string
+		if err := json.Unmarshal(b, &s); err != nil {
+			return err
+		}
+
+		*n = Nonce(s)
+		return nil
+	}
+
+	*n = Nonce(b)
+	return nil
+}
+
+// https://docs.discord.com/developers/resources/message#message-reference-types
+type MessageReferenceType uint8
+
+const (
+	MessageReferenceDefault MessageReferenceType = 0
+	MessageReferenceForward MessageReferenceType = 1
+)
+
+// https://docs.discord.com/developers/resources/message#message-reference-structure
+type MessageReference struct {
+	FailIfNotExists *bool                `json:"fail_if_not_exists,omitzero"`
+	MessageID       MessageID            `json:"message_id,omitzero"`
+	ChannelID       ChannelID            `json:"channel_id,omitzero"`
+	GuildID         GuildID              `json:"guild_id,omitzero"`
+	Type            MessageReferenceType `json:"type,omitzero"`
+}
+
+// https://docs.discord.com/developers/resources/message#message-object-message-activity-types
+type MessageActivityType uint8
+
+const (
+	MessageActivityJoin        MessageActivityType = 1
+	MessageActivitySpectate    MessageActivityType = 2
+	MessageActivityListen      MessageActivityType = 3
+	MessageActivityJoinRequest MessageActivityType = 5
+)
+
+// https://docs.discord.com/developers/resources/message#message-object-message-activity-structure
+type MessageActivity struct {
+	PartyID string              `json:"party_id,omitzero"`
+	Type    MessageActivityType `json:"type"`
+}
+
+// https://docs.discord.com/developers/resources/message#message-call-object-message-call-object-structure
+type MessageCall struct {
+	EndedTimestamp *time.Time  `json:"ended_timestamp,omitzero"`
+	Participants   []Snowflake `json:"participants"`
+}
+
+// https://docs.discord.com/developers/resources/message#reaction-object-reaction-structure
+type Reaction struct {
+	BurstColors  []string             `json:"burst_colors,omitzero"`
+	Emoji        Emoji                `json:"emoji"`
+	CountDetails ReactionCountDetails `json:"count_details"`
+	Count        int                  `json:"count"`
+	Me           bool                 `json:"me"`
+	MeBurst      bool                 `json:"me_burst"`
+}
+
+// https://docs.discord.com/developers/resources/message#reaction-count-details-object-reaction-count-details-structure
+type ReactionCountDetails struct {
+	Burst  int `json:"burst"`
+	Normal int `json:"normal"`
+}
+
+// https://docs.discord.com/developers/resources/message#channel-mention-object-channel-mention-structure
+type ChannelMention struct {
+	Name    string      `json:"name"`
+	ID      ChannelID   `json:"id"`
+	GuildID GuildID     `json:"guild_id"`
+	Type    ChannelType `json:"type"`
+}
+
+// https://docs.discord.com/developers/resources/message#role-subscription-data-object-role-subscription-data-object-structure
+type RoleSubscriptionData struct {
+	TierName                  string    `json:"tier_name"`
+	RoleSubscriptionListingID Snowflake `json:"role_subscription_listing_id"`
+	TotalMonthsSubscribed     int       `json:"total_months_subscribed"`
+	IsRenewal                 bool      `json:"is_renewal"`
+}
+
 // https://docs.discord.com/developers/resources/message#message-object
 type Message struct {
-	EditedTimestamp *time.Time   `json:"edited_timestamp,omitzero"`
-	Poll            *Poll        `json:"poll,omitzero"`
-	Content         string       `json:"content,omitzero"`
-	Mentions        []User       `json:"mentions,omitzero"`
-	MentionRoles    []RoleID     `json:"mention_roles,omitzero"`
-	Attachments     []Attachment `json:"attachments,omitzero"`
-	Embeds          []Embed      `json:"embeds,omitzero"`
-	Components      Components   `json:"components,omitzero"`
-	Timestamp       time.Time    `json:"timestamp"`
-	Author          User         `json:"author"`
-	ID              MessageID    `json:"id"`
-	ChannelID       ChannelID    `json:"channel_id"`
-	Type            MessageType  `json:"type"`
-	Flags           MessageFlags `json:"flags,omitzero"`
-	TTS             bool         `json:"tts,omitzero"`
-	MentionEveryone bool         `json:"mention_everyone,omitzero"`
-	Pinned          bool         `json:"pinned,omitzero"`
+	Timestamp            time.Time                `json:"timestamp"`
+	EditedTimestamp      *time.Time               `json:"edited_timestamp,omitzero"`
+	Poll                 *Poll                    `json:"poll,omitzero"`
+	Member               *Member                  `json:"member,omitzero"`
+	Thread               *Channel                 `json:"thread,omitzero"`
+	MessageReference     *MessageReference        `json:"message_reference,omitzero"`
+	ReferencedMessage    *Message                 `json:"referenced_message,omitzero"`
+	Activity             *MessageActivity         `json:"activity,omitzero"`
+	Application          *Application             `json:"application,omitzero"`
+	RoleSubscriptionData *RoleSubscriptionData    `json:"role_subscription_data,omitzero"`
+	Call                 *MessageCall             `json:"call,omitzero"`
+	Resolved             *InteractionDataResolved `json:"resolved,omitzero"`
+	Content              string                   `json:"content,omitzero"`
+	Nonce                Nonce                    `json:"nonce,omitzero"`
+	MentionRoles         []RoleID                 `json:"mention_roles,omitzero"`
+	MentionChannels      []ChannelMention         `json:"mention_channels,omitzero"`
+	Attachments          []Attachment             `json:"attachments,omitzero"`
+	Embeds               []Embed                  `json:"embeds,omitzero"`
+	Components           Components               `json:"components,omitzero"`
+	StickerItems         []StickerItem            `json:"sticker_items,omitzero"`
+	Stickers             []Sticker                `json:"stickers,omitzero"`
+	Reactions            []Reaction               `json:"reactions,omitzero"`
+	Mentions             []User                   `json:"mentions,omitzero"`
+	Author               User                     `json:"author"`
+	ID                   MessageID                `json:"id"`
+	ChannelID            ChannelID                `json:"channel_id"`
+	GuildID              GuildID                  `json:"guild_id,omitzero"`
+	WebhookID            Snowflake                `json:"webhook_id,omitzero"`
+	ApplicationID        AppID                    `json:"application_id,omitzero"`
+	Position             int                      `json:"position,omitzero"`
+	Flags                MessageFlags             `json:"flags,omitzero"`
+	Type                 MessageType              `json:"type"`
+	TTS                  bool                     `json:"tts,omitzero"`
+	MentionEveryone      bool                     `json:"mention_everyone,omitzero"`
+	Pinned               bool                     `json:"pinned,omitzero"`
 }

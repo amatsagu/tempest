@@ -33,11 +33,11 @@ type Role struct {
 	Name         string      `json:"name"`
 	Icon         string      `json:"icon,omitzero"`
 	UnicodeEmoji string      `json:"unicode_emoji,omitzero"`
-	ID           RoleID      `json:"id"`
 	Permissions  Permissions `json:"permissions,string"`
-	Color        uint32      `json:"color"`
+	ID           RoleID      `json:"id"`
 	Position     int         `json:"position"`
 	Flags        RoleFlags   `json:"flags,omitzero"`
+	Color        uint32      `json:"color"`
 	Hoist        bool        `json:"hoist,omitzero"`
 	Managed      bool        `json:"managed,omitzero"`
 	Mentionable  bool        `json:"mentionable,omitzero"`

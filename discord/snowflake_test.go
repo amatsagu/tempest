@@ -177,8 +177,8 @@ func TestSnowflake_JSON_Marshal(t *testing.T) {
 
 func TestSnowflake_JSON_Struct_RoundTrip(t *testing.T) {
 	type DiscordPayload struct {
-		ID        Snowflake  `json:"id"`
 		ChannelID *Snowflake `json:"channel_id"`
+		ID        Snowflake  `json:"id"`
 	}
 
 	channelID := Snowflake(123456789)
@@ -192,9 +192,14 @@ func TestSnowflake_JSON_Struct_RoundTrip(t *testing.T) {
 		t.Fatalf("json.Marshal() failed: %v", err)
 	}
 
-	expectedJSON := `{"id":"1159846879854792704","channel_id":"123456789"}`
-	if string(data) != expectedJSON {
-		t.Errorf("Marshal output mismatch:\ngot:  %s\nwant: %s", string(data), expectedJSON)
+	// Field order in the encoded object is intentionally not asserted: it can
+	// change with struct field alignment, which Discord does not care about.
+	var encoded map[string]string
+	if err := json.Unmarshal(data, &encoded); err != nil {
+		t.Fatalf("json.Unmarshal(marshaled) failed: %v", err)
+	}
+	if encoded["id"] != "1159846879854792704" || encoded["channel_id"] != "123456789" {
+		t.Errorf("Marshal output mismatch: got %s", data)
 	}
 
 	var parsed DiscordPayload

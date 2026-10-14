@@ -9,20 +9,44 @@ type EmbedFooter struct {
 	ProxyIconURL string `json:"proxy_icon_url,omitzero"`
 }
 
+// https://docs.discord.com/developers/resources/message#embed-object-embed-flags
+type EmbedFlags = BitSet
+
+const (
+	EmbedFlagIsContentInventoryEntry EmbedFlags = 1 << 5
+)
+
+// https://docs.discord.com/developers/resources/message#embed-object-embed-media-flags
+type EmbedMediaFlags = BitSet
+
+const (
+	EmbedMediaFlagIsAnimated EmbedMediaFlags = 1 << 5
+)
+
 // https://docs.discord.com/developers/resources/message#embed-object-embed-image-structure
 type EmbedImage struct {
-	URL      string `json:"url"`
-	ProxyURL string `json:"proxy_url,omitzero"`
-	Height   uint32 `json:"height,omitzero"`
-	Width    uint32 `json:"width,omitzero"`
+	URL                string          `json:"url"`
+	ProxyURL           string          `json:"proxy_url,omitzero"`
+	ContentType        string          `json:"content_type,omitzero"`
+	Placeholder        string          `json:"placeholder,omitzero"`
+	Description        string          `json:"description,omitzero"`
+	Flags              EmbedMediaFlags `json:"flags,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 }
 
-// https://docs.discord.com/developers/resources/message#embed-object-embed-thumbnail-structure
+// https://docs.discord.com/developers/resources/message#embed-object-embed-image-structure
 type EmbedThumbnail struct {
-	URL      string `json:"url"`
-	ProxyURL string `json:"proxy_url,omitzero"`
-	Height   uint32 `json:"height,omitzero"`
-	Width    uint32 `json:"width,omitzero"`
+	URL                string          `json:"url"`
+	ProxyURL           string          `json:"proxy_url,omitzero"`
+	ContentType        string          `json:"content_type,omitzero"`
+	Placeholder        string          `json:"placeholder,omitzero"`
+	Description        string          `json:"description,omitzero"`
+	Flags              EmbedMediaFlags `json:"flags,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-video-structure
@@ -69,4 +93,5 @@ type Embed struct {
 	URL         string          `json:"url,omitzero"`
 	Fields      []EmbedField    `json:"fields,omitzero"`
 	Color       uint32          `json:"color,omitzero"`
+	Flags       EmbedFlags      `json:"flags,omitzero"`
 }

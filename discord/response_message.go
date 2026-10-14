@@ -8,6 +8,7 @@ type ResponseMessageData struct {
 	Embeds          []Embed          `json:"embeds,omitzero"`
 	Components      Components       `json:"components,omitzero"`
 	Attachments     []Attachment     `json:"attachments,omitzero"`
+	StickerIDs      []Snowflake      `json:"sticker_ids,omitzero"`
 	Flags           MessageFlags     `json:"flags,omitzero"`
 	TTS             bool             `json:"tts,omitzero"`
 }

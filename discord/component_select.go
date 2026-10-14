@@ -26,11 +26,11 @@ type SelectOption struct {
 
 // https://docs.discord.com/developers/components/reference#string-select-string-select-structure
 type StringSelect struct {
+	MinValues   *uint8         `json:"min_values,omitzero"`
+	MaxValues   *uint8         `json:"max_values,omitzero"`
 	CustomID    string         `json:"custom_id"`
 	Placeholder string         `json:"placeholder,omitzero"`
 	Options     []SelectOption `json:"options"`
-	MinValues   *uint8         `json:"min_values,omitzero"`
-	MaxValues   *uint8         `json:"max_values,omitzero"`
 	ID          uint32         `json:"id,omitzero"`
 	Type        ComponentType  `json:"type"`
 	Disabled    bool           `json:"disabled,omitzero"`
@@ -39,12 +39,12 @@ type StringSelect struct {
 
 // https://docs.discord.com/developers/components/reference#user-select-user-select-structure
 type SelectMenu struct {
+	MinValues     *uint8               `json:"min_values,omitzero"`
+	MaxValues     *uint8               `json:"max_values,omitzero"`
 	CustomID      string               `json:"custom_id"`
 	Placeholder   string               `json:"placeholder,omitzero"`
 	ChannelTypes  []ChannelType        `json:"channel_types,omitzero"`
 	DefaultValues []SelectDefaultValue `json:"default_values,omitzero"`
-	MinValues     *uint8               `json:"min_values,omitzero"`
-	MaxValues     *uint8               `json:"max_values,omitzero"`
 	ID            uint32               `json:"id,omitzero"`
 	Type          ComponentType        `json:"type"`
 	Disabled      bool                 `json:"disabled,omitzero"`

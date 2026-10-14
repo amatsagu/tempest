@@ -7,9 +7,9 @@ import (
 
 // https://docs.discord.com/developers/components/reference#action-row-action-row-structure
 type ActionRow struct {
-	Buttons      []Button      `json:"-"`
 	StringSelect *StringSelect `json:"-"`
 	SelectMenu   *SelectMenu   `json:"-"`
+	Buttons      []Button      `json:"-"`
 	ID           uint32        `json:"id,omitzero"`
 	Type         ComponentType `json:"type"`
 }
@@ -20,8 +20,8 @@ func (a ActionRow) MarshalJSON() ([]byte, error) {
 	type rawActionRow ActionRow
 	if len(a.Buttons) > 0 {
 		return json.Marshal(struct {
-			rawActionRow
 			Components []Button `json:"components"`
+			rawActionRow
 		}{
 			rawActionRow: rawActionRow(a),
 			Components:   a.Buttons,
@@ -29,8 +29,8 @@ func (a ActionRow) MarshalJSON() ([]byte, error) {
 	}
 	if a.StringSelect != nil {
 		return json.Marshal(struct {
-			rawActionRow
 			Components []*StringSelect `json:"components"`
+			rawActionRow
 		}{
 			rawActionRow: rawActionRow(a),
 			Components:   []*StringSelect{a.StringSelect},
@@ -38,8 +38,8 @@ func (a ActionRow) MarshalJSON() ([]byte, error) {
 	}
 	if a.SelectMenu != nil {
 		return json.Marshal(struct {
-			rawActionRow
 			Components []*SelectMenu `json:"components"`
+			rawActionRow
 		}{
 			rawActionRow: rawActionRow(a),
 			Components:   []*SelectMenu{a.SelectMenu},
@@ -51,8 +51,8 @@ func (a ActionRow) MarshalJSON() ([]byte, error) {
 func (a *ActionRow) UnmarshalJSON(data []byte) error {
 	type rawActionRow ActionRow
 	var raw struct {
-		rawActionRow
 		Components []jsontext.Value `json:"components"`
+		rawActionRow
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -91,9 +91,9 @@ func (a *ActionRow) UnmarshalJSON(data []byte) error {
 
 // https://docs.discord.com/developers/components/reference#section-section-structure
 type Section struct {
-	Components []TextDisplay `json:"components"`
 	Button     *Button       `json:"-"`
 	Thumbnail  *Thumbnail    `json:"-"`
+	Components []TextDisplay `json:"components"`
 	ID         uint32        `json:"id,omitzero"`
 	Type       ComponentType `json:"type"`
 }
@@ -104,8 +104,8 @@ func (s Section) MarshalJSON() ([]byte, error) {
 	type rawSection Section
 	if s.Button != nil {
 		return json.Marshal(struct {
-			rawSection
 			Accessory *Button `json:"accessory"`
+			rawSection
 		}{
 			rawSection: rawSection(s),
 			Accessory:  s.Button,
@@ -113,8 +113,8 @@ func (s Section) MarshalJSON() ([]byte, error) {
 	}
 	if s.Thumbnail != nil {
 		return json.Marshal(struct {
-			rawSection
 			Accessory *Thumbnail `json:"accessory"`
+			rawSection
 		}{
 			rawSection: rawSection(s),
 			Accessory:  s.Thumbnail,
@@ -126,8 +126,8 @@ func (s Section) MarshalJSON() ([]byte, error) {
 func (s *Section) UnmarshalJSON(data []byte) error {
 	type rawSection Section
 	var raw struct {
-		rawSection
 		Accessory jsontext.Value `json:"accessory,omitzero"`
+		rawSection
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
