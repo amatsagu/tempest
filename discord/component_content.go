@@ -63,36 +63,3 @@ type FileComponent struct {
 }
 
 func (f FileComponent) ComponentType() ComponentType { return ComponentFile }
-
-func NewTextDisplay(content string) TextDisplay {
-	return TextDisplay{
-		Type:    ComponentTextDisplay,
-		Content: content,
-	}
-}
-
-func NewThumbnail(url, description string) Thumbnail {
-	return Thumbnail{
-		Type: ComponentThumbnail,
-		Media: UnfurledMediaItem{
-			URL: url,
-		},
-		Description: description,
-	}
-}
-
-func NewMediaGallery(items ...MediaGalleryItem) MediaGallery {
-	return MediaGallery{
-		Type:  ComponentMediaGallery,
-		Items: items,
-	}
-}
-
-func NewFileComponent(url string) FileComponent {
-	return FileComponent{
-		Type: ComponentFile,
-		File: UnfurledMediaItem{
-			URL: url,
-		},
-	}
-}

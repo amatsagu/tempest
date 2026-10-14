@@ -13,8 +13,8 @@ func TestChannel(t *testing.T) {
 		Position: 1,
 	}
 
-	if ch.Mention() != "<#4001>" {
-		t.Errorf("ch.Mention() = %s, want <#4001>", ch.Mention())
+	if ch.ID.Mention() != "<#4001>" {
+		t.Errorf("ch.ID.Mention() = %s, want <#4001>", ch.ID.Mention())
 	}
 
 	data, err := json.Marshal(ch)

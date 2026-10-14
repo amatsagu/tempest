@@ -43,10 +43,6 @@ type Role struct {
 	Mentionable  bool        `json:"mentionable,omitzero"`
 }
 
-func (r Role) Mention() string {
-	return r.ID.Mention()
-}
-
 func (r Role) IconURL() string {
 	if r.Icon == "" {
 		return ""

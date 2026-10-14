@@ -90,10 +90,6 @@ type User struct {
 	Verified             bool              `json:"verified,omitzero"`
 }
 
-func (u User) Mention() string {
-	return u.ID.Mention()
-}
-
 func (u User) EffectiveName() string {
 	if u.GlobalName != "" {
 		return u.GlobalName

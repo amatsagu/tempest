@@ -14,8 +14,8 @@ func TestUser(t *testing.T) {
 		Bot:        true,
 	}
 
-	if u.Mention() != "<@1159846879854792704>" {
-		t.Errorf("u.Mention() = %s, want <@1159846879854792704>", u.Mention())
+	if u.ID.Mention() != "<@1159846879854792704>" {
+		t.Errorf("u.ID.Mention() = %s, want <@1159846879854792704>", u.ID.Mention())
 	}
 
 	if u.EffectiveName() != "Amatsagu Dev" {

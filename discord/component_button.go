@@ -24,29 +24,3 @@ type Button struct {
 	Style    ButtonStyle   `json:"style"`
 	Disabled bool          `json:"disabled,omitzero"`
 }
-
-func NewButton(customID, label string, style ButtonStyle) Button {
-	return Button{
-		Type:     ComponentButton,
-		Style:    style,
-		Label:    label,
-		CustomID: customID,
-	}
-}
-
-func NewLinkButton(url, label string) Button {
-	return Button{
-		Type:  ComponentButton,
-		Style: ButtonLink,
-		Label: label,
-		URL:   url,
-	}
-}
-
-func NewPremiumButton(skuID SkuID) Button {
-	return Button{
-		Type:  ComponentButton,
-		Style: ButtonPremium,
-		SKUID: skuID,
-	}
-}

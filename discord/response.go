@@ -54,24 +54,3 @@ type InteractionCallbackResponseInteraction struct {
 	ResponseMessageLoading   bool                                         `json:"response_message_loading,omitzero"`
 	ResponseMessageEphemeral bool                                         `json:"response_message_ephemeral,omitzero"`
 }
-
-func NewPongResponse() Response {
-	return Response{Type: ResponsePong}
-}
-
-func NewDeferredResponse(ephemeral bool) Response {
-	var flags MessageFlags
-	if ephemeral {
-		flags = MessageFlagEphemeral
-	}
-	return Response{
-		Type: ResponseDeferredChannelMessageWithSource,
-		Data: ResponseMessageData{
-			Flags: flags,
-		},
-	}
-}
-
-func NewDeferredUpdateResponse() Response {
-	return Response{Type: ResponseDeferredUpdateMessage}
-}

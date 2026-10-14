@@ -142,7 +142,3 @@ type Channel struct {
 	NSFW                          bool                  `json:"nsfw,omitzero"`
 	Managed                       bool                  `json:"managed,omitzero"`
 }
-
-func (c Channel) Mention() string {
-	return c.ID.Mention()
-}

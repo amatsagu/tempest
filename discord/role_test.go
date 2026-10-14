@@ -15,8 +15,8 @@ func TestRole(t *testing.T) {
 		Mentionable: true,
 	}
 
-	if r.Mention() != "<@&3001>" {
-		t.Errorf("r.Mention() = %s, want <@&3001>", r.Mention())
+	if r.ID.Mention() != "<@&3001>" {
+		t.Errorf("r.ID.Mention() = %s, want <@&3001>", r.ID.Mention())
 	}
 
 	data, err := json.Marshal(r)

@@ -4,12 +4,3 @@ package discord
 type ResponseAutocompleteData struct {
 	Choices []CommandOptionChoice `json:"choices"`
 }
-
-func NewAutocompleteResponse(choices ...CommandOptionChoice) Response {
-	return Response{
-		Type: ResponseApplicationCommandAutocomplete,
-		Data: ResponseAutocompleteData{
-			Choices: choices,
-		},
-	}
-}

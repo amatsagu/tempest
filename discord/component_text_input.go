@@ -21,20 +21,3 @@ type TextInput struct {
 	Style       TextInputStyle `json:"style"`
 	Required    bool           `json:"required,omitzero"`
 }
-
-func NewTextInput(customID, placeholder string, style TextInputStyle) TextInput {
-	return TextInput{
-		Type:        ComponentTextInput,
-		Style:       style,
-		CustomID:    customID,
-		Placeholder: placeholder,
-	}
-}
-
-func NewShortTextInput(customID, placeholder string) TextInput {
-	return NewTextInput(customID, placeholder, TextInputShort)
-}
-
-func NewParagraphTextInput(customID, placeholder string) TextInput {
-	return NewTextInput(customID, placeholder, TextInputParagraph)
-}
