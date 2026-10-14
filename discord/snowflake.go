@@ -9,18 +9,45 @@ import (
 
 var ErrInvalidSnowflake = errors.New("invalid snowflake")
 
+var nullLiteral = []byte("null")
+
 const discordEpoch = 1420070400000 // Discord epoch in milliseconds
 
-// Represents a Discord's ID snowflake.
-type (
-	Snowflake uint64
-	UserID    struct{ Snowflake }
-	ChannelID struct{ Snowflake }
-	RoleID    struct{ Snowflake }
-	EmojiID   struct{ Snowflake }
-	GuildID   struct{ Snowflake }
-	CommandID struct{ Snowflake }
-)
+// https://docs.discord.com/developers/reference#snowflakes
+type Snowflake uint64
+
+// https://docs.discord.com/developers/reference#snowflakes
+type UserID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type ChannelID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type RoleID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type EmojiID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type GuildID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type CommandID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type MessageID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type AttachmentID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type AppID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type IntegrationID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type SkuID struct{ Snowflake }
 
 func StringToSnowflake(s string) (Snowflake, error) {
 	i, err := strconv.ParseUint(s, 10, 64)
@@ -49,7 +76,7 @@ func (s Snowflake) Increment() uint16 {
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {
 	b = bytes.TrimSpace(b)
-	if len(b) == 0 || bytes.Equal(b, []byte("null")) {
+	if len(b) == 0 || bytes.Equal(b, nullLiteral) {
 		*s = 0
 		return nil
 	}
@@ -72,12 +99,11 @@ func (s *Snowflake) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (s Snowflake) MarshalJSON() ([]byte, error) {
-	buf := make([]byte, 1, 22)
-	buf[0] = '"'
-	buf = strconv.AppendUint(buf, uint64(s), 10)
-	buf = append(buf, '"')
-	return buf, nil
+// AppendText lets encoding/json/v2 emit the snowflake as a quoted JSON string
+// by appending straight into the encoder's buffer, avoiding the temporary
+// []byte allocation that a MarshalJSON method would require.
+func (s Snowflake) AppendText(b []byte) ([]byte, error) {
+	return strconv.AppendUint(b, uint64(s), 10), nil
 }
 
 func (u UserID) Mention() string {

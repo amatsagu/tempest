@@ -1,7 +1,7 @@
 package discord
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"math"
 	"testing"
@@ -156,14 +156,22 @@ func TestSnowflake_JSON_Unmarshal(t *testing.T) {
 
 func TestSnowflake_JSON_Marshal(t *testing.T) {
 	s := Snowflake(1159846879854792704)
-	got, err := s.MarshalJSON()
+
+	want := `1159846879854792704`
+	got, err := s.AppendText(nil)
 	if err != nil {
-		t.Fatalf("MarshalJSON() error: %v", err)
+		t.Fatalf("AppendText() error: %v", err)
+	}
+	if string(got) != want {
+		t.Errorf("AppendText() got = %s, want %s", string(got), want)
 	}
 
-	want := `"1159846879854792704"`
-	if string(got) != want {
-		t.Errorf("MarshalJSON() got = %s, want %s", string(got), want)
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("json.Marshal() error: %v", err)
+	}
+	if string(data) != `"`+want+`"` {
+		t.Errorf("json.Marshal() got = %s, want %q", string(data), want)
 	}
 }
 
@@ -231,5 +239,49 @@ func TestParseUint64Bytes(t *testing.T) {
 				t.Errorf("parseUint64Bytes(%q) got = %v, want %v", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestStrictSnowflakes(t *testing.T) {
+	msgID := MessageID{Snowflake: 1159846879854792704}
+	attID := AttachmentID{Snowflake: 1159846879854792704}
+	appID := AppID{Snowflake: 1159846879854792704}
+	intID := IntegrationID{Snowflake: 1159846879854792704}
+	skuID := SkuID{Snowflake: 1159846879854792704}
+
+	if msgID.String() != "1159846879854792704" {
+		t.Errorf("msgID.String() = %s, want 1159846879854792704", msgID.String())
+	}
+	if attID.String() != "1159846879854792704" {
+		t.Errorf("attID.String() = %s, want 1159846879854792704", attID.String())
+	}
+	if appID.String() != "1159846879854792704" {
+		t.Errorf("appID.String() = %s, want 1159846879854792704", appID.String())
+	}
+	if intID.String() != "1159846879854792704" {
+		t.Errorf("intID.String() = %s, want 1159846879854792704", intID.String())
+	}
+	if skuID.String() != "1159846879854792704" {
+		t.Errorf("skuID.String() = %s, want 1159846879854792704", skuID.String())
+	}
+}
+
+func BenchmarkSnowflake_UnmarshalJSON(b *testing.B) {
+	payload := []byte(`"1159846879854792704"`)
+	b.ReportAllocs()
+	for b.Loop() {
+		var s Snowflake
+		if err := s.UnmarshalJSON(payload); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSnowflake_AppendText(b *testing.B) {
+	s := Snowflake(1159846879854792704)
+	buf := make([]byte, 0, 20)
+	b.ReportAllocs()
+	for b.Loop() {
+		buf, _ = s.AppendText(buf[:0])
 	}
 }

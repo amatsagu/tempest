@@ -1,0 +1,239 @@
+package discord
+
+import (
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+)
+
+// https://docs.discord.com/developers/components/reference#action-row-action-row-structure
+type ActionRow struct {
+	Buttons      []Button      `json:"-"`
+	StringSelect *StringSelect `json:"-"`
+	SelectMenu   *SelectMenu   `json:"-"`
+	ID           uint32        `json:"id,omitzero"`
+	Type         ComponentType `json:"type"`
+}
+
+func (a ActionRow) ComponentType() ComponentType { return ComponentActionRow }
+
+func (a ActionRow) MarshalJSON() ([]byte, error) {
+	type rawActionRow ActionRow
+	if len(a.Buttons) > 0 {
+		return json.Marshal(struct {
+			rawActionRow
+			Components []Button `json:"components"`
+		}{
+			rawActionRow: rawActionRow(a),
+			Components:   a.Buttons,
+		})
+	}
+	if a.StringSelect != nil {
+		return json.Marshal(struct {
+			rawActionRow
+			Components []*StringSelect `json:"components"`
+		}{
+			rawActionRow: rawActionRow(a),
+			Components:   []*StringSelect{a.StringSelect},
+		})
+	}
+	if a.SelectMenu != nil {
+		return json.Marshal(struct {
+			rawActionRow
+			Components []*SelectMenu `json:"components"`
+		}{
+			rawActionRow: rawActionRow(a),
+			Components:   []*SelectMenu{a.SelectMenu},
+		})
+	}
+	return json.Marshal(rawActionRow(a))
+}
+
+func (a *ActionRow) UnmarshalJSON(data []byte) error {
+	type rawActionRow ActionRow
+	var raw struct {
+		rawActionRow
+		Components []jsontext.Value `json:"components"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*a = ActionRow(raw.rawActionRow)
+	for _, c := range raw.Components {
+		var peek struct {
+			Type ComponentType `json:"type"`
+		}
+		if err := json.Unmarshal(c, &peek); err != nil {
+			return err
+		}
+		switch peek.Type {
+		case ComponentButton:
+			var btn Button
+			if err := json.Unmarshal(c, &btn); err != nil {
+				return err
+			}
+			a.Buttons = append(a.Buttons, btn)
+		case ComponentStringSelect:
+			var sel StringSelect
+			if err := json.Unmarshal(c, &sel); err != nil {
+				return err
+			}
+			a.StringSelect = &sel
+		case ComponentUserSelect, ComponentRoleSelect, ComponentMentionableSelect, ComponentChannelSelect:
+			var sel SelectMenu
+			if err := json.Unmarshal(c, &sel); err != nil {
+				return err
+			}
+			a.SelectMenu = &sel
+		}
+	}
+	return nil
+}
+
+// https://docs.discord.com/developers/components/reference#section-section-structure
+type Section struct {
+	Components []TextDisplay `json:"components"`
+	Button     *Button       `json:"-"`
+	Thumbnail  *Thumbnail    `json:"-"`
+	ID         uint32        `json:"id,omitzero"`
+	Type       ComponentType `json:"type"`
+}
+
+func (s Section) ComponentType() ComponentType { return ComponentSection }
+
+func (s Section) MarshalJSON() ([]byte, error) {
+	type rawSection Section
+	if s.Button != nil {
+		return json.Marshal(struct {
+			rawSection
+			Accessory *Button `json:"accessory"`
+		}{
+			rawSection: rawSection(s),
+			Accessory:  s.Button,
+		})
+	}
+	if s.Thumbnail != nil {
+		return json.Marshal(struct {
+			rawSection
+			Accessory *Thumbnail `json:"accessory"`
+		}{
+			rawSection: rawSection(s),
+			Accessory:  s.Thumbnail,
+		})
+	}
+	return json.Marshal(rawSection(s))
+}
+
+func (s *Section) UnmarshalJSON(data []byte) error {
+	type rawSection Section
+	var raw struct {
+		rawSection
+		Accessory jsontext.Value `json:"accessory,omitzero"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*s = Section(raw.rawSection)
+	if len(raw.Accessory) > 0 {
+		var peek struct {
+			Type ComponentType `json:"type"`
+		}
+		if err := json.Unmarshal(raw.Accessory, &peek); err != nil {
+			return err
+		}
+		switch peek.Type {
+		case ComponentButton:
+			var btn Button
+			if err := json.Unmarshal(raw.Accessory, &btn); err != nil {
+				return err
+			}
+			s.Button = &btn
+		case ComponentThumbnail:
+			var thumb Thumbnail
+			if err := json.Unmarshal(raw.Accessory, &thumb); err != nil {
+				return err
+			}
+			s.Thumbnail = &thumb
+		}
+	}
+	return nil
+}
+
+// https://docs.discord.com/developers/components/reference#container-container-structure
+type Container struct {
+	Components  Components    `json:"components"`
+	ID          uint32        `json:"id,omitzero"`
+	AccentColor uint32        `json:"accent_color,omitzero"`
+	Type        ComponentType `json:"type"`
+	Spoiler     bool          `json:"spoiler,omitzero"`
+}
+
+func (c Container) ComponentType() ComponentType { return ComponentContainer }
+
+// https://docs.discord.com/developers/components/reference#separator-separator-structure
+type Separator struct {
+	ID      uint32        `json:"id,omitzero"`
+	Type    ComponentType `json:"type"`
+	Spacing uint8         `json:"spacing,omitzero"`
+	Divider bool          `json:"divider,omitzero"`
+}
+
+func (s Separator) ComponentType() ComponentType { return ComponentSeparator }
+
+func NewActionRow(buttons ...Button) ActionRow {
+	return ActionRow{
+		Type:    ComponentActionRow,
+		Buttons: buttons,
+	}
+}
+
+func NewActionRowWithStringSelect(selectMenu StringSelect) ActionRow {
+	return ActionRow{
+		Type:         ComponentActionRow,
+		StringSelect: &selectMenu,
+	}
+}
+
+func NewActionRowWithSelect(selectMenu SelectMenu) ActionRow {
+	return ActionRow{
+		Type:       ComponentActionRow,
+		SelectMenu: &selectMenu,
+	}
+}
+
+func NewSection(components ...TextDisplay) Section {
+	return Section{
+		Type:       ComponentSection,
+		Components: components,
+	}
+}
+
+func NewSectionWithButton(button Button, components ...TextDisplay) Section {
+	return Section{
+		Type:       ComponentSection,
+		Button:     &button,
+		Components: components,
+	}
+}
+
+func NewSectionWithThumbnail(thumbnail Thumbnail, components ...TextDisplay) Section {
+	return Section{
+		Type:       ComponentSection,
+		Thumbnail:  &thumbnail,
+		Components: components,
+	}
+}
+
+func NewContainer(accentColor uint32, children ...Component) Container {
+	return Container{
+		Type:        ComponentContainer,
+		AccentColor: accentColor,
+		Components:  Components(children),
+	}
+}
+
+func NewSeparator(divider bool) Separator {
+	return Separator{
+		Type:    ComponentSeparator,
+		Divider: divider,
+	}
+}
