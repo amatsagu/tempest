@@ -16,36 +16,28 @@ type ActionRow struct {
 
 func (a ActionRow) ComponentType() ComponentType { return ComponentActionRow }
 
-func (a ActionRow) MarshalJSON() ([]byte, error) {
+func (a ActionRow) MarshalJSONTo(enc *jsontext.Encoder) error {
 	type rawActionRow ActionRow
-	if len(a.Buttons) > 0 {
-		return json.Marshal(struct {
+
+	switch {
+	case len(a.Buttons) > 0:
+		return json.MarshalEncode(enc, struct {
 			Components []Button `json:"components"`
 			rawActionRow
-		}{
-			rawActionRow: rawActionRow(a),
-			Components:   a.Buttons,
-		})
-	}
-	if a.StringSelect != nil {
-		return json.Marshal(struct {
+		}{Components: a.Buttons, rawActionRow: rawActionRow(a)})
+	case a.StringSelect != nil:
+		return json.MarshalEncode(enc, struct {
 			Components []*StringSelect `json:"components"`
 			rawActionRow
-		}{
-			rawActionRow: rawActionRow(a),
-			Components:   []*StringSelect{a.StringSelect},
-		})
-	}
-	if a.SelectMenu != nil {
-		return json.Marshal(struct {
+		}{Components: []*StringSelect{a.StringSelect}, rawActionRow: rawActionRow(a)})
+	case a.SelectMenu != nil:
+		return json.MarshalEncode(enc, struct {
 			Components []*SelectMenu `json:"components"`
 			rawActionRow
-		}{
-			rawActionRow: rawActionRow(a),
-			Components:   []*SelectMenu{a.SelectMenu},
-		})
+		}{Components: []*SelectMenu{a.SelectMenu}, rawActionRow: rawActionRow(a)})
+	default:
+		return json.MarshalEncode(enc, rawActionRow(a))
 	}
-	return json.Marshal(rawActionRow(a))
 }
 
 func (a *ActionRow) UnmarshalJSON(data []byte) error {
@@ -100,27 +92,23 @@ type Section struct {
 
 func (s Section) ComponentType() ComponentType { return ComponentSection }
 
-func (s Section) MarshalJSON() ([]byte, error) {
+func (s Section) MarshalJSONTo(enc *jsontext.Encoder) error {
 	type rawSection Section
-	if s.Button != nil {
-		return json.Marshal(struct {
+
+	switch {
+	case s.Button != nil:
+		return json.MarshalEncode(enc, struct {
 			Accessory *Button `json:"accessory"`
 			rawSection
-		}{
-			rawSection: rawSection(s),
-			Accessory:  s.Button,
-		})
-	}
-	if s.Thumbnail != nil {
-		return json.Marshal(struct {
+		}{Accessory: s.Button, rawSection: rawSection(s)})
+	case s.Thumbnail != nil:
+		return json.MarshalEncode(enc, struct {
 			Accessory *Thumbnail `json:"accessory"`
 			rawSection
-		}{
-			rawSection: rawSection(s),
-			Accessory:  s.Thumbnail,
-		})
+		}{Accessory: s.Thumbnail, rawSection: rawSection(s)})
+	default:
+		return json.MarshalEncode(enc, rawSection(s))
 	}
-	return json.Marshal(rawSection(s))
 }
 
 func (s *Section) UnmarshalJSON(data []byte) error {

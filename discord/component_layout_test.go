@@ -64,6 +64,6 @@ func BenchmarkComponentLayout_JSON(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = json.Marshal(container)
+		_, _ = json.Marshal(&container)
 	}
 }

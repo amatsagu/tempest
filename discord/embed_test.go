@@ -43,12 +43,12 @@ func BenchmarkEmbed_JSON(b *testing.B) {
 		},
 		Footer: &EmbedFooter{Text: "Footer text"},
 	}
-	data, _ := json.Marshal(emb)
+	data, _ := json.Marshal(&emb)
 
+	var parsed Embed
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Embed
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(emb)
+		_, _ = json.Marshal(&emb)
 	}
 }

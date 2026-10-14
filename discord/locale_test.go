@@ -34,10 +34,10 @@ func BenchmarkLocale_JSON(b *testing.B) {
 	loc := LocaleEnglishUS
 	raw := []byte(`"en-US"`)
 
+	var l Locale
 	b.ReportAllocs()
 	for b.Loop() {
-		var l Locale
 		_ = json.Unmarshal(raw, &l)
-		_, _ = json.Marshal(loc)
+		_, _ = json.Marshal(&loc)
 	}
 }

@@ -28,12 +28,12 @@ func TestTextInput(t *testing.T) {
 
 func BenchmarkTextInput_JSON(b *testing.B) {
 	input := NewShortTextInput("feedback", "Type feedback here")
-	data, _ := json.Marshal(input)
+	data, _ := json.Marshal(&input)
 
+	var parsed TextInput
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed TextInput
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(input)
+		_, _ = json.Marshal(&input)
 	}
 }

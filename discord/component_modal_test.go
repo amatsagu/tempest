@@ -60,6 +60,6 @@ func BenchmarkComponentModal_JSON(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = json.Marshal(label)
+		_, _ = json.Marshal(&label)
 	}
 }

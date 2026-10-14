@@ -37,12 +37,12 @@ func BenchmarkCommand_JSON(b *testing.B) {
 			LocaleGerman: "Option Eins",
 		},
 	}
-	data, _ := json.Marshal(choice)
+	data, _ := json.Marshal(&choice)
 
+	var parsed CommandOptionChoice
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed CommandOptionChoice
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(choice)
+		_, _ = json.Marshal(&choice)
 	}
 }

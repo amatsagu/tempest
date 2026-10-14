@@ -35,6 +35,6 @@ func BenchmarkResponseAutocomplete_JSON(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = json.Marshal(resp)
+		_, _ = json.Marshal(&resp)
 	}
 }

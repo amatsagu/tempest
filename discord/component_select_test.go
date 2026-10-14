@@ -40,12 +40,12 @@ func BenchmarkSelect_JSON(b *testing.B) {
 		SelectOption{Label: "Opt 1", Value: "val_1"},
 		SelectOption{Label: "Opt 2", Value: "val_2", Default: true},
 	)
-	data, _ := json.Marshal(sel)
+	data, _ := json.Marshal(&sel)
 
+	var parsed StringSelect
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed StringSelect
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(sel)
+		_, _ = json.Marshal(&sel)
 	}
 }

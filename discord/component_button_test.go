@@ -28,12 +28,12 @@ func TestButton(t *testing.T) {
 
 func BenchmarkButton_JSON(b *testing.B) {
 	btn := NewButton("btn_click", "Click Me", ButtonPrimary)
-	data, _ := json.Marshal(btn)
+	data, _ := json.Marshal(&btn)
 
+	var parsed Button
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Button
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(btn)
+		_, _ = json.Marshal(&btn)
 	}
 }

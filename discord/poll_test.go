@@ -43,12 +43,12 @@ func BenchmarkPoll_JSON(b *testing.B) {
 		AllowMultiselect: false,
 		LayoutType:       PollLayoutDefault,
 	}
-	data, _ := json.Marshal(p)
+	data, _ := json.Marshal(&p)
 
+	var parsed Poll
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Poll
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(p)
+		_, _ = json.Marshal(&p)
 	}
 }

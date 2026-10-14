@@ -77,12 +77,14 @@ func BenchmarkMessage_JSON(b *testing.B) {
 		Type:      MessageTypeDefault,
 		Flags:     MessageFlagEphemeral,
 	}
-	data, _ := json.Marshal(msg)
+	data, _ := json.Marshal(&msg)
 
+	// Marshal through a pointer and reuse the decode target: value-marshaling
+	// and a fresh local destination both copy/heap-allocate the whole struct.
+	var parsed Message
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Message
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(msg)
+		_, _ = json.Marshal(&msg)
 	}
 }

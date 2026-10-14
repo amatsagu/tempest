@@ -22,51 +22,48 @@ type Label struct {
 
 func (l Label) ComponentType() ComponentType { return ComponentLabel }
 
-func (l Label) MarshalJSON() ([]byte, error) {
+func (l Label) MarshalJSONTo(enc *jsontext.Encoder) error {
 	type rawLabel Label
-	if l.TextInput != nil {
-		return json.Marshal(struct {
+
+	switch {
+	case l.TextInput != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *TextInput `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.TextInput})
-	}
-	if l.StringSelect != nil {
-		return json.Marshal(struct {
+		}{Component: l.TextInput, rawLabel: rawLabel(l)})
+	case l.StringSelect != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *StringSelect `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.StringSelect})
-	}
-	if l.SelectMenu != nil {
-		return json.Marshal(struct {
+		}{Component: l.StringSelect, rawLabel: rawLabel(l)})
+	case l.SelectMenu != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *SelectMenu `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.SelectMenu})
-	}
-	if l.FileUpload != nil {
-		return json.Marshal(struct {
+		}{Component: l.SelectMenu, rawLabel: rawLabel(l)})
+	case l.FileUpload != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *FileUpload `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.FileUpload})
-	}
-	if l.RadioGroup != nil {
-		return json.Marshal(struct {
+		}{Component: l.FileUpload, rawLabel: rawLabel(l)})
+	case l.RadioGroup != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *RadioGroup `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.RadioGroup})
-	}
-	if l.CheckboxGroup != nil {
-		return json.Marshal(struct {
+		}{Component: l.RadioGroup, rawLabel: rawLabel(l)})
+	case l.CheckboxGroup != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *CheckboxGroup `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.CheckboxGroup})
-	}
-	if l.Checkbox != nil {
-		return json.Marshal(struct {
+		}{Component: l.CheckboxGroup, rawLabel: rawLabel(l)})
+	case l.Checkbox != nil:
+		return json.MarshalEncode(enc, struct {
 			Component *Checkbox `json:"component"`
 			rawLabel
-		}{rawLabel: rawLabel(l), Component: l.Checkbox})
+		}{Component: l.Checkbox, rawLabel: rawLabel(l)})
+	default:
+		return json.MarshalEncode(enc, rawLabel(l))
 	}
-	return json.Marshal(rawLabel(l))
 }
 
 func (l *Label) UnmarshalJSON(data []byte) error {

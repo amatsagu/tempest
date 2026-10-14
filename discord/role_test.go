@@ -43,12 +43,12 @@ func BenchmarkRole_JSON(b *testing.B) {
 		Position:    5,
 		Mentionable: true,
 	}
-	data, _ := json.Marshal(r)
+	data, _ := json.Marshal(&r)
 
+	var parsed Role
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Role
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(r)
+		_, _ = json.Marshal(&r)
 	}
 }

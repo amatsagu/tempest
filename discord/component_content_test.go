@@ -33,12 +33,12 @@ func TestComponentContent(t *testing.T) {
 
 func BenchmarkComponentContent_JSON(b *testing.B) {
 	txt := NewTextDisplay("**Bold Notice**")
-	data, _ := json.Marshal(txt)
+	data, _ := json.Marshal(&txt)
 
+	var parsed TextDisplay
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed TextDisplay
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(txt)
+		_, _ = json.Marshal(&txt)
 	}
 }

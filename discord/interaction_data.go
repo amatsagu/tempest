@@ -3,6 +3,7 @@ package discord
 import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"fmt"
 	"strconv"
 )
 
@@ -121,31 +122,73 @@ type ModalInteractionData struct {
 	Components []SubmittedComponent     `json:"components,omitzero"`
 }
 
-func (m *ModalInteractionData) UnmarshalJSON(data []byte) error {
-	type rawModalData struct {
-		Resolved   *InteractionDataResolved `json:"resolved,omitzero"`
-		CustomID   string                   `json:"custom_id"`
-		Components []jsontext.Value         `json:"components,omitzero"`
+// UnmarshalJSONFrom decodes the modal data in a single pass, reading each
+// submitted component as a raw value through the shared decoder instead of
+// buffering the whole components array into intermediate jsontext.Values.
+func (m *ModalInteractionData) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if dec.PeekKind() != '{' {
+		return fmt.Errorf("modal interaction data: expected JSON object")
 	}
 
-	var raw rawModalData
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
 
-	m.CustomID = raw.CustomID
-	m.Resolved = raw.Resolved
-	m.Components = make([]SubmittedComponent, 0, len(raw.Components))
-
-	for _, rawComp := range raw.Components {
-		comp, err := UnmarshalSubmittedComponent(rawComp)
+	for dec.PeekKind() != '}' {
+		name, err := dec.ReadToken()
 		if err != nil {
 			return err
 		}
+
+		switch name.String() {
+		case "custom_id":
+			if err := json.UnmarshalDecode(dec, &m.CustomID); err != nil {
+				return err
+			}
+		case "resolved":
+			if err := json.UnmarshalDecode(dec, &m.Resolved); err != nil {
+				return err
+			}
+		case "components":
+			if err := m.decodeComponents(dec); err != nil {
+				return err
+			}
+		default:
+			if err := dec.SkipValue(); err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err := dec.ReadToken()
+	return err
+}
+
+func (m *ModalInteractionData) decodeComponents(dec *jsontext.Decoder) error {
+	if dec.PeekKind() != '[' {
+		return fmt.Errorf("modal interaction data: expected JSON array for components")
+	}
+
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+
+	for dec.PeekKind() != ']' {
+		raw, err := dec.ReadValue()
+		if err != nil {
+			return err
+		}
+
+		comp, err := UnmarshalSubmittedComponent(raw)
+		if err != nil {
+			return err
+		}
+
 		m.Components = append(m.Components, comp)
 	}
 
-	return nil
+	_, err := dec.ReadToken()
+	return err
 }
 
 func (m ModalInteractionData) FindComponent(customID string) (SubmittedComponent, bool) {

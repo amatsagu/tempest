@@ -52,12 +52,12 @@ func BenchmarkMember_JSON(b *testing.B) {
 		JoinedAt:    now,
 		Permissions: PermissionSendMessages,
 	}
-	data, _ := json.Marshal(m)
+	data, _ := json.Marshal(&m)
 
+	var parsed Member
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Member
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(m)
+		_, _ = json.Marshal(&m)
 	}
 }

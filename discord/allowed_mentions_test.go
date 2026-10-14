@@ -35,12 +35,12 @@ func BenchmarkAllowedMentions_JSON(b *testing.B) {
 		Users:       []UserID{{Snowflake: 202}},
 		RepliedUser: true,
 	}
-	data, _ := json.Marshal(am)
+	data, _ := json.Marshal(&am)
 
+	var parsed AllowedMentions
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed AllowedMentions
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(am)
+		_, _ = json.Marshal(&am)
 	}
 }

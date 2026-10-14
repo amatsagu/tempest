@@ -39,12 +39,14 @@ func BenchmarkChannel_JSON(b *testing.B) {
 		Name:     "general",
 		Position: 1,
 	}
-	data, _ := json.Marshal(ch)
+	data, _ := json.Marshal(&ch)
 
+	// Marshal through a pointer and reuse the decode target: value-marshaling
+	// and a fresh local destination both copy/heap-allocate the whole struct.
+	var parsed Channel
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Channel
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(ch)
+		_, _ = json.Marshal(&ch)
 	}
 }

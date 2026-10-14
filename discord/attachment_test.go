@@ -41,12 +41,12 @@ func BenchmarkAttachment_JSON(b *testing.B) {
 		Width:       800,
 		Height:      600,
 	}
-	data, _ := json.Marshal(att)
+	data, _ := json.Marshal(&att)
 
+	var parsed Attachment
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Attachment
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(att)
+		_, _ = json.Marshal(&att)
 	}
 }

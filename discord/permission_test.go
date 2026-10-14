@@ -39,10 +39,10 @@ func BenchmarkPermissions_JSON(b *testing.B) {
 	pl := Payload{Perms: PermissionAdministrator | PermissionSendMessages}
 	raw := []byte(`{"app_permissions":"2056"}`)
 
+	var parsed Payload
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Payload
 		_ = json.Unmarshal(raw, &parsed)
-		_, _ = json.Marshal(pl)
+		_, _ = json.Marshal(&pl)
 	}
 }

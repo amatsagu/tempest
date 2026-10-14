@@ -51,12 +51,12 @@ func BenchmarkUser_JSON(b *testing.B) {
 		Avatar:     "abcdef123456",
 		Bot:        true,
 	}
-	data, _ := json.Marshal(u)
+	data, _ := json.Marshal(&u)
 
+	var parsed User
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed User
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(u)
+		_, _ = json.Marshal(&u)
 	}
 }

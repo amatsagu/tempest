@@ -37,12 +37,12 @@ func BenchmarkEntitlement_JSON(b *testing.B) {
 		UserID:        UserID{Snowflake: 1001},
 		Type:          EntitlementApplicationSubscription,
 	}
-	data, _ := json.Marshal(ent)
+	data, _ := json.Marshal(&ent)
 
+	var parsed Entitlement
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Entitlement
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(ent)
+		_, _ = json.Marshal(&ent)
 	}
 }

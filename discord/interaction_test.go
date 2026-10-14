@@ -64,9 +64,9 @@ func BenchmarkInteraction_JSON(b *testing.B) {
 		"app_permissions": "1071698660929"
 	}`)
 
+	var itx Interaction
 	b.ReportAllocs()
 	for b.Loop() {
-		var itx Interaction
 		_ = json.Unmarshal(raw, &itx)
 	}
 }

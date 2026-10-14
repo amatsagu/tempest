@@ -92,6 +92,33 @@ func TestModalInteractionData_Helpers(t *testing.T) {
 	}
 }
 
+func TestModalInteractionDataHelpers(t *testing.T) {
+	payload := []byte(`{"custom_id":"m","future_field":{"a":1},"resolved":{"users":{"5":{"id":"5","username":"u"}}},"components":[]}`)
+
+	var modal ModalInteractionData
+	if err := json.Unmarshal(payload, &modal); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	if modal.CustomID != "m" {
+		t.Errorf("CustomID = %q, want m", modal.CustomID)
+	}
+	if modal.Resolved == nil || modal.Resolved.Users[UserID{Snowflake: 5}].Username != "u" {
+		t.Errorf("Resolved = %+v, want user 5", modal.Resolved)
+	}
+	if len(modal.Components) != 0 {
+		t.Errorf("Components = %d, want 0", len(modal.Components))
+	}
+
+	var empty ModalInteractionData
+	if err := json.Unmarshal([]byte(`{}`), &empty); err != nil {
+		t.Fatalf("Unmarshal empty failed: %v", err)
+	}
+	if empty.CustomID != "" || empty.Resolved != nil || len(empty.Components) != 0 {
+		t.Errorf("empty = %+v, want zero", empty)
+	}
+}
+
 func BenchmarkModalInteractionData_Unmarshal(b *testing.B) {
 	raw := []byte(`{
 		"custom_id": "profile_modal",
@@ -109,9 +136,9 @@ func BenchmarkModalInteractionData_Unmarshal(b *testing.B) {
 		]
 	}`)
 
+	var modal ModalInteractionData
 	b.ReportAllocs()
 	for b.Loop() {
-		var modal ModalInteractionData
 		_ = json.Unmarshal(raw, &modal)
 	}
 }

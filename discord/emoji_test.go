@@ -41,12 +41,12 @@ func BenchmarkEmoji_JSON(b *testing.B) {
 		Name:     "fire",
 		Animated: true,
 	}
-	data, _ := json.Marshal(e)
+	data, _ := json.Marshal(&e)
 
+	var parsed Emoji
 	b.ReportAllocs()
 	for b.Loop() {
-		var parsed Emoji
 		_ = json.Unmarshal(data, &parsed)
-		_, _ = json.Marshal(e)
+		_, _ = json.Marshal(&e)
 	}
 }

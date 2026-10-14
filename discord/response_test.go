@@ -42,6 +42,6 @@ func BenchmarkResponse_JSON(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = json.Marshal(def)
+		_, _ = json.Marshal(&def)
 	}
 }
