@@ -1,5 +1,4 @@
-// Package events shows raw gateway event handling: subscribing to named events
-// and reading an event's verbatim payload.
+// Package events shows raw gateway event handling.
 package events
 
 import (
@@ -10,12 +9,10 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Names lists the extra gateway events this bot subscribes to. They are passed
-// to Config.ExtraEvents before the client is built.
+// Names lists the extra gateway events this bot subscribes to, passed to Config.ExtraEvents.
 var Names = []string{"GUILD_CREATE", "GUILD_DELETE"}
 
-// Register subscribes a handler per event. Handlers receive the raw JSON payload
-// as jsontext.Value; decode it yourself only if you need its contents.
+// Register subscribes a handler per event; it receives the raw JSON payload.
 func Register(client *tempest.Client) {
 	client.Event("GUILD_CREATE", func(_ context.Context, shard int, _ string, data jsontext.Value) {
 		slog.Info("guild became available", "shard", shard, "bytes", len(data))

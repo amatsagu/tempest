@@ -18,13 +18,8 @@ func (c *slowCommand) Definition() discord.Command {
 	}
 }
 
-// handle acknowledges the interaction immediately and then finishes the work in
-// place. Defer sends the acknowledgement over whichever transport is running, so
-// Discord has an answer well inside its three second deadline while the handler
-// keeps working, and this works the same in HTTP and gateway mode.
-//
-// The follow-up is a plain Reply: because the first reply already went out as
-// the defer, Reply edits the original response instead of sending a new message.
+// handle defers immediately, then does the slow work and replies; because a first
+// reply already went out, the Reply edits the original response in place.
 func (c *slowCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	if err := itx.Defer(true); err != nil {
 		return err

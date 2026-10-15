@@ -9,8 +9,7 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// tagCommand answers the /tag subcommands. Its store is server-scoped state
-// shared across every invocation.
+// tagCommand answers the /tag subcommands, backed by server-scoped state.
 type tagCommand struct {
 	store *tagStore
 }
@@ -58,8 +57,7 @@ func (c *tagCommand) Definition() discord.Command {
 	}
 }
 
-// handle switches on the invoked subcommand, which Discord sends as the first
-// entry of Data.Options, and hands off to one method per subcommand.
+// handle dispatches on the first Data.Options entry to one method per subcommand.
 func (c *tagCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	if itx.GuildID.Snowflake == 0 {
 		return itx.Reply(discord.ResponseMessageData{Content: "Tags only work in servers."}, true)
@@ -96,9 +94,8 @@ func (c *tagCommand) addTag(itx *discord.CommandInteraction, sub discord.Command
 	return itx.Reply(discord.ResponseMessageData{Content: "Saved tag " + name + "."}, true)
 }
 
-// showTag replies with the tag's embed. A missing tag is a genuine failure, so
-// it is returned as an error and reported through Config.OnInteractionError
-// rather than answered here.
+// showTag replies with the tag's embed; a missing tag is returned as an error for
+// Config.OnInteractionError rather than answered here.
 func (c *tagCommand) showTag(itx *discord.CommandInteraction, sub discord.CommandInteractionOption) error {
 	name := subString(sub, "name")
 
@@ -129,8 +126,7 @@ func (c *tagCommand) listTags(itx *discord.CommandInteraction) error {
 	return itx.Reply(discord.ResponseMessageData{Content: "Tags: " + strings.Join(names, ", ")}, false)
 }
 
-// autocomplete suggests stored tag names, but only for the name option of the
-// show and remove subcommands. Anything else returns no choices.
+// autocomplete suggests stored tag names for the name option of show and remove.
 func (c *tagCommand) autocomplete(_ context.Context, itx *discord.CommandInteraction) ([]discord.CommandOptionChoice, error) {
 	typed, ok := focusedTagName(itx.Data)
 	if !ok {
@@ -152,8 +148,7 @@ func (c *tagCommand) autocomplete(_ context.Context, itx *discord.CommandInterac
 	return choices, nil
 }
 
-// focusedTagName returns the text typed into the focused name option, but only
-// when the invoked subcommand is show or remove.
+// focusedTagName returns the focused name option's text for show or remove.
 func focusedTagName(data discord.CommandInteractionData) (string, bool) {
 	if len(data.Options) == 0 {
 		return "", false
@@ -173,8 +168,7 @@ func focusedTagName(data discord.CommandInteractionData) (string, bool) {
 	return "", false
 }
 
-// subString reads a string option nested under a subcommand. Subcommand
-// parameters live in the subcommand option's own Options, not at the top level.
+// subString reads a string option nested under a subcommand's own Options.
 func subString(sub discord.CommandInteractionOption, name string) string {
 	for _, opt := range sub.Options {
 		if opt.Name != name {

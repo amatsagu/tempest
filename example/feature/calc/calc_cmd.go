@@ -1,5 +1,5 @@
-// Package calc shows an interactive calculator built from buttons: /calc posts
-// a keypad, and each press edits the same message in place.
+// Package calc shows an interactive button calculator: /calc posts a keypad and each
+// press edits the same message in place.
 package calc
 
 import (
@@ -12,24 +12,19 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// initialDisplay is what an empty expression shows.
 const initialDisplay = "0"
 
-// maxCalcSessions bounds the in-memory session map so a burst of /calc calls
-// cannot grow it without limit.
+// maxCalcSessions bounds the in-memory session map.
 const maxCalcSessions = 256
 
-// calcSession is the state behind one message: the expression the buttons
-// build, and the line shown. After "=" the display keeps the equation while
-// expr becomes the result, so the user can keep chaining.
+// calcSession is the state behind one message. After "=" the display keeps the
+// equation while expr becomes the result, so presses keep chaining.
 type calcSession struct {
 	expr    string
 	display string
 }
 
-// calcCommand owns the live calculator sessions. A session id is minted by
-// /calc and packed into each button's custom ID, so one registered handler
-// serves every session.
+// calcCommand owns the live sessions; the session id is packed into each button ID.
 type calcCommand struct {
 	mu       sync.Mutex
 	sessions map[string]calcSession
@@ -51,7 +46,6 @@ func (c *calcCommand) handle(_ context.Context, itx *discord.CommandInteraction)
 	return itx.Reply(calcData(session, initialDisplay), false)
 }
 
-// newSession stores an empty session under a fresh random id.
 func (c *calcCommand) newSession() string {
 	id := strconv.FormatUint(rand.Uint64(), 36)
 
@@ -65,8 +59,8 @@ func (c *calcCommand) newSession() string {
 
 // evict drops arbitrary sessions until the map is back under the cap.
 //
-// ponytail: random eviction, not LRU, and no per-user ownership; a real bot
-// would key sessions by user and expire idle ones on a timer.
+// ponytail: random eviction, not LRU, and no per-user ownership; a real bot would
+// key sessions by user and expire idle ones on a timer.
 func (c *calcCommand) evict() {
 	for len(c.sessions) > maxCalcSessions {
 		for key := range c.sessions {
@@ -76,7 +70,6 @@ func (c *calcCommand) evict() {
 	}
 }
 
-// press advances one session by a button key and reports whether it existed.
 func (c *calcCommand) press(session, key string) (calcSession, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -90,7 +83,6 @@ func (c *calcCommand) press(session, key string) (calcSession, bool) {
 	return state, true
 }
 
-// applyKey mutates a session for one key press.
 func applyKey(s calcSession, key string) calcSession {
 	switch key {
 	case keyClear:
@@ -108,8 +100,7 @@ func applyKey(s calcSession, key string) calcSession {
 	}
 }
 
-// trimLastRune removes the final rune, not the final byte, so a multi-byte
-// operator like × is deleted whole.
+// trimLastRune removes the final rune, not byte, so a multi-byte operator is deleted whole.
 func trimLastRune(s string) string {
 	runes := []rune(s)
 	if len(runes) == 0 {
@@ -125,9 +116,8 @@ func displayFor(expr string) string {
 	return expr
 }
 
-// evaluate replaces the display with "expr = result" and the expression with
-// the result, so the next press chains off it. On a bad expression the display
-// says "error" and the expression is left untouched.
+// evaluate replaces the display with "expr = result" and sets expr to the result so
+// the next press chains; on a bad expression it shows "error" and leaves expr alone.
 func evaluate(s calcSession) calcSession {
 	result, err := evalExpression(s.expr)
 	if err != nil {
@@ -141,13 +131,11 @@ func evaluate(s calcSession) calcSession {
 	return s
 }
 
-// errBadExpression means the input is malformed: a missing operand, a stray
-// character, or division by zero.
+// errBadExpression means the input is malformed or divides by zero.
 var errBadExpression = errors.New("bad expression")
 
-// evalExpression evaluates numbers joined by + - × ÷, giving × and ÷
-// precedence over + and -. A recursive descent over the runes: expr is a chain
-// of terms, a term is a chain of numbers.
+// evalExpression evaluates numbers joined by + - × ÷ with × and ÷ precedence, via a
+// recursive descent: expr is a chain of terms, a term a chain of numbers.
 func evalExpression(s string) (float64, error) {
 	p := parser{runes: []rune(s)}
 
@@ -155,6 +143,7 @@ func evalExpression(s string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if p.pos != len(p.runes) {
 		return 0, errBadExpression
 	}
@@ -171,6 +160,7 @@ func (p *parser) expr() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	for p.pos < len(p.runes) && (p.runes[p.pos] == '+' || p.runes[p.pos] == '-') {
 		op := p.runes[p.pos]
 		p.pos++
@@ -179,6 +169,7 @@ func (p *parser) expr() (float64, error) {
 		if err != nil {
 			return 0, err
 		}
+
 		if op == '+' {
 			left += right
 		} else {
@@ -193,6 +184,7 @@ func (p *parser) term() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	for p.pos < len(p.runes) && (p.runes[p.pos] == '×' || p.runes[p.pos] == '÷') {
 		op := p.runes[p.pos]
 		p.pos++
@@ -201,6 +193,7 @@ func (p *parser) term() (float64, error) {
 		if err != nil {
 			return 0, err
 		}
+
 		switch op {
 		case '×':
 			left *= right
@@ -224,6 +217,7 @@ func (p *parser) number() (float64, error) {
 			p.pos++
 			continue
 		}
+
 		if r == '.' && !dot {
 			dot = true
 			p.pos++

@@ -1,7 +1,4 @@
-// Command tempest-example is a small but complete Discord bot built on the
-// Tempest runtime. It is a tour of the common things a bot does: slash, user,
-// and message commands, embeds, buttons, select menus, modals, Components V2,
-// and both static and dynamic handler registration.
+// Command tempest-example is a small but complete Discord bot built on Tempest.
 package main
 
 import (
@@ -41,12 +38,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// With HTTP_ADDR set the bot serves the interaction endpoint over HTTP and
-	// needs DISCORD_PUBLIC_KEY. Otherwise it connects over the gateway.
+	// With HTTP_ADDR set the bot serves the interaction endpoint over HTTP and needs
+	// DISCORD_PUBLIC_KEY; otherwise it connects over the gateway.
 	httpAddr := os.Getenv("HTTP_ADDR")
 
-	// Created before the client so the lifecycle hooks below and the /stats
-	// command share one counter set.
+	// Created before the client so the hooks and /stats share one counter set.
 	botStats := stats.NewStats()
 
 	client, err := tempest.New(tempest.Config{
@@ -59,14 +55,8 @@ func run() error {
 		Logf:        log.Printf,
 		Debug:       os.Getenv("DEBUG") != "",
 
-		// Lifecycle hooks. They run on the interaction path and cost nothing
-		// when left nil. OnRawInteraction fires for every interaction except
-		// PING, as soon as the route is known, before any handler runs. Return
-		// false to veto an interaction: its handler is skipped and it is left
-		// unacknowledged, exactly like Tempest's pre-command hook. An
-		// interaction with no matching route is dropped the same way, except
-		// with DEBUG set, where it gets an ephemeral hint explaining how to
-		// register a handler. So a veto is only needed to block a matched route.
+		// Lifecycle hooks; nil hooks cost nothing. Return false from OnRawInteraction
+		// to veto a matched route (skipped and left unacknowledged).
 		OnRawInteraction: func(info tempest.InteractionInfo) bool {
 			slog.Debug("interaction",
 				"kind", info.Kind,
@@ -81,14 +71,9 @@ func run() error {
 			botStats.Completed(info)
 			slog.Debug("interaction completed", "route", info.Route.Pattern, "response", info.Response, "took", info.Duration)
 		},
-		// OnInteractionError runs once for every handler that returns an error.
-		// It counts the failure for /stats, logs it and tells the user
-		// generically through Reply, so the message is the first response or an
-		// edit when the handler already answered. The typed itx lets the hook
-		// answer the right interaction.
+		// OnInteractionError counts failures for /stats, logs them, and tells the user.
 		OnInteractionError: func(err error, info tempest.InteractionInfo, itx any) {
-			// The rotate modal answers itself with a multipart upload; its
-			// sentinel is not a failure, so it is neither counted nor reported.
+			// A file reply reports success through ErrAnswered, not as a failure.
 			if errors.Is(err, image.ErrAnswered) {
 				return
 			}
@@ -106,27 +91,27 @@ func run() error {
 			case *discord.ModalInteraction:
 				replyErr = v.Reply(message, true)
 			}
+
 			if replyErr != nil {
 				slog.Error("could not report interaction error", "err", replyErr)
 			}
 		},
 
-		// Subscribe to a couple of extra gateway events, and observe every raw
-		// dispatch before the runtime parses anything.
+		// Subscribe to extra gateway events and observe raw dispatches.
 		ExtraEvents: events.Names,
 		OnRawEvent: func(shard int, event string, data jsontext.Value) {
 			slog.Debug("raw dispatch", "shard", shard, "event", event, "bytes", len(data))
 		},
 	})
+
 	if err != nil {
 		return err
 	}
 
 	events.Register(client)
 
-	// Every feature registers its handlers and hands back the command
-	// definitions it wants announced to Discord. A registration failure stops
-	// startup with a clear error instead of running with a missing handler.
+	// Every feature registers its handlers and returns its command definitions; a
+	// failure stops startup instead of running with a missing handler.
 	registerFeatures := []func(*tempest.Client) ([]discord.Command, error){
 		commands.Register,
 		contextmenu.Register,
@@ -135,8 +120,7 @@ func run() error {
 		image.Register,
 		tags.Register,
 		calc.Register,
-		// /stats needs the counter set created above, so it is wrapped rather
-		// than referenced directly.
+		// /stats needs the counter set created above, so it is wrapped.
 		func(client *tempest.Client) ([]discord.Command, error) {
 			return stats.Register(client, botStats)
 		},
@@ -152,8 +136,7 @@ func run() error {
 	}
 
 	if client.REST() != nil {
-		// A guild ID here (instead of the zero value) syncs to one guild and
-		// updates instantly, which is nicer while iterating locally.
+		// A guild ID instead of the zero value would sync to one guild for faster iteration.
 		if err := client.SyncCommands(ctx, discord.GuildID{}, definitions); err != nil {
 			return fmt.Errorf("sync commands: %w", err)
 		}

@@ -33,8 +33,7 @@ func (c *echoCommand) Definition() discord.Command {
 	}
 }
 
-// handle repeats the text and lets the ephemeral option flag the reply. Reply's
-// ephemeral argument adds the flag to the first response for us.
+// handle repeats the text, with the ephemeral flag on the first response.
 func (c *echoCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	text, _ := itx.Data.StringOption("text")
 	ephemeral, _ := itx.Data.BoolOption("ephemeral")

@@ -1,7 +1,5 @@
-// Package image demonstrates a file round trip: /rotate opens a modal that only
-// accepts a PNG, and the submission comes back rotated 90 degrees clockwise.
-// Everything — download, rotation, encode — uses the standard library; the only
-// non-standard call is the multipart upload on the shared REST client.
+// Package image demonstrates a file round trip: /rotate takes a PNG and returns it
+// rotated 90 degrees clockwise.
 package image
 
 import (
@@ -33,15 +31,12 @@ func (c *rotateCommand) Definition() discord.Command {
 	}
 }
 
-// handle answers the command with a modal rather than a message, so it goes
-// through Respond. The label's file upload is restricted to the .png extension;
-// Discord rejects anything else before the submission reaches the bot.
+// handle answers with a modal through Respond; the upload accepts only .png.
 func (c *rotateCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	return itx.Respond(rotateModal())
 }
 
-// rotateModal builds the modal /rotate opens. Extracted so a test can assert the
-// wire format of the file upload, in particular its file_types filter.
+// rotateModal builds the modal /rotate opens; extracted so a test can assert its wire format.
 func rotateModal() discord.Response {
 	return builder.ModalResponse(rotateModalID, "Rotate a PNG",
 		builder.LabelWithFileUpload("PNG",

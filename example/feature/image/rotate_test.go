@@ -8,8 +8,7 @@ import (
 	"testing"
 )
 
-// TestRotate90CW rotates a known 3x2 image and checks the swapped dimensions and
-// a few destination pixels against the clockwise mapping src(x, y) -> dst(H-1-y, x).
+// TestRotate90CW rotates a known 3x2 image and checks dimensions and pixels.
 func TestRotate90CW(t *testing.T) {
 	src := image.NewRGBA(image.Rect(0, 0, 3, 2))
 	for y := 0; y < 2; y++ {
@@ -32,6 +31,7 @@ func TestRotate90CW(t *testing.T) {
 		{0, 1},
 		{2, 1},
 	}
+
 	for _, tt := range tests {
 		dx, dy := 2-1-tt.sy, tt.sx
 		if gotColor, wantColor := got.At(dx, dy), src.At(tt.sx, tt.sy); gotColor != wantColor {
@@ -40,10 +40,8 @@ func TestRotate90CW(t *testing.T) {
 	}
 }
 
-// TestRotateModalFileTypes pins the file_types wire format. Discord accepts a
-// category keyword ("image", "video", "audio") or a dot-prefixed extension such
-// as ".png"; a MIME type like "image/png" fails validation with
-// STRING_TYPE_REGEX. This guards against regressing back to a MIME type.
+// TestRotateModalFileTypes pins the file_types wire format: a dot-prefixed extension,
+// never a MIME type like "image/png" (which Discord rejects).
 func TestRotateModalFileTypes(t *testing.T) {
 	data, err := json.Marshal(rotateModal())
 	if err != nil {
@@ -54,6 +52,7 @@ func TestRotateModalFileTypes(t *testing.T) {
 	if !strings.Contains(got, `"file_types":[".png"]`) {
 		t.Fatalf("modal = %s, want file_types [\".png\"]", got)
 	}
+
 	if strings.Contains(got, "image/png") {
 		t.Fatalf("modal = %s, must not send a MIME type in file_types", got)
 	}

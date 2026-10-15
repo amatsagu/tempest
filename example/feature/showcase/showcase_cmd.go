@@ -19,8 +19,7 @@ func (c *showcaseCommand) Definition() discord.Command {
 	}
 }
 
-// handle builds one container that holds every V2 layout piece. A V2 message
-// carries no content and sets MessageFlagIsComponentsV2.
+// handle builds one container holding every V2 layout piece.
 func (c *showcaseCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	container := builder.Container(0x5865F2,
 		builder.TextDisplay("## Components V2"),
@@ -42,8 +41,7 @@ func (c *showcaseCommand) handle(_ context.Context, itx *discord.CommandInteract
 	}, false)
 }
 
-// handleAcknowledge updates the V2 message in place. The replacement is also V2,
-// so it carries the flag and a component instead of content.
+// handleAcknowledge updates the V2 message in place.
 func (c *showcaseCommand) handleAcknowledge(_ context.Context, itx *discord.ComponentInteraction, _ *route.Params) error {
 	return itx.Update(discord.ResponseMessageData{
 		Flags:      discord.MessageFlagIsComponentsV2,

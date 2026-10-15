@@ -9,22 +9,18 @@ import (
 	"github.com/amatsagu/tempest/route"
 )
 
-// Key names. The non-numeric keys are words so they cannot collide with the
-// pattern's '/' and ':' separators.
+// Non-numeric keys are words so they cannot collide with the pattern separators.
 const (
 	keyBack   = "back"
 	keyClear  = "C"
 	keyEquals = "="
 )
 
-// calcButton builds one key. Its custom ID packs the session and the key into
-// the pattern registered once in registry.go.
+// calcButton builds one key, packing its session and key into the registered pattern.
 func calcButton(session, label, key string, style discord.ButtonStyle) discord.Button {
 	return builder.Button(fmt.Sprintf("calc:%s:%s", session, key), label, style)
 }
 
-// calcComponents lays out the keypad: four columns, digits and operators first,
-// with backspace and equals on the last row.
 func calcComponents(session string) discord.Components {
 	return discord.Components{
 		builder.ActionRow(
@@ -58,9 +54,7 @@ func calcComponents(session string) discord.Components {
 	}
 }
 
-// calcData renders a session: the display and the keypad. Callers choose the
-// transport: Reply for a new message, Update to replace the one the button was
-// attached to.
+// calcData renders a session's display and keypad for either Reply or Update.
 func calcData(session, display string) discord.ResponseMessageData {
 	return discord.ResponseMessageData{
 		Content:    display,
@@ -68,9 +62,8 @@ func calcData(session, display string) discord.ResponseMessageData {
 	}
 }
 
-// handleButton mutates the session named in the custom ID and refreshes the
-// message. A session that is gone (bot restarted, or evicted) answers with an
-// ephemeral hint instead.
+// handleButton mutates the session in the custom ID and refreshes the message; a
+// missing session answers with an ephemeral hint.
 func (c *calcCommand) handleButton(_ context.Context, itx *discord.ComponentInteraction, params *route.Params) error {
 	session, _ := params.Get("session")
 	key, _ := params.Get("key")

@@ -14,6 +14,7 @@ func Register(client *tempest.Client) ([]discord.Command, error) {
 	if err := client.Modal(rotateModalID, rotate.handleSubmit); err != nil {
 		return nil, fmt.Errorf("register %s: %w", rotateModalID, err)
 	}
+
 	if err := client.Command("rotate", rotate.handle); err != nil {
 		return nil, fmt.Errorf("register /rotate: %w", err)
 	}

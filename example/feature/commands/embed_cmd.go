@@ -20,8 +20,7 @@ func (c *embedCommand) Definition() discord.Command {
 	}
 }
 
-// handle builds the whole reply with builders instead of filling structs by
-// hand, which is the style the builder package is meant to encourage.
+// handle builds the reply with the builder package rather than raw structs.
 func (c *embedCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	footer := builder.EmbedFooter("Tempest example")
 	now := time.Now()

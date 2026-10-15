@@ -1,6 +1,4 @@
-// Package stats renders a Components V2 runtime panel: uptime, interaction
-// counters, memory, and REST/gateway latency. The counters are fed by the
-// client's lifecycle hooks, so they cost nothing when the panel is never used.
+// Package stats renders a Components V2 runtime panel fed by the lifecycle hooks.
 package stats
 
 import (
@@ -10,9 +8,8 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Stats accumulates interaction counts and remembers when the bot started. Every
-// counter is atomic, so the hot path (the completed/error hooks) never locks and
-// never allocates.
+// Stats accumulates interaction counts and the start time; every counter is atomic
+// so the hot path never locks or allocates.
 type Stats struct {
 	started      time.Time
 	completed    atomic.Uint64
@@ -28,9 +25,7 @@ func NewStats() *Stats {
 	return &Stats{started: time.Now()}
 }
 
-// Completed is the client's OnCompletedInteraction hook: it counts every handler
-// that ran to completion and splits it by route kind. It is allocation free and
-// safe to call concurrently.
+// Completed is the OnCompletedInteraction hook: it counts completions by route kind.
 func (s *Stats) Completed(info tempest.InteractionInfo) {
 	s.completed.Add(1)
 
@@ -46,15 +41,12 @@ func (s *Stats) Completed(info tempest.InteractionInfo) {
 	}
 }
 
-// Failed is the client's OnInteractionError hook: it counts handler failures.
-// The error, route info and interaction are deliberately unused here; main.go
-// logs and answers the interaction with its own hook around this call.
+// Failed is the OnInteractionError hook: it counts failures; main.go does the logging.
 func (s *Stats) Failed(_ error, _ tempest.InteractionInfo, _ any) {
 	s.errors.Add(1)
 }
 
-// Snapshot is a point-in-time copy of the counters and uptime, taken on the
-// panel's slow path.
+// Snapshot is a point-in-time copy of the counters and uptime.
 type Snapshot struct {
 	Uptime       time.Duration
 	Total        uint64
@@ -65,7 +57,6 @@ type Snapshot struct {
 	Errors       uint64
 }
 
-// Snapshot reads every counter once and computes the uptime.
 func (s *Stats) Snapshot() Snapshot {
 	return Snapshot{
 		Uptime:       time.Since(s.started),

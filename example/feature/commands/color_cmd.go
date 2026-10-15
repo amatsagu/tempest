@@ -8,8 +8,7 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// colorCommand holds the known colors. names is kept as a slice so autocomplete
-// suggestions have a stable order; values maps a name to its embed accent.
+// colorCommand holds the known colors; names is a slice so autocomplete stays ordered.
 type colorCommand struct {
 	names  []string
 	values map[string]uint32

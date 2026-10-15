@@ -12,9 +12,8 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// TestStatsRendersComponentsV2 drives /stats through the client's HTTP endpoint
-// the same way Discord does, and checks the reply is a Components V2 message
-// carrying the expected sections.
+// TestStatsRendersComponentsV2 drives /stats through the HTTP endpoint and checks the
+// reply is a Components V2 message.
 func TestStatsRendersComponentsV2(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -25,6 +24,7 @@ func TestStatsRendersComponentsV2(t *testing.T) {
 		PublicKey: hex.EncodeToString(pub),
 		HTTPAddr:  "127.0.0.1:0",
 	})
+
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -53,6 +53,7 @@ func TestStatsRendersComponentsV2(t *testing.T) {
 	if !strings.Contains(out, `"flags":32768`) {
 		t.Errorf("reply does not set MessageFlagIsComponentsV2: %s", out)
 	}
+
 	for _, label := range []string{"Uptime", "Interactions since start", "Memory", "Latency", "HTTP mode"} {
 		if !strings.Contains(out, label) {
 			t.Errorf("reply is missing %q: %s", label, out)

@@ -8,9 +8,8 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// Register wires the context menu handlers and returns their definitions.
-// Context menu commands have no description and no options; the target user or
-// message arrives as Data.TargetID plus Data.Resolved.
+// Register wires the context menu handlers; the target arrives as Data.TargetID and
+// Data.Resolved.
 func Register(client *tempest.Client) ([]discord.Command, error) {
 	userInfo := newUserInfoCommand()
 	quote := newQuoteCommand()
@@ -18,6 +17,7 @@ func Register(client *tempest.Client) ([]discord.Command, error) {
 	if err := client.Command("User info", userInfo.handle); err != nil {
 		return nil, fmt.Errorf("register User info: %w", err)
 	}
+
 	if err := client.Command("Quote", quote.handle); err != nil {
 		return nil, fmt.Errorf("register Quote: %w", err)
 	}

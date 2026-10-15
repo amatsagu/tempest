@@ -7,9 +7,7 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// Register wires /stats. The Stats value is created in main so the same one can
-// be handed to the client's lifecycle hooks; Register only needs the client (to
-// time a REST call and read gateway latency) and that shared value.
+// Register wires /stats, sharing the Stats created in main with the hooks.
 func Register(client *tempest.Client, stats *Stats) ([]discord.Command, error) {
 	cmd := newStatsCommand(client, stats)
 

@@ -8,8 +8,7 @@ import (
 	"github.com/amatsagu/tempest/route"
 )
 
-// handleSubmitForm reads the modal's text inputs by their custom IDs and replies
-// with an ephemeral embed. Submitted values are looked up with Data.TextInput.
+// handleSubmitForm reads the modal's text inputs and replies with an ephemeral embed.
 func (c *panelCommand) handleSubmitForm(_ context.Context, itx *discord.ModalInteraction, _ *route.Params) error {
 	title, _ := itx.Data.TextInput(titleInputID)
 	details, _ := itx.Data.TextInput(detailsInputID)

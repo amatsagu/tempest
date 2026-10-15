@@ -25,10 +25,8 @@ func (c *ticketCommand) Definition() discord.Command {
 	}
 }
 
-// handle registers a component handler on demand, keyed by this interaction's
-// ID, and removes it once it fires. This is the dynamic routing pattern: use it
-// when the custom ID carries a value that cannot be known at startup. Because
-// the handler is removed on use, the router does not accumulate entries.
+// handle registers a one-shot component handler keyed by this interaction's ID and
+// removes it once it fires: dynamic routing for IDs not known at startup.
 func (c *ticketCommand) handle(_ context.Context, itx *discord.CommandInteraction) error {
 	id := "ticket:" + itx.ID.String()
 

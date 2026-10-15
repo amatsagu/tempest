@@ -11,11 +11,9 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// accent is the container's accent colour, Discord blurple.
 const accent = 0x5865F2
 
-// statsCommand renders the panel on demand. It holds the client so it can time a
-// REST call and read the gateway's heartbeat latency, and the stats it reports.
+// statsCommand holds the client (for REST/gateway latency) and the counters.
 type statsCommand struct {
 	client *tempest.Client
 	stats  *Stats
@@ -32,8 +30,7 @@ func (c *statsCommand) Definition() discord.Command {
 	}
 }
 
-// handle renders one Components V2 message. A V2 message carries no content and
-// sets MessageFlagIsComponentsV2; every line lives inside one container.
+// handle renders the panel as one Components V2 container.
 func (c *statsCommand) handle(ctx context.Context, itx *discord.CommandInteraction) error {
 	snapshot := c.stats.Snapshot()
 
@@ -105,9 +102,8 @@ func memorySection(m *runtime.MemStats) string {
 	)
 }
 
-// latencySection times one cheap authenticated REST call and reads the shard's
-// last heartbeat round trip. It degrades to a clear sentence when either is
-// unavailable, so the same panel works in HTTP mode and with no token.
+// latencySection times one REST call and reads the shard heartbeat, degrading to a
+// sentence when either is unavailable.
 func (c *statsCommand) latencySection(ctx context.Context) string {
 	rest := "no REST client (no token configured)"
 	if client := c.client.REST(); client != nil {
@@ -131,7 +127,6 @@ func (c *statsCommand) latencySection(ctx context.Context) string {
 	return fmt.Sprintf("### Latency\nDiscord API (REST) **%s**\nGateway **%s**", rest, gateway)
 }
 
-// formatDuration renders an uptime as days, hours, minutes and seconds.
 func formatDuration(d time.Duration) string {
 	d = d.Round(time.Second)
 
@@ -146,7 +141,6 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
 }
 
-// formatBytes renders a byte count as MiB with one decimal.
 func formatBytes(b uint64) string {
 	return fmt.Sprintf("%.1f MiB", float64(b)/(1<<20))
 }

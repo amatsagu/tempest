@@ -1,5 +1,4 @@
-// Package showcase renders a Components V2 message: containers, sections, text
-// displays, separators, media galleries, and the flag that enables them.
+// Package showcase renders a Components V2 message.
 package showcase
 
 import (
@@ -18,6 +17,7 @@ func Register(client *tempest.Client) ([]discord.Command, error) {
 	if err := client.Component(acknowledgeID, showcase.handleAcknowledge); err != nil {
 		return nil, fmt.Errorf("register %s: %w", acknowledgeID, err)
 	}
+
 	if err := client.Command("showcase", showcase.handle); err != nil {
 		return nil, fmt.Errorf("register /showcase: %w", err)
 	}
