@@ -9,6 +9,7 @@ import (
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
+	"github.com/amatsagu/tempest/gateway"
 )
 
 const accent = 0x5865F2
@@ -115,16 +116,27 @@ func (c *statsCommand) latencySection(ctx context.Context) string {
 		}
 	}
 
-	gateway := "HTTP mode, no gateway connection"
+	gatewayText := "HTTP mode, no gateway connection"
 	if gw := c.client.Gateway(); gw != nil {
-		if d, ok := gw.ShardLatency(0); ok {
-			gateway = fmt.Sprintf("%s (shard 0 of %d)", d.Round(time.Millisecond), gw.ShardCount())
-		} else {
-			gateway = fmt.Sprintf("not measured yet (shard count %d)", gw.ShardCount())
+		shards := gw.Shards()
+
+		online := 0
+		worst := time.Duration(0)
+		for _, shard := range shards {
+			if shard.State != gateway.ShardOnline {
+				continue
+			}
+
+			online++
+			if shard.Latency > worst {
+				worst = shard.Latency
+			}
 		}
+
+		gatewayText = fmt.Sprintf("%d/%d online, worst heartbeat %s", online, len(shards), worst.Round(time.Millisecond))
 	}
 
-	return fmt.Sprintf("### Latency\nDiscord API (REST) **%s**\nGateway **%s**", rest, gateway)
+	return fmt.Sprintf("### Latency\nDiscord API (REST) **%s**\nGateway **%s**", rest, gatewayText)
 }
 
 func formatDuration(d time.Duration) string {

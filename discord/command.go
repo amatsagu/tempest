@@ -58,9 +58,10 @@ type Command struct {
 	Version                  Snowflake                    `json:"version,omitzero"`
 	ApplicationID            AppID                        `json:"application_id,omitzero"`
 	ID                       CommandID                    `json:"id,omitzero"`
-	Type                     CommandType                  `json:"type,omitzero"`
-	Handler                  CommandHandlerType           `json:"handler,omitzero"`
-	NSFW                     bool                         `json:"nsfw,omitzero"`
+	// Type defaults to CommandChatInput when left at its zero value.
+	Type    CommandType        `json:"type,omitzero"`
+	Handler CommandHandlerType `json:"handler,omitzero"`
+	NSFW    bool               `json:"nsfw,omitzero"`
 }
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure

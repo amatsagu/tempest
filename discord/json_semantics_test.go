@@ -6,14 +6,8 @@ import (
 	"testing"
 )
 
-// These tests pin down json/v2 "omitzero" semantics for collections, because
-// omitting a field and sending it empty are not the same thing to Discord:
-//
-//   - A nil slice/map is omitted from the payload entirely.
-//   - A non-nil empty slice/map is emitted as [] / {}.
-//
-// On an edit (PATCH) response this matters: omitting "embeds" silently leaves
-// the previous embeds untouched, while "embeds":[] clears them.
+// These tests pin down json/v2 "omitzero" semantics: a nil slice/map is omitted,
+// a non-nil empty one is emitted as []/{}. On an edit that difference matters.
 
 func mustMarshal(t *testing.T, v any) string {
 	t.Helper()
@@ -76,7 +70,7 @@ func TestEditResponseClearsEmbeds(t *testing.T) {
 	originalPayload := mustMarshal(t, original)
 	assertHas(t, originalPayload, `"embeds":[`)
 
-	// Correct way to remove the embeds on an edit: send an explicit empty array.
+	// An explicit empty array is how an edit removes the embeds.
 	clear := Response{
 		Type: ResponseUpdateMessage,
 		Data: ResponseMessageData{Embeds: []Embed{}},
@@ -85,7 +79,7 @@ func TestEditResponseClearsEmbeds(t *testing.T) {
 	clearPayload := mustMarshal(t, clear)
 	assertHas(t, clearPayload, `"embeds":[]`)
 
-	// Omitting them would NOT clear anything on Discord; guard against regression.
+	// Omitting them does not clear anything on Discord; guard against regression.
 	omit := Response{
 		Type: ResponseUpdateMessage,
 		Data: ResponseMessageData{},
@@ -145,8 +139,7 @@ func TestResolvedEmptyMapEmitsObject(t *testing.T) {
 }
 
 func TestPointerToZeroIsEmitted(t *testing.T) {
-	// Nullable numeric fields use pointers so that 0 (a meaningful value) is
-	// still serialized instead of being treated as "unset".
+	// Nullable numeric fields use pointers so 0 is serialized, not treated as unset.
 	zero := uint8(0)
 	payload := mustMarshal(t, StringSelect{MinValues: &zero})
 	assertHas(t, payload, `"min_values":0`)

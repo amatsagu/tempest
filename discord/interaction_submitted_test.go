@@ -13,6 +13,7 @@ func TestSubmittedComponents(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected SubmittedTextInput, got %T", comp)
 	}
+
 	if txt.CustomID != "bio" || txt.Value != "Developer from Poland" {
 		t.Errorf("got %+v", txt)
 	}
@@ -27,6 +28,7 @@ func TestSubmittedComponents(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected SubmittedCheckbox, got %T", comp2)
 	}
+
 	if !chk.Value || chk.CustomID != "accept_rules" {
 		t.Errorf("got %+v", chk)
 	}

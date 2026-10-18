@@ -12,16 +12,11 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest/discord"
-	"github.com/amatsagu/tempest/rest"
 	"github.com/amatsagu/tempest/route"
 )
 
 // maxImageBytes caps the download so an oversized upload cannot exhaust memory.
 const maxImageBytes = 8 << 20 // 8 MiB
-
-// ErrAnswered marks a submission already answered through REST. It is how a file
-// reply reports success, because the runtime's own responder cannot send multipart.
-var ErrAnswered = errors.New("image: interaction already answered through REST")
 
 // handleSubmit downloads the uploaded PNG, rotates it, and posts it back.
 func (c *rotateCommand) handleSubmit(ctx context.Context, itx *discord.ModalInteraction, _ *route.Params) error {
@@ -30,11 +25,7 @@ func (c *rotateCommand) handleSubmit(ctx context.Context, itx *discord.ModalInte
 		return errors.New("no PNG was uploaded")
 	}
 
-	if itx.Data.Resolved == nil {
-		return errors.New("uploaded file did not resolve")
-	}
-
-	attachment, ok := itx.Data.Resolved.Attachments[ids[0]]
+	attachment, ok := itx.Data.Resolved.Attachment(ids[0])
 	if !ok {
 		return errors.New("uploaded attachment was not resolved")
 	}
@@ -54,38 +45,13 @@ func (c *rotateCommand) handleSubmit(ctx context.Context, itx *discord.ModalInte
 		return fmt.Errorf("encode PNG: %w", err)
 	}
 
-	client := c.client.REST()
-	if client == nil {
-		return errors.New("no REST client configured; Config.Token is required")
+	// Reply carries the PNG as a real file; the runtime acknowledges with a
+	// deferred response and then patches the original with a multipart body.
+	data := discord.ResponseMessageData{
+		Attachments: []discord.Attachment{{Filename: "rotated.png"}},
 	}
 
-	response := discord.Response{
-		Type: discord.ResponseChannelMessageWithSource,
-		Data: discord.ResponseMessageData{
-			Flags: discord.MessageFlagEphemeral,
-			// The attachment's ID is the index of the matching files[0] part.
-			Attachments: []discord.Attachment{{
-				ID:       discord.AttachmentID{Snowflake: 0},
-				Filename: "rotated.png",
-			}},
-		},
-	}
-
-	// A file reply cannot go through itx.Reply: the responder sends JSON, and Discord
-	// only accepts attachment bytes in multipart/form-data, so the PNG is posted to
-	// the callback endpoint with the shared REST client.
-	_, err = client.RequestWithFiles(ctx, http.MethodPost,
-		"/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback",
-		response,
-		[]rest.File{{Name: "rotated.png", ContentType: "image/png", Data: out.Bytes()}},
-		"",
-	)
-	if err != nil {
-		return err
-	}
-
-	// The interaction already has its response, so ErrAnswered stops a second, rejected one.
-	return ErrAnswered
+	return itx.Reply(data, true, discord.File{Name: "rotated.png", ContentType: "image/png", Data: out.Bytes()})
 }
 
 func downloadImage(ctx context.Context, url string) ([]byte, error) {

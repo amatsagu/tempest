@@ -13,9 +13,11 @@ func TestBitSet(t *testing.T) {
 	if !b.Has(BitA, BitB) {
 		t.Errorf("expected b to have BitA and BitB")
 	}
+
 	if b.Has(BitC) {
 		t.Errorf("expected b not to have BitC")
 	}
+
 	if !b.Missing(BitC) {
 		t.Errorf("expected b to be missing BitC")
 	}
@@ -24,6 +26,7 @@ func TestBitSet(t *testing.T) {
 	if b.Has(BitA) {
 		t.Errorf("expected b not to have BitA after removal")
 	}
+
 	if !b.Has(BitB) {
 		t.Errorf("expected b to still have BitB")
 	}

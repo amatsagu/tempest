@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"encoding/json/jsontext"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -22,6 +21,7 @@ import (
 	"github.com/amatsagu/tempest-example/feature/components"
 	"github.com/amatsagu/tempest-example/feature/contextmenu"
 	"github.com/amatsagu/tempest-example/feature/image"
+	"github.com/amatsagu/tempest-example/feature/premium"
 	"github.com/amatsagu/tempest-example/feature/showcase"
 	"github.com/amatsagu/tempest-example/feature/stats"
 	"github.com/amatsagu/tempest-example/feature/tags"
@@ -37,6 +37,12 @@ func main() {
 func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Optional: nothing in the library touches the Go runtime for you. Calling this
+	// sizes GOMAXPROCS and GOMEMLIMIT to the container's cgroup limits, which is
+	// worth it on a small VPS or a CPU-quota-limited host.
+	cpus, memoryLimit := tempest.TuneRuntime()
+	slog.Info("runtime tuned", "cpus", cpus, "memory_limit_bytes", memoryLimit)
 
 	// With HTTP_ADDR set the bot serves the interaction endpoint over HTTP and needs
 	// DISCORD_PUBLIC_KEY; otherwise it connects over the gateway.
@@ -54,6 +60,9 @@ func run() error {
 		Compression: gateway.CompressionZstd,
 		Logf:        log.Printf,
 		Debug:       os.Getenv("DEBUG") != "",
+
+		// Commands synced without their own Contexts default to guild-only.
+		DefaultContexts: []discord.InteractionContextType{discord.InteractionContextGuild},
 
 		// Lifecycle hooks; nil hooks cost nothing. Return false from OnRawInteraction
 		// to veto a matched route (skipped and left unacknowledged).
@@ -73,11 +82,6 @@ func run() error {
 		},
 		// OnInteractionError counts failures for /stats, logs them, and tells the user.
 		OnInteractionError: func(err error, info tempest.InteractionInfo, itx any) {
-			// A file reply reports success through ErrAnswered, not as a failure.
-			if errors.Is(err, image.ErrAnswered) {
-				return
-			}
-
 			botStats.Failed(err, info, itx)
 			slog.Error("interaction failed", "route", info.Route.Pattern, "id", info.ID, "err", err)
 
@@ -97,15 +101,25 @@ func run() error {
 			}
 		},
 
-		// Subscribe to extra gateway events and observe raw dispatches.
-		ExtraEvents: events.Names,
+		// Subscribe to gateway events and observe raw dispatches.
 		OnRawEvent: func(shard int, event string, data jsontext.Value) {
 			slog.Debug("raw dispatch", "shard", shard, "event", event, "bytes", len(data))
 		},
 	})
-
 	if err != nil {
 		return err
+	}
+
+	// The gateway is built with the client, so its status can be set before Run.
+	if client.Gateway() != nil {
+		_ = client.Gateway().UpdateStatus(func(shard int) *gateway.Presence {
+			return &gateway.Presence{
+				Status: gateway.StatusOnline,
+				Activities: []gateway.Activity{
+					{Name: "Type /help to start", Type: gateway.ActivityCustom},
+				},
+			}
+		})
 	}
 
 	events.Register(client)
@@ -118,6 +132,7 @@ func run() error {
 		components.Register,
 		showcase.Register,
 		image.Register,
+		premium.Register,
 		tags.Register,
 		calc.Register,
 		// /stats needs the counter set created above, so it is wrapped.
@@ -137,7 +152,8 @@ func run() error {
 
 	if client.REST() != nil {
 		// A guild ID instead of the zero value would sync to one guild for faster iteration.
-		if err := client.SyncCommands(ctx, discord.GuildID{}, definitions); err != nil {
+		// The third arg is an optional CommandFilter; nil sends everything.
+		if err := client.SyncCommands(ctx, discord.GuildID{}, definitions, nil); err != nil {
 			return fmt.Errorf("sync commands: %w", err)
 		}
 		slog.Info("synced command definitions", "count", len(definitions))

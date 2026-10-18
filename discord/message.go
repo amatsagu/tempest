@@ -41,6 +41,10 @@ const (
 	MessageTypeStageSpeaker                         MessageType = 29
 	MessageTypeStageTopic                           MessageType = 31
 	MessageTypeGuildApplicationPremiumSubscription  MessageType = 32
+	MessageTypeGuildIncidentAlertModeEnabled        MessageType = 36
+	MessageTypeGuildIncidentAlertModeDisabled       MessageType = 37
+	MessageTypeGuildIncidentReportRaid              MessageType = 38
+	MessageTypeGuildIncidentReportFalseAlarm        MessageType = 39
 	MessageTypePurchaseNotification                 MessageType = 44
 	MessageTypePollResult                           MessageType = 46
 )
@@ -64,8 +68,7 @@ const (
 	MessageFlagIsComponentsV2                   MessageFlags = 1 << 15
 )
 
-// Nonce is a message nonce. Discord accepts and sends it as either an integer
-// or a string, so it is normalized to a string while decoding accepts both.
+// Nonce is a message nonce, normalized to a string; decoding accepts integer or string.
 //
 // https://docs.discord.com/developers/resources/message#message-object
 type Nonce string

@@ -102,6 +102,7 @@ func (u User) AvatarURL() string {
 		index := (u.ID.Snowflake >> 22) % 6
 		return CDNBaseURL + "/embed/avatars/" + strconv.FormatUint(uint64(index), 10) + ".png"
 	}
+
 	if strings.HasPrefix(u.Avatar, "a_") {
 		return CDNBaseURL + "/avatars/" + u.ID.String() + "/" + u.Avatar + ".webp?animated=true"
 	}
@@ -112,6 +113,7 @@ func (u User) BannerURL() string {
 	if u.Banner == "" {
 		return ""
 	}
+
 	if strings.HasPrefix(u.Banner, "a_") {
 		return CDNBaseURL + "/banners/" + u.ID.String() + "/" + u.Banner + ".webp?animated=true"
 	}

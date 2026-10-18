@@ -5,7 +5,6 @@ package image
 import (
 	"context"
 
-	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
 )
@@ -16,12 +15,10 @@ const (
 	rotateUploadID = "image:rotate:file"
 )
 
-type rotateCommand struct {
-	client *tempest.Client
-}
+type rotateCommand struct{}
 
-func newRotateCommand(client *tempest.Client) *rotateCommand {
-	return &rotateCommand{client: client}
+func newRotateCommand() *rotateCommand {
+	return &rotateCommand{}
 }
 
 func (c *rotateCommand) Definition() discord.Command {

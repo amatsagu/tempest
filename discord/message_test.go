@@ -53,9 +53,11 @@ func TestNonce_DecodesStringAndNumber(t *testing.T) {
 			var msg struct {
 				Nonce Nonce `json:"nonce"`
 			}
+
 			if err := json.Unmarshal([]byte(`{"nonce":`+tt.input+`}`), &msg); err != nil {
 				t.Fatalf("Unmarshal failed: %v", err)
 			}
+
 			if msg.Nonce != tt.want {
 				t.Errorf("Nonce = %q, want %q", msg.Nonce, tt.want)
 			}
@@ -79,8 +81,7 @@ func BenchmarkMessage_JSON(b *testing.B) {
 	}
 	data, _ := json.Marshal(&msg)
 
-	// Marshal through a pointer and reuse the decode target: value-marshaling
-	// and a fresh local destination both copy/heap-allocate the whole struct.
+	// Marshal through a pointer and reuse the decode target to avoid copying.
 	var parsed Message
 	b.ReportAllocs()
 	for b.Loop() {

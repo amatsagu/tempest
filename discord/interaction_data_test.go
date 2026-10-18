@@ -103,9 +103,11 @@ func TestModalInteractionDataHelpers(t *testing.T) {
 	if modal.CustomID != "m" {
 		t.Errorf("CustomID = %q, want m", modal.CustomID)
 	}
+
 	if modal.Resolved == nil || modal.Resolved.Users[UserID{Snowflake: 5}].Username != "u" {
 		t.Errorf("Resolved = %+v, want user 5", modal.Resolved)
 	}
+
 	if len(modal.Components) != 0 {
 		t.Errorf("Components = %d, want 0", len(modal.Components))
 	}
@@ -114,6 +116,7 @@ func TestModalInteractionDataHelpers(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{}`), &empty); err != nil {
 		t.Fatalf("Unmarshal empty failed: %v", err)
 	}
+
 	if empty.CustomID != "" || empty.Resolved != nil || len(empty.Components) != 0 {
 		t.Errorf("empty = %+v, want zero", empty)
 	}

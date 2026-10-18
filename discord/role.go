@@ -47,6 +47,7 @@ func (r Role) IconURL() string {
 	if r.Icon == "" {
 		return ""
 	}
+
 	if strings.HasPrefix(r.Icon, "a_") {
 		return CDNBaseURL + "/role-icons/" + r.ID.String() + "/" + r.Icon + ".webp?animated=true"
 	}

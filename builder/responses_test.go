@@ -9,7 +9,7 @@ import (
 )
 
 func TestResponse(t *testing.T) {
-	pong := NewPongResponse()
+	pong := PongResponse()
 	if pong.Type != discord.ResponsePong {
 		t.Errorf("got %d, want %d", pong.Type, discord.ResponsePong)
 	}
@@ -24,7 +24,7 @@ func TestResponse(t *testing.T) {
 		t.Errorf("got %s, want %s", string(data), expected)
 	}
 
-	def := NewDeferredResponse(true)
+	def := DeferredResponse(true)
 	if def.Type != discord.ResponseDeferredChannelMessageWithSource {
 		t.Errorf("def.Type = %d, want %d", def.Type, discord.ResponseDeferredChannelMessageWithSource)
 	}
@@ -41,7 +41,7 @@ func TestResponse(t *testing.T) {
 }
 
 func BenchmarkResponse_JSON(b *testing.B) {
-	def := NewDeferredResponse(true)
+	def := DeferredResponse(true)
 
 	b.ReportAllocs()
 	for b.Loop() {
@@ -50,7 +50,7 @@ func BenchmarkResponse_JSON(b *testing.B) {
 }
 
 func TestResponseAutocomplete(t *testing.T) {
-	resp := NewAutocompleteResponse(
+	resp := AutocompleteResponse(
 		discord.CommandOptionChoice{Name: "Option A", Value: "a"},
 		discord.CommandOptionChoice{Name: "Option B", Value: "b"},
 	)
@@ -71,7 +71,7 @@ func TestResponseAutocomplete(t *testing.T) {
 }
 
 func BenchmarkResponseAutocomplete_JSON(b *testing.B) {
-	resp := NewAutocompleteResponse(
+	resp := AutocompleteResponse(
 		discord.CommandOptionChoice{Name: "Option A", Value: "a"},
 		discord.CommandOptionChoice{Name: "Option B", Value: "b"},
 	)
@@ -83,9 +83,9 @@ func BenchmarkResponseAutocomplete_JSON(b *testing.B) {
 }
 
 func TestResponseMessage(t *testing.T) {
-	btn := NewButton("click", "Click Me", discord.ButtonPrimary)
-	row := NewActionRow(btn)
-	resp := NewMessageResponse("Welcome!", discord.MessageFlagEphemeral, row)
+	btn := Button("click", "Click Me", discord.ButtonPrimary)
+	row := ActionRow(btn)
+	resp := MessageResponse("Welcome!", discord.MessageFlagEphemeral, row)
 
 	if resp.Type != discord.ResponseChannelMessageWithSource {
 		t.Errorf("got %d, want %d", resp.Type, discord.ResponseChannelMessageWithSource)
@@ -101,16 +101,16 @@ func TestResponseMessage(t *testing.T) {
 		t.Errorf("got %s, missing expected response message fields", str)
 	}
 
-	updateResp := NewUpdateMessageResponse("Updated content", 0)
+	updateResp := UpdateMessageResponse("Updated content", 0)
 	if updateResp.Type != discord.ResponseUpdateMessage {
 		t.Errorf("updateResp.Type = %d, want %d", updateResp.Type, discord.ResponseUpdateMessage)
 	}
 }
 
 func BenchmarkResponseMessage_JSON(b *testing.B) {
-	btn := NewButton("click", "Click Me", discord.ButtonPrimary)
-	row := NewActionRow(btn)
-	resp := NewMessageResponse("Welcome!", discord.MessageFlagEphemeral, row)
+	btn := Button("click", "Click Me", discord.ButtonPrimary)
+	row := ActionRow(btn)
+	resp := MessageResponse("Welcome!", discord.MessageFlagEphemeral, row)
 
 	b.ReportAllocs()
 	for b.Loop() {
@@ -119,9 +119,9 @@ func BenchmarkResponseMessage_JSON(b *testing.B) {
 }
 
 func TestResponseModal(t *testing.T) {
-	input := NewShortTextInput("user_name", "Enter your name")
-	label := NewLabel("Name", input)
-	resp := NewModalResponse("profile_form", "Edit Profile", label)
+	input := ShortTextInput("user_name", "Enter your name")
+	label := Label("Name", input)
+	resp := ModalResponse("profile_form", "Edit Profile", label)
 
 	if resp.Type != discord.ResponseModal {
 		t.Errorf("got %d, want %d", resp.Type, discord.ResponseModal)
@@ -139,9 +139,9 @@ func TestResponseModal(t *testing.T) {
 }
 
 func BenchmarkResponseModal_JSON(b *testing.B) {
-	input := NewShortTextInput("user_name", "Enter your name")
-	label := NewLabel("Name", input)
-	resp := NewModalResponse("profile_form", "Edit Profile", label)
+	input := ShortTextInput("user_name", "Enter your name")
+	label := Label("Name", input)
+	resp := ModalResponse("profile_form", "Edit Profile", label)
 
 	b.ReportAllocs()
 	for b.Loop() {

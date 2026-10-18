@@ -32,6 +32,12 @@ const (
 	ChannelFlagPinned                   ChannelFlags = 1 << 1
 	ChannelFlagRequireTag               ChannelFlags = 1 << 4
 	ChannelFlagHideMediaDownloadOptions ChannelFlags = 1 << 15
+	// ChannelFlagObfuscated marks a channel whose metadata Discord hid because the
+	// bot cannot view it. It only ever arrives over the gateway.
+	ChannelFlagObfuscated ChannelFlags = 1 << 17
+	// ChannelFlagIsSpoilerChannel marks a channel whose contents users must opt in
+	// to see.
+	ChannelFlagIsSpoilerChannel ChannelFlags = 1 << 21
 )
 
 // https://docs.discord.com/developers/resources/channel#channel-object-video-quality-modes

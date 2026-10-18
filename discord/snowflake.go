@@ -49,6 +49,12 @@ type IntegrationID struct{ Snowflake }
 // https://docs.discord.com/developers/reference#snowflakes
 type SkuID struct{ Snowflake }
 
+// https://docs.discord.com/developers/reference#snowflakes
+type EntitlementID struct{ Snowflake }
+
+// https://docs.discord.com/developers/reference#snowflakes
+type SubscriptionID struct{ Snowflake }
+
 func StringToSnowflake(s string) (Snowflake, error) {
 	i, err := strconv.ParseUint(s, 10, 64)
 	return Snowflake(i), err
@@ -99,9 +105,7 @@ func (s *Snowflake) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// AppendText lets encoding/json/v2 emit the snowflake as a quoted JSON string
-// by appending straight into the encoder's buffer, avoiding the temporary
-// []byte allocation that a MarshalJSON method would require.
+// AppendText lets json/v2 emit the snowflake as a quoted string without a temp []byte.
 func (s Snowflake) AppendText(b []byte) ([]byte, error) {
 	return strconv.AppendUint(b, uint64(s), 10), nil
 }

@@ -18,6 +18,7 @@ const (
 	MemberFlagCompletedHomeActions         MemberFlags = 1 << 6
 	MemberFlagAutomodQuarantinedUsername   MemberFlags = 1 << 7
 	MemberFlagDmSettingsUpsellAcknowledged MemberFlags = 1 << 9
+	MemberFlagAutomodQuarantinedGuildTag   MemberFlags = 1 << 10
 )
 
 // https://docs.discord.com/developers/resources/guild#guild-member-object
@@ -43,6 +44,7 @@ func (m Member) DisplayName() string {
 	if m.Nick != "" {
 		return m.Nick
 	}
+
 	if m.User != nil {
 		return m.User.EffectiveName()
 	}
@@ -53,6 +55,7 @@ func (m Member) GuildAvatarURL(guildID GuildID) string {
 	if m.Avatar == "" || m.User == nil || guildID.Snowflake == 0 {
 		return ""
 	}
+
 	if strings.HasPrefix(m.Avatar, "a_") {
 		return CDNBaseURL + "/guilds/" + guildID.String() + "/users/" + m.User.ID.String() + "/avatars/" + m.Avatar + ".webp?animated=true"
 	}
@@ -63,6 +66,7 @@ func (m Member) GuildBannerURL(guildID GuildID) string {
 	if m.Banner == "" || m.User == nil || guildID.Snowflake == 0 {
 		return ""
 	}
+
 	if strings.HasPrefix(m.Banner, "a_") {
 		return CDNBaseURL + "/guilds/" + guildID.String() + "/users/" + m.User.ID.String() + "/banners/" + m.Banner + ".webp?animated=true"
 	}

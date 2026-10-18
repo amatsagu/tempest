@@ -8,9 +8,9 @@ import (
 )
 
 func buildPollViaHelpers() discord.Poll {
-	return NewPoll("Favorite fruit?", 24,
-		NewPollAnswer("Apple"),
-		NewPollAnswer("Banana"),
+	return Poll("Favorite fruit?", 24,
+		PollAnswer("Apple"),
+		PollAnswer("Banana"),
 	)
 }
 
@@ -29,11 +29,11 @@ func buildPollDirect() discord.Poll {
 func TestPollBuildersMatchDirect(t *testing.T) {
 	assertSameJSON(t, buildPollViaHelpers(), buildPollDirect())
 
-	assertSameJSON(t, NewPollMedia("t"), discord.PollMedia{Text: "t"})
-	assertSameJSON(t, NewPollAnswer("a"), discord.PollAnswer{PollMedia: discord.PollMedia{Text: "a"}})
-	assertSameJSON(t, NewPollAnswerCount(1, 2), discord.PollAnswerCount{ID: 1, Count: 2})
+	assertSameJSON(t, PollMedia("t"), discord.PollMedia{Text: "t"})
+	assertSameJSON(t, PollAnswer("a"), discord.PollAnswer{PollMedia: discord.PollMedia{Text: "a"}})
+	assertSameJSON(t, PollAnswerCount(1, 2), discord.PollAnswerCount{ID: 1, Count: 2})
 	assertSameJSON(t,
-		NewPollResults(NewPollAnswerCount(1, 2)),
+		PollResults(PollAnswerCount(1, 2)),
 		discord.PollResults{AnswerCounts: []discord.PollAnswerCount{{ID: 1, Count: 2}}},
 	)
 }

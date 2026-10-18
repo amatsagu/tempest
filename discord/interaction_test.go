@@ -30,15 +30,19 @@ func TestInteraction(t *testing.T) {
 	if itx.ID.String() != "1159846879854792704" {
 		t.Errorf("itx.ID = %s, want 1159846879854792704", itx.ID.String())
 	}
+
 	if itx.Type != InteractionApplicationCommand {
 		t.Errorf("itx.Type = %d, want %d", itx.Type, InteractionApplicationCommand)
 	}
+
 	if itx.Token != "interaction_continuation_token_xyz" {
 		t.Errorf("itx.Token mismatch")
 	}
+
 	if itx.Context != InteractionContextGuild {
 		t.Errorf("itx.Context = %d, want %d", itx.Context, InteractionContextGuild)
 	}
+
 	if itx.Locale != LocaleEnglishUS {
 		t.Errorf("itx.Locale = %s, want %s", itx.Locale, LocaleEnglishUS)
 	}
@@ -47,6 +51,7 @@ func TestInteraction(t *testing.T) {
 	if err := json.Unmarshal(raw, &cmdItx); err != nil {
 		t.Fatalf("Unmarshal CommandInteraction failed: %v", err)
 	}
+
 	if cmdItx.Data.Name != "ping" {
 		t.Errorf("cmdItx.Data.Name = %s, want ping", cmdItx.Data.Name)
 	}

@@ -162,6 +162,7 @@ func TestSnowflake_JSON_Marshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AppendText() error: %v", err)
 	}
+
 	if string(got) != want {
 		t.Errorf("AppendText() got = %s, want %s", string(got), want)
 	}
@@ -170,6 +171,7 @@ func TestSnowflake_JSON_Marshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("json.Marshal() error: %v", err)
 	}
+
 	if string(data) != `"`+want+`"` {
 		t.Errorf("json.Marshal() got = %s, want %q", string(data), want)
 	}
@@ -192,12 +194,12 @@ func TestSnowflake_JSON_Struct_RoundTrip(t *testing.T) {
 		t.Fatalf("json.Marshal() failed: %v", err)
 	}
 
-	// Field order in the encoded object is intentionally not asserted: it can
-	// change with struct field alignment, which Discord does not care about.
+	// Field order is not asserted: it can change with struct field alignment.
 	var encoded map[string]string
 	if err := json.Unmarshal(data, &encoded); err != nil {
 		t.Fatalf("json.Unmarshal(marshaled) failed: %v", err)
 	}
+
 	if encoded["id"] != "1159846879854792704" || encoded["channel_id"] != "123456789" {
 		t.Errorf("Marshal output mismatch: got %s", data)
 	}
@@ -240,6 +242,7 @@ func TestParseUint64Bytes(t *testing.T) {
 			if ok != tt.wantOk {
 				t.Fatalf("parseUint64Bytes(%q) ok = %v, wantOk %v", tt.input, ok, tt.wantOk)
 			}
+
 			if got != tt.want {
 				t.Errorf("parseUint64Bytes(%q) got = %v, want %v", tt.input, got, tt.want)
 			}
@@ -257,15 +260,19 @@ func TestStrictSnowflakes(t *testing.T) {
 	if msgID.String() != "1159846879854792704" {
 		t.Errorf("msgID.String() = %s, want 1159846879854792704", msgID.String())
 	}
+
 	if attID.String() != "1159846879854792704" {
 		t.Errorf("attID.String() = %s, want 1159846879854792704", attID.String())
 	}
+
 	if appID.String() != "1159846879854792704" {
 		t.Errorf("appID.String() = %s, want 1159846879854792704", appID.String())
 	}
+
 	if intID.String() != "1159846879854792704" {
 		t.Errorf("intID.String() = %s, want 1159846879854792704", intID.String())
 	}
+
 	if skuID.String() != "1159846879854792704" {
 		t.Errorf("skuID.String() = %s, want 1159846879854792704", skuID.String())
 	}

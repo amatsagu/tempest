@@ -42,8 +42,8 @@ type InteractionCallbackResponse struct {
 	Interaction InteractionCallbackResponseInteraction `json:"interaction"`
 }
 
-// The "interaction" member of an interaction callback response. It mirrors
-// InteractionCallbackResource but adds the response message delivery fields.
+// InteractionCallbackResponseInteraction is the "interaction" member of a callback
+// response; it mirrors InteractionCallbackResource plus delivery fields.
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-callback-interaction-callback-response-object
 type InteractionCallbackResponseInteraction struct {

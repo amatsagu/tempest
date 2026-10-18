@@ -40,9 +40,8 @@ type Component interface {
 	ComponentType() ComponentType
 }
 
-// Components is a list of polymorphic components. It exists because Go
-// interfaces cannot be decoded on their own: encoding/json needs a concrete
-// type, so this named slice supplies the discriminator-based decoder.
+// Components is a list of polymorphic components; the named slice supplies the
+// discriminator-based decoder that a bare interface cannot have.
 type Components []Component
 
 func (c *Components) UnmarshalJSON(data []byte) error {
@@ -68,6 +67,7 @@ func UnmarshalComponent(data []byte) (Component, error) {
 	var header struct {
 		Type ComponentType `json:"type"`
 	}
+
 	if err := json.Unmarshal(data, &header); err != nil {
 		return nil, err
 	}

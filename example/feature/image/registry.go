@@ -9,7 +9,7 @@ import (
 
 // Register wires /rotate and the modal it opens.
 func Register(client *tempest.Client) ([]discord.Command, error) {
-	rotate := newRotateCommand(client)
+	rotate := newRotateCommand()
 
 	if err := client.Modal(rotateModalID, rotate.handleSubmit); err != nil {
 		return nil, fmt.Errorf("register %s: %w", rotateModalID, err)

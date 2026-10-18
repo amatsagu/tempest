@@ -16,6 +16,7 @@ func TestEmoji(t *testing.T) {
 		Name:     "fire",
 		Animated: true,
 	}
+
 	if e2.Mention() != "<a:fire:5001>" {
 		t.Errorf("e2.Mention() = %s, want <a:fire:5001>", e2.Mention())
 	}

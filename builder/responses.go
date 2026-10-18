@@ -2,11 +2,11 @@ package builder
 
 import "github.com/amatsagu/tempest/discord"
 
-func NewPongResponse() discord.Response {
+func PongResponse() discord.Response {
 	return discord.Response{Type: discord.ResponsePong}
 }
 
-func NewDeferredResponse(ephemeral bool) discord.Response {
+func DeferredResponse(ephemeral bool) discord.Response {
 	var flags discord.MessageFlags
 	if ephemeral {
 		flags = discord.MessageFlagEphemeral
@@ -20,11 +20,11 @@ func NewDeferredResponse(ephemeral bool) discord.Response {
 	}
 }
 
-func NewDeferredUpdateResponse() discord.Response {
+func DeferredUpdateResponse() discord.Response {
 	return discord.Response{Type: discord.ResponseDeferredUpdateMessage}
 }
 
-func NewMessageResponse(content string, flags discord.MessageFlags, components ...discord.Component) discord.Response {
+func MessageResponse(content string, flags discord.MessageFlags, components ...discord.Component) discord.Response {
 	return discord.Response{
 		Type: discord.ResponseChannelMessageWithSource,
 		Data: discord.ResponseMessageData{
@@ -35,11 +35,11 @@ func NewMessageResponse(content string, flags discord.MessageFlags, components .
 	}
 }
 
-func NewEphemeralMessage(content string) discord.Response {
-	return NewMessageResponse(content, discord.MessageFlagEphemeral)
+func EphemeralMessage(content string) discord.Response {
+	return MessageResponse(content, discord.MessageFlagEphemeral)
 }
 
-func NewUpdateMessageResponse(content string, flags discord.MessageFlags, components ...discord.Component) discord.Response {
+func UpdateMessageResponse(content string, flags discord.MessageFlags, components ...discord.Component) discord.Response {
 	return discord.Response{
 		Type: discord.ResponseUpdateMessage,
 		Data: discord.ResponseMessageData{
@@ -50,7 +50,7 @@ func NewUpdateMessageResponse(content string, flags discord.MessageFlags, compon
 	}
 }
 
-func NewModalResponse(customID, title string, components ...discord.Component) discord.Response {
+func ModalResponse(customID, title string, components ...discord.Component) discord.Response {
 	return discord.Response{
 		Type: discord.ResponseModal,
 		Data: discord.ResponseModalData{
@@ -61,7 +61,7 @@ func NewModalResponse(customID, title string, components ...discord.Component) d
 	}
 }
 
-func NewAutocompleteResponse(choices ...discord.CommandOptionChoice) discord.Response {
+func AutocompleteResponse(choices ...discord.CommandOptionChoice) discord.Response {
 	return discord.Response{
 		Type: discord.ResponseApplicationCommandAutocomplete,
 		Data: discord.ResponseAutocompleteData{

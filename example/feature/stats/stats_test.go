@@ -24,7 +24,6 @@ func TestStatsRendersComponentsV2(t *testing.T) {
 		PublicKey: hex.EncodeToString(pub),
 		HTTPAddr:  "127.0.0.1:0",
 	})
-
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

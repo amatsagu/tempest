@@ -72,6 +72,7 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 		rawLabel
 		Component jsontext.Value `json:"component,omitzero"`
 	}
+
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
@@ -80,9 +81,11 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 		var peek struct {
 			Type ComponentType `json:"type"`
 		}
+
 		if err := json.Unmarshal(raw.Component, &peek); err != nil {
 			return err
 		}
+
 		switch peek.Type {
 		case ComponentTextInput:
 			var input TextInput
@@ -133,9 +136,11 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 
 // https://docs.discord.com/developers/components/reference#file-upload-file-upload-structure
 type FileUpload struct {
-	MinValues *uint8        `json:"min_values,omitzero"`
-	MaxValues *uint8        `json:"max_values,omitzero"`
-	CustomID  string        `json:"custom_id"`
+	MinValues *uint8 `json:"min_values,omitzero"`
+	MaxValues *uint8 `json:"max_values,omitzero"`
+	CustomID  string `json:"custom_id"`
+	// FileTypes filters by category keyword ("image") or dot-prefixed extension
+	// (".png"), never a MIME type, which Discord rejects.
 	FileTypes []string      `json:"file_types,omitzero"`
 	ID        uint32        `json:"id,omitzero"`
 	Type      ComponentType `json:"type"`

@@ -46,6 +46,7 @@ func (a *ActionRow) UnmarshalJSON(data []byte) error {
 		Components []jsontext.Value `json:"components"`
 		rawActionRow
 	}
+
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
@@ -54,9 +55,11 @@ func (a *ActionRow) UnmarshalJSON(data []byte) error {
 		var peek struct {
 			Type ComponentType `json:"type"`
 		}
+
 		if err := json.Unmarshal(c, &peek); err != nil {
 			return err
 		}
+
 		switch peek.Type {
 		case ComponentButton:
 			var btn Button
@@ -117,6 +120,7 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 		Accessory jsontext.Value `json:"accessory,omitzero"`
 		rawSection
 	}
+
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
@@ -125,9 +129,11 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 		var peek struct {
 			Type ComponentType `json:"type"`
 		}
+
 		if err := json.Unmarshal(raw.Accessory, &peek); err != nil {
 			return err
 		}
+
 		switch peek.Type {
 		case ComponentButton:
 			var btn Button

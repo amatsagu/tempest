@@ -17,6 +17,71 @@ type InteractionDataResolved struct {
 	Attachments map[AttachmentID]Attachment `json:"attachments,omitzero"`
 }
 
+// User returns a resolved user and whether it was present.
+func (r *InteractionDataResolved) User(id UserID) (User, bool) {
+	if r == nil {
+		return User{}, false
+	}
+	user, ok := r.Users[id]
+	return user, ok
+}
+
+// Member returns a resolved member with its user bound, and whether it was
+// present.
+func (r *InteractionDataResolved) Member(id UserID) (Member, bool) {
+	if r == nil {
+		return Member{}, false
+	}
+
+	member, ok := r.Members[id]
+	if !ok {
+		return Member{}, false
+	}
+
+	// Bind the user only when it is present, so a member without one is not handed
+	// back with a zero-valued user attached.
+	if user, ok := r.Users[id]; ok {
+		member.User = &user
+	}
+	return member, true
+}
+
+// Role returns a resolved role and whether it was present.
+func (r *InteractionDataResolved) Role(id RoleID) (Role, bool) {
+	if r == nil {
+		return Role{}, false
+	}
+	role, ok := r.Roles[id]
+	return role, ok
+}
+
+// Channel returns a resolved channel and whether it was present.
+func (r *InteractionDataResolved) Channel(id ChannelID) (Channel, bool) {
+	if r == nil {
+		return Channel{}, false
+	}
+	channel, ok := r.Channels[id]
+	return channel, ok
+}
+
+// Message returns a resolved message and whether it was present.
+func (r *InteractionDataResolved) Message(id MessageID) (Message, bool) {
+	if r == nil {
+		return Message{}, false
+	}
+	message, ok := r.Messages[id]
+	return message, ok
+}
+
+// Attachment returns a resolved attachment and whether it was present.
+func (r *InteractionDataResolved) Attachment(id AttachmentID) (Attachment, bool) {
+	if r == nil {
+		return Attachment{}, false
+	}
+	attachment, ok := r.Attachments[id]
+	return attachment, ok
+}
+
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-interaction-data-option-structure
 type CommandInteractionOption struct {
 	Value   any                        `json:"value,omitzero"`
@@ -37,13 +102,74 @@ type CommandInteractionData struct {
 	Type     CommandType                `json:"type"`
 }
 
+// Option returns the named option, searching inside subcommands and subcommand
+// groups so callers do not have to know where Discord nested it.
 func (d CommandInteractionData) Option(name string) (CommandInteractionOption, bool) {
-	for _, opt := range d.Options {
+	return findOption(d.Options, name)
+}
+
+func findOption(options []CommandInteractionOption, name string) (CommandInteractionOption, bool) {
+	for _, opt := range options {
 		if opt.Name == name {
 			return opt, true
 		}
 	}
+
+	for _, opt := range options {
+		if opt.Type != OptionSubCommand && opt.Type != OptionSubCommandGroup {
+			continue
+		}
+
+		if found, ok := findOption(opt.Options, name); ok {
+			return found, true
+		}
+	}
 	return CommandInteractionOption{}, false
+}
+
+// SubCommand returns the subcommand path ("group sub" or "sub") and the options
+// that belong to it, or ok false when the invocation used no subcommand.
+func (d CommandInteractionData) SubCommand() (path string, options []CommandInteractionOption, ok bool) {
+	if len(d.Options) == 0 {
+		return "", nil, false
+	}
+
+	first := d.Options[0]
+	switch first.Type {
+	case OptionSubCommand:
+		return first.Name, first.Options, true
+	case OptionSubCommandGroup:
+		if len(first.Options) > 0 && first.Options[0].Type == OptionSubCommand {
+			return first.Name + " " + first.Options[0].Name, first.Options[0].Options, true
+		}
+		return first.Name, first.Options, true
+	}
+	return "", nil, false
+}
+
+// Focused returns the name and value of the option the user is typing, for an
+// autocomplete invocation. It searches subcommand options too.
+func (d CommandInteractionData) Focused() (name string, value any, ok bool) {
+	return findFocused(d.Options)
+}
+
+func findFocused(options []CommandInteractionOption) (string, any, bool) {
+	for _, opt := range options {
+		if opt.Focused {
+			return opt.Name, opt.Value, true
+		}
+	}
+
+	for _, opt := range options {
+		if opt.Type != OptionSubCommand && opt.Type != OptionSubCommandGroup {
+			continue
+		}
+
+		if name, value, ok := findFocused(opt.Options); ok {
+			return name, value, true
+		}
+	}
+	return "", nil, false
 }
 
 func (d CommandInteractionData) StringOption(name string) (string, bool) {
@@ -60,6 +186,7 @@ func (d CommandInteractionData) IntOption(name string) (int64, bool) {
 	if !ok || opt.Value == nil {
 		return 0, false
 	}
+
 	switch v := opt.Value.(type) {
 	case int64:
 		return v, true
@@ -122,9 +249,8 @@ type ModalInteractionData struct {
 	Components []SubmittedComponent     `json:"components,omitzero"`
 }
 
-// UnmarshalJSONFrom decodes the modal data in a single pass, reading each
-// submitted component as a raw value through the shared decoder instead of
-// buffering the whole components array into intermediate jsontext.Values.
+// UnmarshalJSONFrom decodes the modal data in a single streaming pass, without
+// buffering the components array into intermediate jsontext.Values.
 func (m *ModalInteractionData) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	if dec.PeekKind() != '{' {
 		return fmt.Errorf("modal interaction data: expected JSON object")
@@ -246,6 +372,7 @@ func (m ModalInteractionData) TextInput(customID string) (string, bool) {
 	if !ok {
 		return "", false
 	}
+
 	if txt, ok := comp.(SubmittedTextInput); ok {
 		return txt.Value, true
 	}
@@ -257,6 +384,7 @@ func (m ModalInteractionData) Radio(customID string) (string, bool) {
 	if !ok {
 		return "", false
 	}
+
 	if r, ok := comp.(SubmittedRadioGroup); ok {
 		return r.Value, true
 	}
@@ -268,6 +396,7 @@ func (m ModalInteractionData) Checkbox(customID string) bool {
 	if !ok {
 		return false
 	}
+
 	if chk, ok := comp.(SubmittedCheckbox); ok {
 		return chk.Value
 	}
@@ -279,6 +408,7 @@ func (m ModalInteractionData) CheckboxGroup(customID string) ([]string, bool) {
 	if !ok {
 		return nil, false
 	}
+
 	if chk, ok := comp.(SubmittedCheckboxGroup); ok {
 		return chk.Values, true
 	}
@@ -290,6 +420,7 @@ func (m ModalInteractionData) Select(customID string) ([]string, bool) {
 	if !ok {
 		return nil, false
 	}
+
 	if sel, ok := comp.(SubmittedStringSelect); ok {
 		return sel.Values, true
 	}
@@ -301,6 +432,7 @@ func (m ModalInteractionData) FileUpload(customID string) ([]AttachmentID, bool)
 	if !ok {
 		return nil, false
 	}
+
 	if up, ok := comp.(SubmittedFileUpload); ok {
 		return up.Values, true
 	}

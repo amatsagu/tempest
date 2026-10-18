@@ -10,21 +10,21 @@ import (
 func ptr[T any](v T) *T { return &v }
 
 func buildEmbedViaHelpers() discord.Embed {
-	emb := NewEmbed("Release", "v1.0.0")
+	emb := Embed("Release", "v1.0.0")
 	emb.URL = "https://rinellebot.com"
 	emb.Color = 0xffd484
 
-	emb.Footer = ptr(NewEmbedFooter("Atelier"))
-	emb.Author = ptr(NewEmbedAuthor("Rinelle"))
-	emb.Image = ptr(NewEmbedImage("https://cdn.discordapp.com/c.png"))
-	emb.Thumbnail = ptr(NewEmbedThumbnail("https://cdn.discordapp.com/d.png"))
-	emb.Provider = ptr(NewEmbedProvider("Rinelle", "https://rinellebot.com"))
-	emb.Video = ptr(NewEmbedVideo("https://cdn.discordapp.com/e.mp4"))
+	emb.Footer = ptr(EmbedFooter("Atelier"))
+	emb.Author = ptr(EmbedAuthor("Rinelle"))
+	emb.Image = ptr(EmbedImage("https://cdn.discordapp.com/c.png"))
+	emb.Thumbnail = ptr(EmbedThumbnail("https://cdn.discordapp.com/d.png"))
+	emb.Provider = ptr(EmbedProvider("Rinelle", "https://rinellebot.com"))
+	emb.Video = ptr(EmbedVideo("https://cdn.discordapp.com/e.mp4"))
 
 	emb.Fields = []discord.EmbedField{
-		NewEmbedField("Color roles", "45", true),
-		NewEmbedField("Badges", "30", true),
-		NewEmbedField("Uptime", "99.9%", false),
+		EmbedField("Color roles", "45", true),
+		EmbedField("Badges", "30", true),
+		EmbedField("Uptime", "99.9%", false),
 	}
 
 	return emb
@@ -53,13 +53,13 @@ func buildEmbedDirect() discord.Embed {
 func TestEmbedBuildersMatchDirect(t *testing.T) {
 	assertSameJSON(t, buildEmbedViaHelpers(), buildEmbedDirect())
 
-	assertSameJSON(t, NewEmbedFooter("t"), discord.EmbedFooter{Text: "t"})
-	assertSameJSON(t, NewEmbedAuthor("a"), discord.EmbedAuthor{Name: "a"})
-	assertSameJSON(t, NewEmbedImage("u"), discord.EmbedImage{URL: "u"})
-	assertSameJSON(t, NewEmbedThumbnail("u"), discord.EmbedThumbnail{URL: "u"})
-	assertSameJSON(t, NewEmbedVideo("u"), discord.EmbedVideo{URL: "u"})
-	assertSameJSON(t, NewEmbedProvider("n", "u"), discord.EmbedProvider{Name: "n", URL: "u"})
-	assertSameJSON(t, NewEmbedField("n", "v", true), discord.EmbedField{Name: "n", Value: "v", Inline: true})
+	assertSameJSON(t, EmbedFooter("t"), discord.EmbedFooter{Text: "t"})
+	assertSameJSON(t, EmbedAuthor("a"), discord.EmbedAuthor{Name: "a"})
+	assertSameJSON(t, EmbedImage("u"), discord.EmbedImage{URL: "u"})
+	assertSameJSON(t, EmbedThumbnail("u"), discord.EmbedThumbnail{URL: "u"})
+	assertSameJSON(t, EmbedVideo("u"), discord.EmbedVideo{URL: "u"})
+	assertSameJSON(t, EmbedProvider("n", "u"), discord.EmbedProvider{Name: "n", URL: "u"})
+	assertSameJSON(t, EmbedField("n", "v", true), discord.EmbedField{Name: "n", Value: "v", Inline: true})
 }
 
 func TestEmbedRoundTrip(t *testing.T) {

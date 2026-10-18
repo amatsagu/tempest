@@ -6,7 +6,11 @@ import "time"
 type AttachmentFlags = BitSet
 
 const (
-	AttachmentFlagIsRemix AttachmentFlags = 1 << 2
+	AttachmentFlagIsClip      AttachmentFlags = 1 << 0
+	AttachmentFlagIsThumbnail AttachmentFlags = 1 << 1
+	AttachmentFlagIsRemix     AttachmentFlags = 1 << 2
+	AttachmentFlagIsSpoiler   AttachmentFlags = 1 << 3
+	AttachmentFlagIsAnimated  AttachmentFlags = 1 << 5
 )
 
 // https://docs.discord.com/developers/resources/message#attachment-object

@@ -8,34 +8,31 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// The NewXXX constructors exist purely to make building payloads shorter and
-// harder to get wrong. They must produce exactly the same structs (and thus the
-// same JSON) as writing the literals by hand, and must not cost anything
-// meaningful at runtime. The tests below assert identical output; the
-// benchmarks measure the construction + marshal cost of both styles.
+// The constructors must produce the same structs, and thus JSON, as handwritten
+// literals, so the tests assert identical output and the benchmarks compare cost.
 
 func buildComponentsV2ViaHelpers() discord.Response {
-	return NewMessageResponse("", discord.MessageFlagIsComponentsV2,
-		NewContainer(0xffd484,
-			NewTextDisplay("## Welcome"),
-			NewSeparator(true),
-			NewSectionWithButton(
-				NewButton("refresh", "Refresh", discord.ButtonSecondary),
-				NewTextDisplay("Server info"),
-				NewTextDisplay("-# updated just now"),
+	return MessageResponse("", discord.MessageFlagIsComponentsV2,
+		Container(0xffd484,
+			TextDisplay("## Welcome"),
+			Separator(true),
+			SectionWithButton(
+				Button("refresh", "Refresh", discord.ButtonSecondary),
+				TextDisplay("Server info"),
+				TextDisplay("-# updated just now"),
 			),
-			NewActionRow(
-				NewButton("yes", "Yes", discord.ButtonSuccess),
-				NewButton("no", "No", discord.ButtonDanger),
-				NewLinkButton("https://discord.com", "Docs"),
+			ActionRow(
+				Button("yes", "Yes", discord.ButtonSuccess),
+				Button("no", "No", discord.ButtonDanger),
+				LinkButton("https://discord.com", "Docs"),
 			),
-			NewActionRowWithStringSelect(
-				NewStringSelect("pick", "Pick one",
-					NewSelectOption("One", "1"),
+			ActionRowWithStringSelect(
+				StringSelect("pick", "Pick one",
+					SelectOption("One", "1"),
 					discord.SelectOption{Label: "Two", Value: "2", Description: "second", Default: true},
 				),
 			),
-			NewMediaGallery(
+			MediaGallery(
 				discord.MediaGalleryItem{Media: discord.UnfurledMediaItem{URL: "https://cdn.discordapp.com/a.png"}, Description: "a"},
 			),
 		),
@@ -110,10 +107,10 @@ func buildComponentsV2Direct() discord.Response {
 }
 
 func buildModalViaHelpers() discord.Response {
-	return NewModalResponse("profile", "Edit Profile",
-		NewLabel("Name", NewShortTextInput("name", "Your name")),
-		NewLabelWithStringSelect("Favorite", NewStringSelect("fav", "Choose",
-			NewSelectOption("A", "a"),
+	return ModalResponse("profile", "Edit Profile",
+		Label("Name", ShortTextInput("name", "Your name")),
+		LabelWithStringSelect("Favorite", StringSelect("fav", "Choose",
+			SelectOption("A", "a"),
 		)),
 	)
 }
@@ -151,7 +148,7 @@ func buildModalDirect() discord.Response {
 }
 
 func buildAutocompleteViaHelpers() discord.Response {
-	return NewAutocompleteResponse(
+	return AutocompleteResponse(
 		discord.CommandOptionChoice{Name: "Option A", Value: "a"},
 		discord.CommandOptionChoice{Name: "Option B", Value: "b"},
 	)
@@ -199,13 +196,13 @@ func TestConstructorsMatchDirect(t *testing.T) {
 	})
 	t.Run("deferred", func(t *testing.T) {
 		assertSameJSON(t,
-			NewDeferredResponse(true),
+			DeferredResponse(true),
 			discord.Response{Type: discord.ResponseDeferredChannelMessageWithSource, Data: discord.ResponseMessageData{Flags: discord.MessageFlagEphemeral}},
 		)
 	})
 	t.Run("ephemeral message", func(t *testing.T) {
 		assertSameJSON(t,
-			NewEphemeralMessage("hi"),
+			EphemeralMessage("hi"),
 			discord.Response{Type: discord.ResponseChannelMessageWithSource, Data: discord.ResponseMessageData{Content: "hi", Flags: discord.MessageFlagEphemeral}},
 		)
 	})
@@ -213,7 +210,7 @@ func TestConstructorsMatchDirect(t *testing.T) {
 
 func TestOptionBuildersMatchDirect(t *testing.T) {
 	assertSameJSON(t,
-		NewStringSelect("s", "p", NewSelectOption("One", "1"), NewSelectOption("Two", "2")),
+		StringSelect("s", "p", SelectOption("One", "1"), SelectOption("Two", "2")),
 		discord.StringSelect{
 			Type:        discord.ComponentStringSelect,
 			CustomID:    "s",
@@ -226,7 +223,7 @@ func TestOptionBuildersMatchDirect(t *testing.T) {
 	)
 
 	assertSameJSON(t,
-		NewMediaGallery(NewMediaGalleryItem("https://cdn.discordapp.com/a.png")),
+		MediaGallery(MediaGalleryItem("https://cdn.discordapp.com/a.png")),
 		discord.MediaGallery{
 			Type:  discord.ComponentMediaGallery,
 			Items: []discord.MediaGalleryItem{{Media: discord.UnfurledMediaItem{URL: "https://cdn.discordapp.com/a.png"}}},
@@ -234,12 +231,12 @@ func TestOptionBuildersMatchDirect(t *testing.T) {
 	)
 
 	assertSameJSON(t,
-		NewUnfurledMediaItem("https://cdn.discordapp.com/a.png"),
+		UnfurledMediaItem("https://cdn.discordapp.com/a.png"),
 		discord.UnfurledMediaItem{URL: "https://cdn.discordapp.com/a.png"},
 	)
 
 	assertSameJSON(t,
-		NewRadioGroup("r", NewRadioGroupOption("A", "a")),
+		RadioGroup("r", RadioGroupOption("A", "a")),
 		discord.RadioGroup{
 			Type:     discord.ComponentRadioGroup,
 			CustomID: "r",
@@ -248,7 +245,7 @@ func TestOptionBuildersMatchDirect(t *testing.T) {
 	)
 
 	assertSameJSON(t,
-		NewCheckboxGroup("c", NewCheckboxGroupOption("A", "a")),
+		CheckboxGroup("c", CheckboxGroupOption("A", "a")),
 		discord.CheckboxGroup{
 			Type:     discord.ComponentCheckboxGroup,
 			CustomID: "c",
@@ -257,28 +254,28 @@ func TestOptionBuildersMatchDirect(t *testing.T) {
 	)
 
 	assertSameJSON(t,
-		[]discord.EmbedField{NewEmbedField("Name", "Value", true)},
+		[]discord.EmbedField{EmbedField("Name", "Value", true)},
 		[]discord.EmbedField{{Name: "Name", Value: "Value", Inline: true}},
 	)
 }
 
-// A container's accent color is optional in the API; passing zero (or using
-// NewContainerNoAccent) must omit it rather than force a raw struct literal.
+// A zero accent color must be omitted (ContainerNoAccent is Container(0, ...)).
 func TestContainerAccentOptional(t *testing.T) {
-	noAccent, err := json.Marshal(NewContainer(0, NewTextDisplay("x")))
+	noAccent, err := json.Marshal(Container(0, TextDisplay("x")))
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
+
 	if strings.Contains(string(noAccent), "accent_color") {
 		t.Errorf("zero accent should be omitted, got %s", noAccent)
 	}
 
-	viaBuilder, _ := json.Marshal(NewContainerNoAccent(NewTextDisplay("x")))
+	viaBuilder, _ := json.Marshal(ContainerNoAccent(TextDisplay("x")))
 	if string(viaBuilder) != string(noAccent) {
-		t.Errorf("NewContainerNoAccent != NewContainer(0,...): %s vs %s", viaBuilder, noAccent)
+		t.Errorf("ContainerNoAccent != Container(0,...): %s vs %s", viaBuilder, noAccent)
 	}
 
-	withAccent, _ := json.Marshal(NewContainer(0xffd484, NewTextDisplay("x")))
+	withAccent, _ := json.Marshal(Container(0xffd484, TextDisplay("x")))
 	if !strings.Contains(string(withAccent), `"accent_color":16766084`) {
 		t.Errorf("non-zero accent should be present, got %s", withAccent)
 	}

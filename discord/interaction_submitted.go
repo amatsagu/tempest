@@ -121,6 +121,7 @@ func UnmarshalSubmittedComponent(data []byte) (SubmittedComponent, error) {
 		Type          ComponentType `json:"type"`
 		ComponentType ComponentType `json:"component_type"`
 	}
+
 	if err := json.Unmarshal(data, &header); err != nil {
 		return nil, err
 	}
@@ -137,6 +138,7 @@ func UnmarshalSubmittedComponent(data []byte) (SubmittedComponent, error) {
 			ID         uint32           `json:"id"`
 			Type       ComponentType    `json:"type"`
 		}
+
 		if err := json.Unmarshal(data, &raw); err != nil {
 			return nil, err
 		}
@@ -145,6 +147,7 @@ func UnmarshalSubmittedComponent(data []byte) (SubmittedComponent, error) {
 			ID:         raw.ID,
 			Components: make([]SubmittedComponent, 0, len(raw.Components)),
 		}
+
 		for _, child := range raw.Components {
 			c, err := UnmarshalSubmittedComponent(child)
 			if err != nil {
@@ -160,6 +163,7 @@ func UnmarshalSubmittedComponent(data []byte) (SubmittedComponent, error) {
 			ID        uint32         `json:"id"`
 			Type      ComponentType  `json:"type"`
 		}
+
 		if err := json.Unmarshal(data, &raw); err != nil {
 			return nil, err
 		}

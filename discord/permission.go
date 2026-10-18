@@ -51,6 +51,9 @@ const (
 	PermissionCreateEvents                     Permissions = 1 << 44
 	PermissionUseExternalSounds                Permissions = 1 << 45
 	PermissionSendVoiceMessages                Permissions = 1 << 46
+	PermissionSetVoiceChannelStatus            Permissions = 1 << 48
 	PermissionSendPolls                        Permissions = 1 << 49
 	PermissionUseExternalApps                  Permissions = 1 << 50
+	PermissionPinMessages                      Permissions = 1 << 51
+	PermissionBypassSlowmode                   Permissions = 1 << 52
 )
