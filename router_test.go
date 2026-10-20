@@ -37,6 +37,7 @@ func TestDynamicComponentRouting(t *testing.T) {
 	if err := app.client.Component("secret_abc", handler("second")); err != nil {
 		t.Fatalf("re-register: %v", err)
 	}
+
 	hit = ""
 	app.send(t, body)
 	if hit != "second" {
@@ -114,7 +115,7 @@ func TestRouterPatternReplaceAndConflict(t *testing.T) {
 	}
 }
 
-// TestRouterConcurrentMutation exercises add/remove/match concurrently; run with -race.
+// Checks against race condition in add/remove/match ops concurrently (run with -race flag).
 func TestRouterConcurrentMutation(t *testing.T) {
 	var r idRouter[int]
 	if err := r.register("panel/{action}", 1); err != nil {
@@ -128,10 +129,8 @@ func TestRouterConcurrentMutation(t *testing.T) {
 	var wg sync.WaitGroup
 	stop := make(chan struct{})
 
-	for i := 0; i < 4; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 4 {
+		wg.Go(func() {
 			var params route.Params
 			for {
 				select {
@@ -150,14 +149,12 @@ func TestRouterConcurrentMutation(t *testing.T) {
 					return
 				}
 			}
-		}()
+		})
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer close(stop)
-		for i := 0; i < 5000; i++ {
+		for i := range 5000 {
 			id := fmt.Sprintf("dyn_%d", i)
 			if err := r.register(id, i+2); err != nil {
 				t.Errorf("register %s: %v", id, err)
@@ -170,7 +167,7 @@ func TestRouterConcurrentMutation(t *testing.T) {
 			}
 			r.remove(id)
 		}
-	}()
+	})
 
 	wg.Wait()
 }
