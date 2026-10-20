@@ -8,7 +8,6 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// appIDFromToken extracts the ID from a token's first segment (base64url of the ID).
 func appIDFromToken(token string) (discord.AppID, bool) {
 	dot := strings.IndexByte(token, '.')
 	if dot <= 0 {
