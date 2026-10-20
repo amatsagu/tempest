@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TestVerifySignature covers the hand-rolled hex decode: valid, uppercase, wrong
+// Covers the hand-rolled hex decode: valid, uppercase, wrong
 // message, wrong length, non-hex, and a missing key all answer correctly.
 func TestVerifySignature(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
