@@ -7,7 +7,7 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// TestInteractionRuntimeReachesClient proves a handler can reach the host runtime
+// Checks whether a handler can reach the host runtime
 // through the interaction it was given, instead of searching for the client.
 func TestInteractionRuntimeReachesClient(t *testing.T) {
 	c, err := New(Config{})
