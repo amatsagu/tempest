@@ -21,7 +21,7 @@ func parsePublicKey(hexKey string) (ed25519.PublicKey, error) {
 	return ed25519.PublicKey(raw), nil
 }
 
-// verifySignature checks Discord's Ed25519 signature over an already-assembled
+// Checks Discord's Ed25519 signature over an already-assembled
 // timestamp||body. The signature is decoded into a stack array and the canonical
 // top-three-bits check runs first, so neither path allocates and clearly invalid
 // input skips the curve work.
@@ -38,10 +38,11 @@ func verifySignature(key ed25519.PublicKey, signed []byte, signatureHex string) 
 	if sig[ed25519.SignatureSize-1]&224 != 0 {
 		return false
 	}
+
 	return ed25519.Verify(key, signed, sig[:])
 }
 
-// decodeHex decodes src into dst, which must be half of src's length. It exists
+// Decodes src into dst, which must be half of src's length. It exists
 // because hex.DecodeString allocates, and signature checking is the hottest path
 // on the HTTP endpoint.
 func decodeHex(dst []byte, src string) bool {
@@ -61,6 +62,7 @@ func decodeHex(dst []byte, src string) bool {
 		}
 		dst[i] = high<<4 | low
 	}
+
 	return true
 }
 
