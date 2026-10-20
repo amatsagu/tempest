@@ -14,7 +14,7 @@ import (
 	"github.com/amatsagu/tempest/rest"
 )
 
-// syncHarness builds a Client whose REST calls hit a local server that decodes
+// Builds a Client whose REST calls hit a local server that decodes
 // each request body into commands.
 func syncHarness(t *testing.T, cfg Config) (*Client, *[]discord.Command) {
 	t.Helper()
@@ -35,14 +35,16 @@ func syncHarness(t *testing.T, cfg Config) (*Client, *[]discord.Command) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+
 	c.rest = rest.New("t", rest.Options{
 		BaseURL: server.URL,
 		Limiter: ratelimit.New(ratelimit.Options{GlobalRate: 1e9}),
 	})
+
 	return c, got
 }
 
-// TestSyncCommandsFilter covers the three CommandFilter shapes: nil sends every
+// Covers the three CommandFilter shapes: nil sends every
 // command, Names alone is a whitelist, and Exclude flips it into a blacklist.
 func TestSyncCommandsFilter(t *testing.T) {
 	commands := []discord.Command{
@@ -81,8 +83,7 @@ func TestSyncCommandsFilter(t *testing.T) {
 	}
 }
 
-// TestSyncCommandsDefaultContexts proves a command without Contexts inherits
-// Config.DefaultContexts while one with its own keeps them.
+// Checks whether a command without Contexts inherits Config.DefaultContexts while one with its own keeps them.
 func TestSyncCommandsDefaultContexts(t *testing.T) {
 	defaults := []discord.InteractionContextType{discord.InteractionContextPrivateChannel}
 	own := []discord.InteractionContextType{discord.InteractionContextGuild}
