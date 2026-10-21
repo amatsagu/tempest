@@ -1,7 +1,7 @@
 package tempest
 
 import (
-	"encoding/json"
+	"errors"
 	"os"
 	"strconv"
 	"time"
@@ -29,10 +29,17 @@ func (s Snowflake) CreationTimestamp() time.Time {
 }
 
 func (s Snowflake) MarshalJSON() ([]byte, error) {
-	return json.Marshal(strconv.FormatUint(uint64(s), 10))
+	b := make([]byte, 0, 22)
+	b = append(b, '"')
+	b = strconv.AppendUint(b, uint64(s), 10)
+	b = append(b, '"')
+	return b, nil
 }
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 {
+		return errors.New("cannot unmarshal empty snowflake")
+	}
 	if len(b) == 4 && b[0] == 'n' { // "null"
 		*s = 0
 		return nil
