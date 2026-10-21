@@ -30,6 +30,9 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 	if err != nil {
 		panic("failed to decode discord's public key (check if it's correct key): " + err.Error())
 	}
+	if len(discordPublicKey) != ed25519.PublicKeySize {
+		panic("discord public key must be exactly 32 bytes")
+	}
 
 	client := HTTPClient{
 		BaseClient: NewBaseClient(BaseClientOptions{
@@ -198,16 +201,15 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 // Verifies incoming request if it's from Discord. Returns the body bytes if verification was successful.
 func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, maxSize int64) (rawData []byte, cleanup func(), ok bool) {
 	signature := r.Header.Get("X-Signature-Ed25519")
-	if signature == "" {
+	if len(signature) != ed25519.SignatureSize*2 {
 		return nil, nil, false
 	}
 
-	sig, err := hex.DecodeString(signature)
-	if err != nil {
+	var sig [ed25519.SignatureSize]byte
+	if _, err := hex.Decode(sig[:], []byte(signature)); err != nil {
 		return nil, nil, false
 	}
-
-	if len(sig) != ed25519.SignatureSize || sig[63]&224 != 0 {
+	if sig[ed25519.SignatureSize-1]&224 != 0 {
 		return nil, nil, false
 	}
 
@@ -226,13 +228,13 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 			client.tracef("failed to close request body: %v", err)
 		}
 	}()
-	_, err = buf.ReadFrom(io.LimitReader(r.Body, maxSize))
+	_, err := buf.ReadFrom(io.LimitReader(r.Body, maxSize))
 	if err != nil {
 		client.bufferPool.Put(buf)
 		return nil, nil, false
 	}
 
-	if ed25519.Verify(key, buf.Bytes(), sig) {
+	if ed25519.Verify(key, buf.Bytes(), sig[:]) {
 		return buf.Bytes()[len(timestamp):], func() {
 			if int64(buf.Cap()) <= maxSize {
 				client.bufferPool.Put(buf)
