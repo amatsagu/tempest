@@ -15,6 +15,7 @@ import (
 // Represents a Discord rate limit bucket.
 type Bucket struct {
 	ResetAt   time.Time
+	Window    time.Duration
 	ID        string
 	Remaining int
 	Limit     int
@@ -43,12 +44,12 @@ type RateLimiter struct {
 func NewRateLimiter(opt RateLimiterOptions) *RateLimiter {
 	sweepInterval := opt.SweepInterval
 	if sweepInterval == 0 {
-		sweepInterval = 30 * time.Minute
+		sweepInterval = RATE_LIMITER_SWEEP_INTERVAL
 	}
 
 	sweepThreshold := opt.SweepThreshold
 	if sweepThreshold == 0 {
-		sweepThreshold = 2500
+		sweepThreshold = RATE_LIMITER_SWEEP_THRESHOLD
 	}
 
 	trace := opt.Trace
@@ -124,15 +125,30 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 	rl.mu.Unlock()
 
 	bucket.mu.Lock()
+	bucketID = bucket.ID
 
 	if bucket.Remaining <= 0 {
-		if time.Now().Before(bucket.ResetAt) {
+		now := time.Now()
+		if now.Before(bucket.ResetAt) {
 			waitDuration := time.Until(bucket.ResetAt)
 			bucket.mu.Unlock()
-			rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucket.ID, waitDuration.Round(time.Millisecond))
+			rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", route, bucketID, waitDuration.Round(time.Millisecond))
 			time.Sleep(waitDuration)
 			return rl.Wait(route)
 		}
+
+		// The previous window has elapsed. Reopen it with the allowance and
+		// duration learned from Discord instead of letting every waiter that
+		// slept until ResetAt through at once.
+		if bucket.Limit <= 0 {
+			bucket.Limit = 1
+		}
+		window := bucket.Window
+		if window <= 0 {
+			window = time.Second
+		}
+		bucket.Remaining = bucket.Limit
+		bucket.ResetAt = now.Add(window + RATE_LIMITER_RESET_TIME_FUDGE)
 	}
 
 	bucket.Remaining--
@@ -164,13 +180,16 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 
 		rl.mu.Lock()
 		if bucket.ID != bucketHeader {
-			rl.routeMapping[route] = bucketHeader
 			if _, exists := rl.buckets[bucketHeader]; !exists {
 				oldID := bucket.ID
 				bucket.ID = bucketHeader
 				rl.buckets[bucketHeader] = bucket
+				rl.routeMapping[route] = bucketHeader
 				delete(rl.buckets, oldID)
 			}
+			// If the bucket already exists, keep this route on its own bucket.
+			// Remapping here would point subsequent requests at state that this
+			// response does not update.
 		}
 		rl.mu.Unlock()
 
@@ -179,16 +198,21 @@ func (rl *RateLimiter) Wait(route string) func(headers http.Header) {
 		resetAfterStr := headers.Get("X-RateLimit-Reset-After")
 
 		if limitStr != "" {
-			limit, _ := strconv.Atoi(limitStr)
-			bucket.Limit = limit
+			if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+				bucket.Limit = limit
+			}
 		}
 		if remainingStr != "" {
-			remaining, _ := strconv.Atoi(remainingStr)
-			bucket.Remaining = remaining
+			if remaining, err := strconv.Atoi(remainingStr); err == nil && remaining >= 0 {
+				bucket.Remaining = remaining
+			}
 		}
 		if resetAfterStr != "" {
-			resetAfter, _ := strconv.ParseFloat(resetAfterStr, 64)
-			bucket.ResetAt = time.Now().Add(time.Duration(resetAfter*float64(time.Second)) + 100*time.Millisecond)
+			if resetAfter, err := strconv.ParseFloat(resetAfterStr, 64); err == nil && resetAfter >= 0 {
+				window := time.Duration(resetAfter * float64(time.Second))
+				bucket.Window = window
+				bucket.ResetAt = time.Now().Add(window + RATE_LIMITER_RESET_TIME_FUDGE)
+			}
 		}
 	}
 }
