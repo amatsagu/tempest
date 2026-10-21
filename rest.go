@@ -73,28 +73,30 @@ func NewRest(opt RestOptions) *Rest {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   REST_DIAL_TIMEOUT,
+			KeepAlive: REST_KEEP_ALIVE,
 		}).DialContext,
-		ForceAttemptHTTP2: false,
-		// MaxConnsPerHost:   256,
-		MaxIdleConns:    256,
-		IdleConnTimeout: 90 * time.Second,
+		ForceAttemptHTTP2:     REST_FORCE_ATTEMPT_HTTP2,
+		MaxIdleConns:          REST_MAX_IDLE_CONNS,
+		MaxIdleConnsPerHost:   REST_MAX_IDLE_CONNS_PER_HOST,
+		IdleConnTimeout:       REST_IDLE_CONN_TIMEOUT,
+		TLSHandshakeTimeout:   REST_TLS_HANDSHAKE_TIMEOUT,
+		ExpectContinueTimeout: REST_EXPECT_CONTINUE_TIMEOUT,
 	}
 
-	maxTimeout := 10 * time.Second
+	maxTimeout := REST_DEFAULT_MAX_WAIT_TIME
 	if opt.MaxWaitTime != 0 {
 		maxTimeout = opt.MaxWaitTime
 	}
 
 	maxRetries := opt.MaxRetries
 	if opt.MaxRetries == 0 {
-		maxRetries = 3
+		maxRetries = REST_DEFAULT_MAX_RETRIES
 	}
 
 	retryThreshold := opt.RetryThreshold
 	if retryThreshold == 0 {
-		retryThreshold = 60
+		retryThreshold = REST_DEFAULT_RETRY_THRESHOLD
 	}
 
 	traceLogger := opt.TraceLogger
@@ -177,6 +179,7 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 		responseBody []byte
 		lastErr      error
 		retrying     bool
+		rateLimited  bool
 	)
 
 	defer func() {
@@ -211,11 +214,15 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 			req.Header.Set("X-Audit-Log-Reason", url.PathEscape(auditLogReason))
 		}
 
-		responseBody, err = rest.executeOnce(req)
+		responseBody, rateLimited, err = rest.executeOnce(req)
 		if err != nil {
 			lastErr = err
 
-			if errors.Is(err, errGlobalRateLimit) || errors.Is(err, errRetryable) {
+			// 429 responses are safe to retry because Discord rejected the
+			// request. Transport errors and 5xx responses may have already
+			// produced side effects, so only retry those for idempotent methods.
+			retryable := rateLimited || (errors.Is(err, errRetryable) && isIdempotentMethod(method))
+			if retryable {
 				if !retrying {
 					retrying = true
 					if rest.retryCounter.Add(1) > rest.retryThreshold {
@@ -224,7 +231,7 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 					}
 				}
 
-				if errors.Is(err, errGlobalRateLimit) {
+				if rateLimited && errors.Is(err, errGlobalRateLimit) {
 					continue
 				}
 
@@ -259,8 +266,6 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 
 // Writes the JSON payload and files to a multipart writer.
 func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) error {
-	defer writer.Close() //nolint:errcheck
-
 	// Write JSON payload part.
 	jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
 		"Content-Disposition": []string{`form-data; name="payload_json"`},
@@ -284,7 +289,7 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 		}
 
 		filePart, err := writer.CreatePart(textproto.MIMEHeader{
-			"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, file.Name)},
+			"Content-Disposition": []string{fmt.Sprintf(`form-data; name="files[%d]"; filename="%s"`, i, escapeMultipartFilename(file.Name))},
 			"Content-Type":        []string{CONTENT_TYPE_OCTET_STREAM},
 		})
 		if err != nil {
@@ -308,8 +313,19 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 	return nil
 }
 
-// executeOnce handles the lifecycle of a single request attempt.
-func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
+// escapeMultipartFilename makes a filename safe for a quoted MIME parameter.
+func escapeMultipartFilename(name string) string {
+	return strings.NewReplacer(
+		"\\", "\\\\",
+		`"`, `\"`,
+		"\r", "",
+		"\n", "",
+	).Replace(name)
+}
+
+// executeOnce handles the lifecycle of a single request attempt. The boolean
+// reports a 429 response, which is safe to retry for any HTTP method.
+func (rest *Rest) executeOnce(req *http.Request) ([]byte, bool, error) {
 	req.Header.Set("User-Agent", USER_AGENT)
 	req.Header.Set("Authorization", rest.token)
 
@@ -326,53 +342,75 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
+		return nil, false, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
 	}
 	defer res.Body.Close() //nolint:errcheck
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, false, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
-		return responseBody, nil
+		return responseBody, false, nil
 	}
 
 	if res.StatusCode == http.StatusTooManyRequests {
 		var rateErr rateLimitError
 		err = json.Unmarshal(responseBody, &rateErr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse rate limit details: %w", err)
+			return nil, false, fmt.Errorf("failed to parse rate limit details: %w", err)
 		}
 
 		if rateErr.Global {
 			retryAfter := time.Duration(rateErr.RetryAfter * float64(time.Second))
-			return nil, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
+			return nil, true, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
 		}
 
-		return nil, fmt.Errorf("%w: hit per-route rate limit (429) on %s %s: %s", errRetryable, req.Method, req.URL.Path, string(responseBody))
+		return nil, true, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", req.Method, req.URL.Path, string(responseBody))
 	}
 
 	if res.StatusCode >= http.StatusInternalServerError {
-		return nil, fmt.Errorf("%w: discord API internal server error: %s", errRetryable, res.Status)
+		return nil, false, fmt.Errorf("%w: discord API internal server error: %s", errRetryable, res.Status)
 	}
 
-	return nil, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
+	return nil, false, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
+}
+
+func isIdempotentMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPut, http.MethodDelete:
+		return true
+	default:
+		return false
+	}
 }
 
 func extractUserIDFromToken(token string) (Snowflake, error) {
-	strs := strings.Split(token, ".")
-	if len(strs) == 0 {
+	token = strings.TrimPrefix(token, "Bot ")
+	dot := strings.IndexByte(token, '.')
+	if dot <= 0 {
 		return 0, errors.New("token is not in a valid format")
 	}
 
-	hexID := strings.Replace(strs[0], "Bot ", "", 1)
-
-	byteID, err := base64.RawStdEncoding.DecodeString(hexID)
+	encodedID := token[:dot]
+	byteID, err := base64.RawURLEncoding.DecodeString(encodedID)
+	if err != nil {
+		byteID, err = base64.RawStdEncoding.DecodeString(encodedID)
+	}
+	if err != nil {
+		byteID, err = base64.StdEncoding.DecodeString(encodedID)
+	}
 	if err != nil {
 		return 0, err
 	}
 
-	return StringToSnowflake(string(byteID))
+	id, err := StringToSnowflake(string(byteID))
+	if err != nil {
+		return 0, err
+	}
+	if id == 0 {
+		return 0, errors.New("token contains an invalid bot user ID")
+	}
+	return id, nil
 }
