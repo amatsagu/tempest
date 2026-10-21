@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"math/rand/v2"
 	"runtime"
@@ -51,6 +53,7 @@ type Shard struct {
 	eventHandler      func(shardID uint16, packet EventPacket)
 	presence          *UpdatePresenceEventData
 	traceLogger       *log.Logger // Inherited from the manager
+	trace             bool
 	sessionID         string
 	token             string
 	resumeGatewayURL  string
@@ -89,6 +92,7 @@ func NewShard(
 		intents:      intents,
 		socket:       &socket{compress: compress},
 		traceLogger:  traceLogger,
+		trace:        traceLogger != nil && traceLogger.Writer() != io.Discard,
 		eventHandler: eventHandler,
 	}
 }
@@ -117,16 +121,25 @@ func (s *Shard) UpdatePresence(payload *UpdatePresenceEvent) error {
 func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 	s.tracef("Starting connection loop.")
 
+	// Closing the socket is what unblocks readLoop when the shard context ends.
+	// Keep one watcher for the whole shard lifecycle instead of one callback per
+	// connection, and cancel it when Start returns for any reason.
+	watchCtx, cancelWatch := context.WithCancel(ctx)
+	watchDone := make(chan struct{})
+	go func() {
+		defer close(watchDone)
+		<-watchCtx.Done()
+		s.close()
+	}()
+	defer func() {
+		cancelWatch()
+		<-watchDone
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
 			s.tracef("Context cancellation received. Exiting connection loop.")
-			if err := s.socket.closeGracefully(); err != nil {
-				s.tracef("Failed to close socket: %v", err)
-			}
-			s.mu.Lock()
-			s.state = OFFLINE_SHARD_STATE
-			s.mu.Unlock()
 			return
 		default:
 			if err := s.socket.closeForReconnect(); err != nil {
@@ -153,15 +166,20 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			}
 
 			s.tracef("Attempting to connect to %s", targetURL)
-			if err := s.socket.connect(targetURL); err != nil {
-				s.tracef("Connection failed: %v. Retrying in 5 seconds.", err)
+			if err := s.socket.connect(ctx, targetURL); err != nil {
+				if ctx.Err() != nil {
+					s.tracef("Context canceled while connecting to the gateway.")
+					return
+				}
+
+				s.tracef("Connection failed: %v. Retrying in %s.", err, GATEWAY_DIAL_RETRY_DELAY)
 				s.mu.Lock()
 				s.resumeGatewayURL = ""
 				s.mu.Unlock()
 				select {
 				case <-ctx.Done():
 					return
-				case <-time.After(5 * time.Second):
+				case <-time.After(GATEWAY_DIAL_RETRY_DELAY):
 					continue
 				}
 			}
@@ -206,18 +224,19 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			case <-ctx.Done():
 				s.tracef("Context cancellation received. Not reconnecting.")
 				return
-			case <-time.After(1 * time.Second):
+			case <-time.After(GATEWAY_RECONNECT_DELAY):
 				s.tracef("Reconnecting...")
 			}
 		}
 	}
 }
 
-func (s *Shard) Close() {
+func (s *Shard) close() {
 	s.tracef("Closing shard connection.")
 	if err := s.socket.closeGracefully(); err != nil {
 		s.tracef("Failed to close socket gracefully: %v.", err)
 	}
+
 	s.mu.Lock()
 	s.state = OFFLINE_SHARD_STATE
 	s.mu.Unlock()
@@ -228,6 +247,9 @@ func (s *Shard) Send(jsonPayload any) error {
 }
 
 func (s *Shard) tracef(format string, v ...any) {
+	if !s.trace {
+		return
+	}
 	s.traceLogger.Printf("[SHARD %d (%s)] "+format, append([]any{s.ID, s.Status()}, v...)...)
 }
 
@@ -290,6 +312,9 @@ func (s *Shard) handlePacket(connCtx context.Context, p EventPacket) error {
 		}
 
 		interval := time.Duration(hello.HeartbeatInterval) * time.Millisecond
+		if interval <= 0 {
+			return fmt.Errorf("gateway HELLO contained invalid heartbeat interval %s", interval)
+		}
 		s.mu.Lock()
 		s.heartbeatInterval = interval
 		s.heartbeatAckMissing = false
@@ -310,7 +335,6 @@ func (s *Shard) handlePacket(connCtx context.Context, p EventPacket) error {
 		return s.sendHeartbeat()
 	case RECONNECT_OPCODE:
 		s.tracef("RECONNECT Server requested reconnect. Closing connection to reconnect.")
-		time.Sleep(1 * time.Second)
 		return s.socket.closeForReconnect()
 	case INVALID_SESSION_OPCODE:
 		var resumable bool
@@ -329,7 +353,6 @@ func (s *Shard) handlePacket(connCtx context.Context, p EventPacket) error {
 			s.tracef("INVALID_SESSION received (resumable: true). Will reconnect and retry.")
 		}
 
-		time.Sleep(1 * time.Second)
 		return s.socket.closeForReconnect()
 	default:
 		s.tracef("Received unknown Opcode: %d", p.Opcode)

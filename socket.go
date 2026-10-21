@@ -2,10 +2,12 @@ package tempest
 
 import (
 	"compress/zlib"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -18,12 +20,11 @@ import (
 // It's designed to handle the basic lifecycle and data framing for a
 // connection to the Discord Gateway.
 type socket struct {
-	// zlib-stream
-	zreader  io.ReadCloser
-	conn     *websocket.Conn
-	decoder  *json.Decoder
-	mu       sync.Mutex
-	compress bool
+	conn         atomic.Pointer[websocket.Conn]
+	decoder      atomic.Pointer[json.Decoder]
+	readDeadline atomic.Int64
+	writeMu      sync.Mutex
+	compress     bool
 }
 
 // Handles zero-allocation streaming from WebSocket frames.
@@ -61,113 +62,174 @@ func (f *zlibFeeder) Read(p []byte) (int, error) {
 	}
 }
 
-func (s *socket) connect(urlStr string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.conn != nil {
+func (s *socket) connect(ctx context.Context, urlStr string) error {
+	if s.conn.Load() != nil {
 		return errors.New("already connected")
 	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(urlStr, nil)
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, urlStr, nil)
 	if err != nil {
 		return err
 	}
+	conn.SetReadLimit(MAX_GATEWAY_MESSAGE_SIZE)
 
-	s.conn = conn
+	// Publish the connection before setting up compression so the shutdown
+	// watcher can close it even if the server never sends a zlib header.
+	if !s.conn.CompareAndSwap(nil, conn) {
+		_ = conn.Close()
+		return errors.New("already connected")
+	}
+	s.readDeadline.Store(0)
 
-	if s.compress {
-		zr, err := zlib.NewReader(&zlibFeeder{conn: conn})
-		if err != nil {
-			_ = conn.Close()
-			s.conn = nil
-			return err
-		}
+	// The shutdown watcher may have observed cancellation before the dial
+	// completed and exited while conn was still unpublished.
+	if err := ctx.Err(); err != nil {
+		s.replaceConnAndClose(conn)
+		return err
+	}
 
-		s.zreader = zr
-		s.decoder = json.NewDecoder(zr)
+	if !s.compress {
+		return nil
+	}
+
+	if err := conn.SetReadDeadline(time.Now().Add(GATEWAY_HANDSHAKE_TIMEOUT)); err != nil {
+		s.replaceConnAndClose(conn)
+		return err
+	}
+
+	zr, err := zlib.NewReader(&zlibFeeder{conn: conn})
+	if err != nil {
+		s.replaceConnAndClose(conn)
+		return err
+	}
+
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		_ = zr.Close()
+		s.replaceConnAndClose(conn)
+		return err
+	}
+
+	decoder := json.NewDecoder(zr)
+	s.decoder.Store(decoder)
+	if s.conn.Load() != conn {
+		s.decoder.CompareAndSwap(decoder, nil)
+		_ = zr.Close()
+		return errors.New("connection closed during compression setup")
 	}
 
 	return nil
 }
 
+// detach removes the active connection from the socket and returns it.
+// The caller closes it outside of any lock so a blocked write cannot prevent
+// shutdown or reconnection.
+func (s *socket) detach() *websocket.Conn {
+	conn := s.conn.Swap(nil)
+	s.decoder.Store(nil)
+	s.readDeadline.Store(0)
+	return conn
+}
+
+// replaceConnAndClose clears conn if it is still the active connection and
+// closes it. It is used for setup failures before the socket is fully ready.
+func (s *socket) replaceConnAndClose(conn *websocket.Conn) {
+	if s.conn.CompareAndSwap(conn, nil) {
+		s.decoder.Store(nil)
+		s.readDeadline.Store(0)
+	}
+
+	_ = conn.Close()
+}
+
 // Closes the network connection without sending a CloseNormalClosure (1000) frame.
 // This can preserve the session on Discord's side and allows the client to RESUME.
 func (s *socket) closeForReconnect() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.conn == nil {
+	conn := s.detach()
+	if conn == nil {
 		return nil // Nothing to do
 	}
 
-	err := s.conn.Close()
-	s.conn = nil
-	s.decoder = nil
-
-	// Intentionally skip zreader.Close() as it only sets an internal error flag
-	// (flate: f.err = io.EOF) and holds no OS resources. Calling it here would
-	// race with a concurrent Decode() still draining the zlib stream on the read
-	// goroutine. The abandoned reader is safely garbage collected.
-	s.zreader = nil
-
-	return err
+	// Intentionally skip closing the zlib reader as it only sets an internal
+	// error flag (flate: f.err = io.EOF) and holds no OS resources. Calling it
+	// here would race with a concurrent Decode() still draining the zlib stream
+	// on the read goroutine. The abandoned reader is safely garbage collected.
+	return conn.Close()
 }
 
 // Closes ws connection by sending a CloseNormalClosure (1000) control frame.
 // Used when shutting down the shard/bot permanently.
 func (s *socket) closeGracefully() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.conn == nil {
+	conn := s.detach()
+	if conn == nil {
 		return nil // Nothing to do
 	}
 
-	_ = s.conn.WriteControl(
+	_ = conn.WriteControl(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		time.Now().Add(time.Second),
 	)
 
-	err := s.conn.Close()
-	s.conn = nil
-	s.decoder = nil
-	s.zreader = nil
-
-	return err
+	return conn.Close()
 }
 
 func (s *socket) readJSON(v any) error {
-	s.mu.Lock()
-	conn := s.conn
+	conn := s.conn.Load()
 	if conn == nil {
-		s.mu.Unlock()
 		return errors.New("not connected")
+	}
+
+	if err := s.refreshReadDeadline(conn); err != nil {
+		return err
 	}
 
 	if !s.compress {
-		s.mu.Unlock()
 		return conn.ReadJSON(v)
 	}
 
-	decoder := s.decoder
+	decoder := s.decoder.Load()
 	if decoder == nil {
-		s.mu.Unlock()
 		return errors.New("not connected")
 	}
-	s.mu.Unlock()
 
 	return decoder.Decode(v)
 }
 
-func (s *socket) writeJSON(v any) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// refreshReadDeadline extends the read deadline only when less than half of
+// the timeout remains. Gateway traffic can produce thousands of frames per
+// second, and resetting the runtime poll deadline for every one of them adds
+// measurable CPU overhead without improving the timeout guarantee.
+func (s *socket) refreshReadDeadline(conn *websocket.Conn) error {
+	now := time.Now()
+	remaining := s.readDeadline.Load() - now.UnixNano()
+	if remaining > int64(GATEWAY_READ_TIMEOUT/2) {
+		return nil
+	}
 
-	if s.conn == nil {
+	deadline := now.Add(GATEWAY_READ_TIMEOUT)
+	if err := conn.SetReadDeadline(deadline); err != nil {
+		return err
+	}
+	s.readDeadline.Store(deadline.UnixNano())
+	return nil
+}
+
+func (s *socket) writeJSON(v any) error {
+	conn := s.conn.Load()
+	if conn == nil {
 		return errors.New("not connected")
 	}
 
-	return s.conn.WriteJSON(v)
+	payload, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	if err := conn.SetWriteDeadline(time.Now().Add(GATEWAY_WRITE_TIMEOUT)); err != nil {
+		return err
+	}
+	return conn.WriteMessage(websocket.TextMessage, payload)
 }

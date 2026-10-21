@@ -15,11 +15,9 @@ import (
 // ShardManager is responsible for orchestrating multiple Shard connections to the
 // Discord Gateway. It handles everything that is required for Bot to start receiving packets with event data.
 type ShardManager struct {
-	ctx          context.Context
 	traceLogger  *log.Logger
 	eventHandler func(shardID uint16, packet EventPacket)
 	shards       map[uint16]*Shard
-	cancel       context.CancelFunc
 	token        string
 	wg           sync.WaitGroup
 
@@ -64,6 +62,11 @@ func NewShardManager(token string, trace bool, zlibCompression bool, eventHandle
 // creates the necessary shards, and starts them in parallel. This is a
 // blocking call that waits for all shards to complete their lifecycle.
 //
+// Canceling ctx stops the startup process and gracefully closes every active
+// shard. Start returns nil after a context-triggered shutdown. Callers do not
+// need a separate stop method; the context owns the connection lifecycle just
+// like it does for an http.Server.
+//
 // Note: Normally Manager will ask Discord API for recommended number of shards and use that.
 // You can manually change that by setting forcedShardCount param to value larger than 0.
 // There's also option to provide on ready function callback to detect once all shards are online.
@@ -73,14 +76,16 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 		m.mu.Unlock()
 		return errors.New("manager has already started")
 	}
-	m.ctx, m.cancel = context.WithCancel(ctx)
 	m.mu.Unlock()
 
 	m.tracef("Starting...")
 
-	gBot, err := m.fetchGatewayBotInfo()
+	gBot, err := m.fetchGatewayBotInfo(ctx)
 	if err != nil {
-		m.Stop()
+		if ctx.Err() != nil {
+			m.tracef("Context canceled before gateway startup completed.")
+			return nil
+		}
 		return err
 	}
 
@@ -99,7 +104,7 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 
 			for shardID := bucketID; shardID < gBot.ShardCount; shardID += gBot.SessionStartLimit.MaxConcurrency {
 				select {
-				case <-m.ctx.Done():
+				case <-ctx.Done():
 					m.tracef("Cancelled context while shards were still spawning.")
 					return
 				default:
@@ -126,48 +131,43 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 						if m.compress {
 							url += "&compress=zlib-stream"
 						}
-						shard.Start(m.ctx, url)
+						shard.Start(ctx, url)
 					}()
 
-					// Discord requires a 5-second delay between each IDENTIFY per bucket
+					// Discord requires a 5-second delay between each IDENTIFY per bucket.
+					// Skip the delay when this bucket has no more shards to launch, and
+					// use a timer instead of time.Sleep so cancellation is immediate.
+					if shardID+gBot.SessionStartLimit.MaxConcurrency >= gBot.ShardCount {
+						break
+					}
+
 					m.tracef("Waiting 5s before spawn of next shard in bucket ID = %d.", bucketID)
-					time.Sleep(5 * time.Second)
+					timer := time.NewTimer(5 * time.Second)
+					select {
+					case <-ctx.Done():
+						timer.Stop()
+						m.tracef("Cancelled context while waiting to spawn the next shard.")
+						return
+					case <-timer.C:
+					}
 				}
 			}
 		}(bucket)
 	}
 
 	spawnWg.Wait() // Wait for all shards to be launched before proceeding.
-	if readyCallbackFn != nil {
-		readyCallbackFn()
+	if ctx.Err() == nil {
+		if readyCallbackFn != nil {
+			readyCallbackFn()
+		}
+		m.tracef("All shards have been launched.")
+	} else {
+		m.tracef("Context canceled before all shards were launched.")
 	}
 
-	m.tracef("All shards have been launched.")
 	m.wg.Wait() // This makes Start() a blocking function.
 	m.tracef("All shards have stopped.")
 	return nil
-}
-
-// Stop gracefully closes all shard connections.
-func (m *ShardManager) Stop() {
-	m.mu.RLock()
-	if len(m.shards) == 0 {
-		m.mu.RUnlock()
-		return
-	}
-	m.tracef("Stopping all shards...")
-	m.cancel()
-
-	// Close each active shard WebSocket so blocking readLoop() unblocks immediately
-	for _, s := range m.shards {
-		if s != nil {
-			s.Close()
-		}
-	}
-
-	m.mu.RUnlock()
-	m.wg.Wait()
-	m.tracef("All shards have stopped.")
 }
 
 func (m *ShardManager) Status() map[uint16]ShardState {
@@ -294,8 +294,8 @@ func (m *ShardManager) tracef(format string, v ...any) {
 	m.traceLogger.Printf("[(GATEWAY) SHARD MANAGER] "+format, v...)
 }
 
-func (m *ShardManager) fetchGatewayBotInfo() (*GatewayBot, error) {
-	req, err := http.NewRequest(http.MethodGet, DiscordAPIBaseURL()+"/gateway/bot", nil)
+func (m *ShardManager) fetchGatewayBotInfo(ctx context.Context) (*GatewayBot, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, DiscordAPIBaseURL()+"/gateway/bot", nil)
 	if err != nil {
 		return nil, err
 	}
