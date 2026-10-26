@@ -1,6 +1,7 @@
 package tempest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,6 +10,19 @@ import (
 // Returns whether this interaction already was responded to.
 func (itx *Interaction) Responded() bool {
 	return itx.responded
+}
+
+// requestContext returns the narrowest lifecycle available to this interaction.
+// HTTP interactions carry a request-specific context; gateway interactions fall
+// back to the REST client lifecycle context set when the gateway starts.
+func (itx *Interaction) requestContext() context.Context {
+	if itx.ctx != nil {
+		return itx.ctx
+	}
+	if itx.BaseClient != nil {
+		return itx.BaseClient.context()
+	}
+	return context.Background()
 }
 
 // Returns user data either from member or from user (depending if interaction was used in a server).
@@ -127,7 +141,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 	endpoint := "/webhooks/" + itx.ApplicationID.String() + "/" + itx.Token
 
 	if itx.deferred {
-		_, err := itx.BaseClient.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		_, err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files)
 		if err == nil {
 			itx.responded = true
 		}
@@ -145,7 +159,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 
 		itx.deferred = true // Manually set state
 
-		_, err = itx.BaseClient.Rest.RequestWithFiles(http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		_, err = itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files)
 		if err == nil {
 			itx.responded = true
 		}
@@ -189,7 +203,7 @@ func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral 
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.BaseClient.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
+	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
 	return err
 }
 
@@ -200,7 +214,7 @@ func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) DeleteReply() error {
-	_, err := itx.BaseClient.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
+	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
 	return err
 }
 
@@ -209,7 +223,7 @@ func (itx *CommandInteraction) SendFollowUp(content ResponseMessageData, ephemer
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}
@@ -234,7 +248,7 @@ func (itx *CommandInteraction) SendFollowUpWithFiles(content ResponseMessageData
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.RequestWithFiles(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
+	raw, err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
 	if err != nil {
 		return Message{}, err
 	}
@@ -255,7 +269,7 @@ func (itx *CommandInteraction) SendLinearFollowUpWithFiles(content string, ephem
 }
 
 func (itx *CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessageData) error {
-	_, err := itx.BaseClient.Rest.Request(http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
+	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
 	return err
 }
 
@@ -266,7 +280,7 @@ func (itx *CommandInteraction) EditLinearFollowUp(messageID Snowflake, content s
 }
 
 func (itx *CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
-	_, err := itx.BaseClient.Rest.Request(http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
+	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
 	return err
 }
 
@@ -575,7 +589,7 @@ func (itx *ModalInteraction) Defer(ephemeral bool) error {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.BaseClient.Rest.Request(http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Flags: flags,
@@ -596,7 +610,7 @@ func (itx *ModalInteraction) SendFollowUp(content ResponseMessageData, ephemeral
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.Request(http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	raw, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
 	if err != nil {
 		return Message{}, err
 	}

@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -43,6 +45,8 @@ func NewHTTPClient(opt HTTPClientOptions) *HTTPClient {
 			ComponentHandler:           opt.ComponentHandler,
 			ModalHandler:               opt.ModalHandler,
 			Logger:                     opt.Logger,
+			RestOptions:                opt.RestOptions,
+			Context:                    opt.Context,
 		}),
 		PublicKey: discordPublicKey,
 		bufferPool: &sync.Pool{
@@ -92,22 +96,6 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Buffered channel ensures the handler doesn't block if the HTTP request times out.
-	responseCh := make(chan []byte, 1)
-	responderFn := func(res Response) error {
-		body, err := json.Marshal(res)
-		if err != nil {
-			return err
-		}
-
-		select {
-		case responseCh <- body:
-			return nil
-		default:
-			return errors.New("initial interaction response already sent")
-		}
-	}
-
 	switch extractor.Type {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
@@ -126,10 +114,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFn
-
-		go client.commandInteractionHandler(interaction, responseCh)
-		client.awaitResponse(w, responseCh)
+		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+			client.commandInteractionHandler(interaction, responseCh, responseSent)
+		})
 
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
@@ -142,10 +129,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFn
-
-		go client.componentInteractionHandler(interaction, responseCh)
-		client.awaitResponse(w, responseCh)
+		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+			client.componentInteractionHandler(interaction, responseCh, responseSent)
+		})
 
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
@@ -158,7 +144,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFn
+		interaction.ctx = r.Context()
 
 		choices := client.autoCompleteInteractionHandler(interaction)
 
@@ -189,12 +175,79 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		interaction.responder = responderFn
-
-		go client.modalInteractionHandler(interaction, responseCh)
-		client.awaitResponse(w, responseCh)
+		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+			client.modalInteractionHandler(interaction, responseCh, responseSent)
+		})
 
 		return
+	}
+}
+
+// serveInteraction starts an interaction handler with a context that lives for
+// the handler's lifetime. Request cancellation is honored until the initial
+// response goes out; afterward the handler may still edit/follow up until it
+// returns or the client lifecycle context is canceled.
+func (client *HTTPClient) serveInteraction(w http.ResponseWriter, r *http.Request, interaction *Interaction, handler func(chan []byte, *atomic.Bool)) {
+	responseCh := make(chan []byte, 1)
+	var responseSent atomic.Bool
+
+	ctx, cancel := client.interactionContext(r, &responseSent)
+	interaction.ctx = ctx
+	interaction.responder = client.interactionResponder(ctx, responseCh, &responseSent)
+
+	done := make(chan struct{})
+	go func() {
+		defer cancel()
+		defer close(done)
+		handler(responseCh, &responseSent)
+	}()
+
+	client.awaitResponse(ctx, done, w, responseCh)
+}
+
+func (client *HTTPClient) interactionContext(r *http.Request, responseSent *atomic.Bool) (context.Context, context.CancelFunc) {
+	// Keep request values for tracing/user code, but do not let ServeHTTP
+	// returning cancel follow-up work. Request cancellation still cancels the
+	// interaction until its initial response has been sent.
+	ctx, cancel := context.WithCancel(context.WithoutCancel(r.Context()))
+
+	var stopRoot func() bool
+	if root := client.context(); root.Done() != nil {
+		stopRoot = context.AfterFunc(root, cancel)
+	}
+	stopRequest := context.AfterFunc(r.Context(), func() {
+		if !responseSent.Load() {
+			cancel()
+		}
+	})
+
+	return ctx, func() {
+		if stopRoot != nil {
+			stopRoot()
+		}
+		stopRequest()
+		cancel()
+	}
+}
+
+func (client *HTTPClient) interactionResponder(ctx context.Context, responseCh chan []byte, responseSent *atomic.Bool) func(Response) error {
+	return func(res Response) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		body, err := json.Marshal(res)
+		if err != nil {
+			return err
+		}
+
+		responseSent.Store(true)
+		select {
+		case responseCh <- body:
+			return nil
+		default:
+			return errors.New("initial interaction response already sent")
+		}
 	}
 }
 
@@ -248,22 +301,47 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 	return nil, nil, false
 }
 
-func (client *HTTPClient) awaitResponse(w http.ResponseWriter, ch chan []byte) {
+func (client *HTTPClient) awaitResponse(ctx context.Context, done <-chan struct{}, w http.ResponseWriter, ch chan []byte) {
+	timer := time.NewTimer(2500 * time.Millisecond)
+	defer timer.Stop()
+
 	select {
 	case response := <-ch:
-		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
-		if _, err := w.Write(response); err != nil {
-			client.tracef("failed to write response: %v", err)
+		client.writeResponse(w, response)
+	case <-timer.C:
+		w.WriteHeader(http.StatusNoContent)
+	case <-done:
+		client.flushResponseOrNoContent(w, ch)
+	case <-ctx.Done():
+		select {
+		case <-done:
+			client.flushResponseOrNoContent(w, ch)
+		default:
 		}
-	case <-time.After(2500 * time.Millisecond):
+	}
+}
+
+func (client *HTTPClient) flushResponseOrNoContent(w http.ResponseWriter, ch chan []byte) {
+	select {
+	case response := <-ch:
+		client.writeResponse(w, response)
+	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
-func (client *HTTPClient) commandInteractionHandler(interaction CommandInteraction, responseCh chan []byte) {
+func (client *HTTPClient) writeResponse(w http.ResponseWriter, response []byte) {
+	w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
+	if _, err := w.Write(response); err != nil {
+		client.tracef("failed to write response: %v", err)
+	}
+}
+
+func (client *HTTPClient) commandInteractionHandler(interaction CommandInteraction, responseCh chan []byte, responseSent *atomic.Bool) {
 	itx, command, available := client.handleInteraction(interaction)
 	if !available {
 		client.tracef("Received command interaction (ID = %s) but there's no matching command! (requested \"%s\")", itx.ID.String(), itx.Data.Name)
+		responseSent.Store(true)
 		responseCh <- bodyUnknownCommandResponse
 		return
 	}
@@ -298,7 +376,7 @@ func (client *HTTPClient) autoCompleteInteractionHandler(interaction CommandInte
 	return command.AutoCompleteHandler(itx)
 }
 
-func (client *HTTPClient) componentInteractionHandler(interaction ComponentInteraction, responseCh chan []byte) {
+func (client *HTTPClient) componentInteractionHandler(interaction ComponentInteraction, responseCh chan []byte, responseSent *atomic.Bool) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
 		fn(interaction)
@@ -319,6 +397,7 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 	if isQueued {
 		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
 
+		responseSent.Store(true)
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:
@@ -338,7 +417,7 @@ func (client *HTTPClient) componentInteractionHandler(interaction ComponentInter
 	client.tracef("Dropped component interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received component interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
 }
 
-func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, responseCh chan []byte) {
+func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, responseCh chan []byte, responseSent *atomic.Bool) {
 	if fn, ok := client.staticModals.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
 		fn(interaction)
@@ -359,6 +438,7 @@ func (client *HTTPClient) modalInteractionHandler(interaction ModalInteraction, 
 	if isQueued {
 		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for dynamic handler - moved to listener.", interaction.ID.String(), interaction.Data.CustomID)
 
+		responseSent.Store(true)
 		select {
 		case responseCh <- bodyAcknowledgeResponse:
 		default:

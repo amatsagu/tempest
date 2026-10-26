@@ -2,6 +2,7 @@ package tempest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -37,9 +39,13 @@ type rateLimitError struct {
 }
 
 type Rest struct {
-	limiter        *RateLimiter
-	traceLogger    *log.Logger
+	limiter     *RateLimiter
+	traceLogger *log.Logger
+	// Timeout is intentionally left unset; Rest methods apply MaxWaitTime
+	// through the request context so retries share one deadline.
 	HTTPClient     http.Client
+	baseCtx        context.Context
+	baseCtxMu      sync.RWMutex
 	token          string
 	maxWaitTime    time.Duration
 	retryCounter   atomic.Int64
@@ -50,10 +56,16 @@ type Rest struct {
 }
 
 type RestOptions struct {
+	// Context is the lifecycle context used by context-free Rest methods
+	// (Request, DirectRequest, RequestWithFiles). Gateway clients replace it
+	// with the context passed to ShardManager.Start. HTTP clients should set
+	// this to their server/application context so shutdown also stops
+	// post-response REST work. If nil, a background fallback is used.
+	Context            context.Context
 	TraceLogger        *log.Logger
 	Token              string
 	RateLimiterOptions RateLimiterOptions
-	MaxWaitTime        time.Duration // Max duration it can take for each request.
+	MaxWaitTime        time.Duration // Max duration for one logical request, including retries. By default: 10 seconds.
 	RetryThreshold     uint32        // Max number of concurrent retries allowed before failing all ongoing requests (emergency breaks). By default: 60.
 	MaxRetries         uint8         // By default: 3
 	Trace              bool
@@ -118,8 +130,8 @@ func NewRest(opt RestOptions) *Rest {
 				limiter:        limiter,
 				innerTransport: transport,
 			},
-			Timeout: maxTimeout,
 		},
+		baseCtx:        opt.Context,
 		token:          prefixedToken,
 		maxRetries:     maxRetries,
 		maxWaitTime:    maxTimeout,
@@ -127,6 +139,27 @@ func NewRest(opt RestOptions) *Rest {
 		traceLogger:    traceLogger,
 		trace:          traceLogger.Writer() != io.Discard,
 	}
+}
+
+func (rest *Rest) setBaseContext(ctx context.Context) {
+	if ctx == nil {
+		return
+	}
+
+	rest.baseCtxMu.Lock()
+	rest.baseCtx = ctx
+	rest.baseCtxMu.Unlock()
+}
+
+func (rest *Rest) baseContext() context.Context {
+	rest.baseCtxMu.RLock()
+	ctx := rest.baseCtx
+	rest.baseCtxMu.RUnlock()
+
+	if ctx == nil {
+		return context.Background()
+	}
+	return ctx
 }
 
 func (rest *Rest) tracef(format string, v ...any) {
@@ -138,18 +171,22 @@ func (rest *Rest) tracef(format string, v ...any) {
 }
 
 func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error) {
-	var body io.ReadSeeker
-	if jsonPayload != nil {
-		var buf bytes.Buffer
-		encoder := json.NewEncoder(&buf)
-		encoder.SetEscapeHTML(false)
-		if err := encoder.Encode(jsonPayload); err != nil {
-			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
-		}
-		body = bytes.NewReader(buf.Bytes())
+	return rest.RequestContext(rest.baseContext(), method, route, jsonPayload)
+}
+
+// RequestContext is like Request, but it honors ctx for limiter waits, retries,
+// and the HTTP request itself.
+func (rest *Rest) RequestContext(ctx context.Context, method, route string, jsonPayload any) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
-	return rest.DirectRequest(method, route, body, CONTENT_TYPE_JSON, "")
+	body, err := rest.BufferJSON(jsonPayload)
+	if err != nil {
+		return nil, err
+	}
+
+	return rest.DirectRequestContext(ctx, method, route, body, CONTENT_TYPE_JSON, "")
 }
 
 // Prepares new json buffered request payload that can be used by DirectRequest() method.
@@ -173,8 +210,30 @@ func (rest *Rest) isTripped() bool {
 	return rest.trippedUntil.Load() > time.Now().UnixNano()
 }
 
-// Internal handler for buffered requests. It's used by Request() and RequestWithFiles() (for PATCH only) methods.
+// DirectRequest is the context-free wrapper for DirectRequestContext.
 func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, contentType string, auditLogReason string) ([]byte, error) {
+	return rest.DirectRequestContext(rest.baseContext(), method, route, body, contentType, auditLogReason)
+}
+
+// DirectRequestContext is like DirectRequest, but it honors ctx for limiter
+// waits, retry backoff, and the HTTP request itself. When ctx has no deadline,
+// or a deadline later than MaxWaitTime, the request is capped at MaxWaitTime.
+func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string, body io.ReadSeeker, contentType string, auditLogReason string) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if contentType == "" {
+		return nil, errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
+	}
+
+	if rest.maxWaitTime > 0 {
+		if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > rest.maxWaitTime {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, rest.maxWaitTime)
+			defer cancel()
+		}
+	}
+
 	var (
 		responseBody []byte
 		lastErr      error
@@ -189,6 +248,10 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 	}()
 
 	for i := uint8(0); i < rest.maxRetries; i++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		if body != nil {
 			if _, err := body.Seek(0, io.SeekStart); err != nil {
 				return nil, fmt.Errorf("failed to seek request body: %w", err)
@@ -200,14 +263,11 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 		}
 
 		// #nosec G704
-		req, err := http.NewRequest(method, DiscordAPIBaseURL()+route, body)
+		req, err := http.NewRequestWithContext(ctx, method, DiscordAPIBaseURL()+route, body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if contentType == "" {
-			return nil, errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
-		}
 		req.Header.Set("Content-Type", contentType)
 
 		if auditLogReason != "" {
@@ -217,6 +277,10 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 		responseBody, rateLimited, err = rest.executeOnce(req)
 		if err != nil {
 			lastErr = err
+
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
 
 			// 429 responses are safe to retry because Discord rejected the
 			// request. Transport errors and 5xx responses may have already
@@ -235,7 +299,9 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 					continue
 				}
 
-				time.Sleep(time.Millisecond * time.Duration(250*int64(i+1)))
+				if err := sleepContext(ctx, time.Millisecond*time.Duration(250*int64(i+1))); err != nil {
+					return nil, err
+				}
 				continue
 			}
 
@@ -248,8 +314,18 @@ func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, conten
 }
 
 func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
+	return rest.RequestWithFilesContext(rest.baseContext(), method, route, jsonPayload, files)
+}
+
+// RequestWithFilesContext is like RequestWithFiles, but it honors ctx for
+// limiter waits, retry backoff, multipart buffering, and the HTTP request.
+func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, route string, jsonPayload any, files []File) ([]byte, error) {
 	if len(files) == 0 {
-		return rest.Request(method, route, jsonPayload)
+		return rest.RequestContext(ctx, method, route, jsonPayload)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	// To avoid issues with retrying requests that have streaming bodies (which can't be re-read),
@@ -257,15 +333,23 @@ func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any,
 	// reliably sent multiple times in case of retries.
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
-	if err := writeMultipart(writer, jsonPayload, files); err != nil {
+	if err := writeMultipartContext(ctx, writer, jsonPayload, files); err != nil {
 		return nil, err
 	}
 
-	return rest.DirectRequest(method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "")
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	return rest.DirectRequestContext(ctx, method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "")
 }
 
 // Writes the JSON payload and files to a multipart writer.
-func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) error {
+func writeMultipartContext(ctx context.Context, writer *multipart.Writer, jsonPayload any, files []File) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// Write JSON payload part.
 	jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
 		"Content-Disposition": []string{`form-data; name="payload_json"`},
@@ -282,6 +366,10 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 
 	// Write file parts.
 	for i, file := range files {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		if seeker, ok := file.Reader.(io.ReadSeeker); ok {
 			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
 				return fmt.Errorf("failed to seek file [%s]: %w", file.Name, err)
@@ -297,7 +385,7 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 		}
 
 		lr := io.LimitReader(file.Reader, MAX_FILE_UPLOAD_SIZE+1)
-		n, err := io.Copy(filePart, lr)
+		n, err := io.Copy(filePart, contextReader{ctx: ctx, reader: lr})
 		if err != nil {
 			return fmt.Errorf("failed to stream file [%s]: %w", file.Name, err)
 		}
@@ -306,6 +394,9 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 		}
 	}
 
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := writer.Close(); err != nil {
 		return fmt.Errorf("failed to close multipart writer: %w", err)
 	}
@@ -313,14 +404,28 @@ func writeMultipart(writer *multipart.Writer, jsonPayload any, files []File) err
 	return nil
 }
 
+type contextReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r contextReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return r.reader.Read(p)
+}
+
+var multipartFilenameReplacer = strings.NewReplacer(
+	"\\", "\\\\",
+	`"`, `\"`,
+	"\r", "",
+	"\n", "",
+)
+
 // escapeMultipartFilename makes a filename safe for a quoted MIME parameter.
 func escapeMultipartFilename(name string) string {
-	return strings.NewReplacer(
-		"\\", "\\\\",
-		`"`, `\"`,
-		"\r", "",
-		"\n", "",
-	).Replace(name)
+	return multipartFilenameReplacer.Replace(name)
 }
 
 // executeOnce handles the lifecycle of a single request attempt. The boolean
@@ -329,25 +434,29 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, bool, error) {
 	req.Header.Set("User-Agent", USER_AGENT)
 	req.Header.Set("Authorization", rest.token)
 
-	var res *http.Response
-	var err error
+	var start time.Time
 	if rest.trace {
-		start := time.Now()
-		res, err = rest.HTTPClient.Do(req)
-		if err == nil {
-			rest.tracef("%s %s - Status: %s (took %v)", req.Method, req.URL.Path, res.Status, time.Since(start))
-		}
-	} else {
-		res, err = rest.HTTPClient.Do(req)
+		start = time.Now()
+	}
+
+	res, err := rest.HTTPClient.Do(req)
+	if rest.trace && err == nil {
+		rest.tracef("%s %s - Status: %s (took %v)", req.Method, req.URL.Path, res.Status, time.Since(start))
 	}
 
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, false, err
+		}
 		return nil, false, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
 	}
 	defer res.Body.Close() //nolint:errcheck
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, false, err
+		}
 		return nil, false, fmt.Errorf("failed to read response body: %w", err)
 	}
 

@@ -1,6 +1,9 @@
 package tempest
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-type
 type InteractionType uint8
@@ -34,6 +37,7 @@ type InteractionTypeExtractor struct {
 type Interaction struct {
 	Member        *Member                  `json:"member,omitempty"`
 	responder     func(res Response) error `json:"-"`
+	ctx           context.Context          `json:"-"` // Lifecycle/request context for interaction-driven REST work.
 	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
 	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
 

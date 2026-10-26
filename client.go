@@ -1,6 +1,7 @@
 package tempest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -43,6 +44,12 @@ type BaseClientOptions struct {
 	Token                      string
 	DefaultInteractionContexts []InteractionContextType
 	RestOptions                RestOptions
+	// Context is the client lifecycle context used for REST and rate-limiter
+	// work without a more specific context. It is ignored when
+	// RestOptions.Context is set. Gateway clients replace it with the context
+	// passed to ShardManager.Start. HTTP clients should provide their
+	// server/application context so shutdown also stops post-response work.
+	Context context.Context
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
@@ -63,6 +70,9 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 
 	if opt.RestOptions.Token == "" {
 		opt.RestOptions.Token = opt.Token
+	}
+	if opt.RestOptions.Context == nil {
+		opt.RestOptions.Context = opt.Context
 	}
 
 	if opt.RestOptions.RateLimiterOptions.TraceLogger == nil {
@@ -102,6 +112,20 @@ func (s *BaseClient) tracef(format string, v ...any) {
 	}
 
 	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
+}
+
+func (s *BaseClient) setLifecycleContext(ctx context.Context) {
+	if s == nil || s.Rest == nil || ctx == nil {
+		return
+	}
+	s.Rest.setBaseContext(ctx)
+}
+
+func (s *BaseClient) context() context.Context {
+	if s == nil || s.Rest == nil {
+		return context.Background()
+	}
+	return s.Rest.baseContext()
 }
 
 func (client *BaseClient) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
