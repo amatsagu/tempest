@@ -17,6 +17,7 @@ import (
 type ShardManager struct {
 	traceLogger  *log.Logger
 	eventHandler func(shardID uint16, packet EventPacket)
+	onStart      func(context.Context)
 	shards       map[uint16]*Shard
 	token        string
 	wg           sync.WaitGroup
@@ -28,12 +29,14 @@ type ShardManager struct {
 // Creates a new gateway connection manager.
 // Set trace to true to enable detailed logging for the manager & all shards under its control.
 // If tracing is enabled and logger is provided, it'll be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
-func NewShardManager(token string, trace bool, zlibCompression bool, eventHandler func(shardID uint16, packet EventPacket), logger *log.Logger) *ShardManager {
+//
+// Set zstdCompression to true to enable zstd-stream transport compression.
+func NewShardManager(token string, trace bool, zstdCompression bool, eventHandler func(shardID uint16, packet EventPacket), logger *log.Logger) *ShardManager {
 	m := &ShardManager{
 		token:        token,
 		shards:       make(map[uint16]*Shard),
 		traceLogger:  logger,
-		compress:     zlibCompression,
+		compress:     zstdCompression,
 		eventHandler: eventHandler,
 	}
 
@@ -69,14 +72,18 @@ func NewShardManager(token string, trace bool, zlibCompression bool, eventHandle
 //
 // Note: Normally Manager will ask Discord API for recommended number of shards and use that.
 // You can manually change that by setting forcedShardCount param to value larger than 0.
-// There's also option to provide on ready function callback to detect once all shards are online.
-func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16, readyCallbackFn func()) error {
+// There's also an option to provide a callback invoked after all shards have been launched.
+func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCount uint16, launchedCallbackFn func()) error {
 	m.mu.Lock()
 	if len(m.shards) != 0 {
 		m.mu.Unlock()
 		return errors.New("manager has already started")
 	}
 	m.mu.Unlock()
+
+	if m.onStart != nil {
+		m.onStart(ctx)
+	}
 
 	m.tracef("Starting...")
 
@@ -129,7 +136,7 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 						defer m.wg.Done()
 						url := gBot.URL + "/?v=10&encoding=json"
 						if m.compress {
-							url += "&compress=zlib-stream"
+							url += "&compress=zstd-stream"
 						}
 						shard.Start(ctx, url)
 					}()
@@ -157,8 +164,8 @@ func (m *ShardManager) Start(ctx context.Context, intents uint32, forcedShardCou
 
 	spawnWg.Wait() // Wait for all shards to be launched before proceeding.
 	if ctx.Err() == nil {
-		if readyCallbackFn != nil {
-			readyCallbackFn()
+		if launchedCallbackFn != nil {
+			launchedCallbackFn()
 		}
 		m.tracef("All shards have been launched.")
 	} else {

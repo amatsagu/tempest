@@ -17,8 +17,14 @@ type GatewayClient struct {
 type GatewayClientOptions struct {
 	CustomEventHandler func(shardID uint16, packet EventPacket)
 	BaseClientOptions
-	Trace           bool // Whether to enable detailed logging for shard manager and basic client actions.
-	ZlibCompression bool // Whether to enable zlib-stream compression for gateway traffic. It can reduce incoming traffic by up to ~70% but as side effect requires more CPU for compression & decompression of payloads.
+	Trace bool // Whether to enable detailed logging for shard manager and basic client actions.
+	// Compression enables zstd-stream compression for gateway traffic. It is
+	// disabled by default. The decoder sizes its window from the zstd frame
+	// header and is reused across reconnects.
+	Compression bool
+	// Deprecated: use Compression instead. It enables zstd-stream compression
+	// when true.
+	ZlibCompression bool
 }
 
 func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
@@ -31,6 +37,8 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 			ComponentHandler:           opt.ComponentHandler,
 			ModalHandler:               opt.ModalHandler,
 			Logger:                     opt.Logger,
+			RestOptions:                opt.RestOptions,
+			Context:                    opt.Context,
 		}),
 		customEventHandler: opt.CustomEventHandler,
 	}
@@ -47,10 +55,11 @@ func NewGatewayClient(opt GatewayClientOptions) *GatewayClient {
 	client.Gateway = NewShardManager(
 		opt.Token,
 		opt.Trace,
-		opt.ZlibCompression,
+		opt.Compression || opt.ZlibCompression,
 		client.eventHandler,
 		client.traceLogger,
 	)
+	client.Gateway.onStart = client.setLifecycleContext
 
 	return &client
 }

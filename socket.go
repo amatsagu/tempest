@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	"compress/zlib"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/klauspost/compress/zstd"
 )
 
 // Each Connection with Gateway is:
@@ -22,18 +22,19 @@ import (
 type socket struct {
 	conn         atomic.Pointer[websocket.Conn]
 	decoder      atomic.Pointer[json.Decoder]
+	zstdDecoder  *zstd.Decoder // Reused across reconnects to retain its buffers.
 	readDeadline atomic.Int64
 	writeMu      sync.Mutex
 	compress     bool
 }
 
 // Handles zero-allocation streaming from WebSocket frames.
-type zlibFeeder struct {
+type websocketStreamReader struct {
 	conn   *websocket.Conn
 	reader io.Reader
 }
 
-func (f *zlibFeeder) Read(p []byte) (int, error) {
+func (f *websocketStreamReader) Read(p []byte) (int, error) {
 	for {
 		if f.reader == nil {
 			mt, r, err := f.conn.NextReader()
@@ -74,7 +75,7 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 	conn.SetReadLimit(MAX_GATEWAY_MESSAGE_SIZE)
 
 	// Publish the connection before setting up compression so the shutdown
-	// watcher can close it even if the server never sends a zlib header.
+	// watcher can close it even if the server never sends compressed data.
 	if !s.conn.CompareAndSwap(nil, conn) {
 		_ = conn.Close()
 		return errors.New("already connected")
@@ -97,14 +98,15 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 		return err
 	}
 
-	zr, err := zlib.NewReader(&zlibFeeder{conn: conn})
+	stream := &websocketStreamReader{conn: conn}
+	zr, err := s.zstdReader(stream)
 	if err != nil {
 		s.replaceConnAndClose(conn)
 		return err
 	}
 
 	if err := conn.SetReadDeadline(time.Time{}); err != nil {
-		_ = zr.Close()
+		s.releaseCurrentDecoder()
 		s.replaceConnAndClose(conn)
 		return err
 	}
@@ -113,11 +115,60 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 	s.decoder.Store(decoder)
 	if s.conn.Load() != conn {
 		s.decoder.CompareAndSwap(decoder, nil)
-		_ = zr.Close()
+		s.releaseCurrentDecoder()
 		return errors.New("connection closed during compression setup")
 	}
 
 	return nil
+}
+
+// zstdReader returns the socket's reusable zstd decoder, reset to stream. The
+// decoder's history ring is the largest part of its working set (about 0.7 MiB
+// for a 256 KiB zstd window and 0.3 MiB for a 64 KiB window), so keeping it
+// across reconnects avoids reallocating that memory on every disconnect.
+func (s *socket) zstdReader(stream io.Reader) (*zstd.Decoder, error) {
+	if s.zstdDecoder != nil {
+		if err := s.zstdDecoder.Reset(stream); err == nil {
+			return s.zstdDecoder, nil
+		}
+		// A closed decoder cannot be reset. Discard it and create a new one.
+		s.zstdDecoder.Close()
+		s.zstdDecoder = nil
+	}
+
+	// Concurrency 1 avoids async worker goroutines. Gateway payloads are
+	// small, so the scheduling overhead of parallel block decoding would
+	// outweigh any benefit here. The decoder sizes its window from the zstd
+	// frame header, so no fixed window size is needed.
+	zr, err := zstd.NewReader(
+		stream,
+		zstd.WithDecoderConcurrency(1),
+		zstd.WithDecoderLowmem(true),
+	)
+	if err != nil {
+		return nil, err
+	}
+	s.zstdDecoder = zr
+	return zr, nil
+}
+
+// releaseCurrentDecoder drops the current stream from the decoders after the
+// read loop returns. The zstd decoder keeps its buffers for the next reconnect;
+// only its reference to the old websocket connection is cleared. This is
+// intentionally not called from detach: the read loop may still be blocked
+// inside the decoder while the socket is being closed.
+func (s *socket) releaseCurrentDecoder() {
+	if s.zstdDecoder != nil {
+		_ = s.zstdDecoder.Reset(nil)
+	}
+}
+
+// closeDecoders releases decoder memory when the shard stops permanently.
+func (s *socket) closeDecoders() {
+	if s.zstdDecoder != nil {
+		s.zstdDecoder.Close()
+		s.zstdDecoder = nil
+	}
 }
 
 // detach removes the active connection from the socket and returns it.
@@ -149,19 +200,17 @@ func (s *socket) closeForReconnect() error {
 		return nil // Nothing to do
 	}
 
-	// Intentionally skip closing the zlib reader as it only sets an internal
-	// error flag (flate: f.err = io.EOF) and holds no OS resources. Calling it
-	// here would race with a concurrent Decode() still draining the zlib stream
-	// on the read goroutine. The abandoned reader is safely garbage collected.
+	// The decoder is released by readLoop after Decode returns. Resetting or
+	// closing it here would race with a read goroutine still blocked inside it.
 	return conn.Close()
 }
 
 // Closes ws connection by sending a CloseNormalClosure (1000) control frame.
 // Used when shutting down the shard/bot permanently.
-func (s *socket) closeGracefully() error {
+func (s *socket) closeGracefully() (bool, error) {
 	conn := s.detach()
 	if conn == nil {
-		return nil // Nothing to do
+		return false, nil // Nothing to do
 	}
 
 	_ = conn.WriteControl(
@@ -170,7 +219,7 @@ func (s *socket) closeGracefully() error {
 		time.Now().Add(time.Second),
 	)
 
-	return conn.Close()
+	return true, conn.Close()
 }
 
 func (s *socket) readJSON(v any) error {

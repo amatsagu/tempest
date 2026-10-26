@@ -57,7 +57,6 @@ type Shard struct {
 	sessionID         string
 	token             string
 	resumeGatewayURL  string
-	heartbeatInterval time.Duration
 	latency           time.Duration
 
 	// State
@@ -75,13 +74,15 @@ type Shard struct {
 //
 // All packets shard receives that are not related to connection lifecycle will be pushed to eventHandler function.
 //
+// Set zstdCompression to true to enable zstd-stream transport compression.
+//
 // Warning: Shards are intended to be used via Manager. If you don't know what you're doing - use manager instead.
 func NewShard(
 	id uint16,
 	totalShards uint16,
 	token string,
 	intents uint32,
-	compress bool,
+	zstdCompression bool,
 	traceLogger *log.Logger,
 	eventHandler func(shardID uint16, packet EventPacket),
 ) *Shard {
@@ -90,7 +91,7 @@ func NewShard(
 		totalShards:  totalShards,
 		token:        token,
 		intents:      intents,
-		socket:       &socket{compress: compress},
+		socket:       &socket{compress: zstdCompression},
 		traceLogger:  traceLogger,
 		trace:        traceLogger != nil && traceLogger.Writer() != io.Discard,
 		eventHandler: eventHandler,
@@ -122,18 +123,15 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 	s.tracef("Starting connection loop.")
 
 	// Closing the socket is what unblocks readLoop when the shard context ends.
-	// Keep one watcher for the whole shard lifecycle instead of one callback per
-	// connection, and cancel it when Start returns for any reason.
-	watchCtx, cancelWatch := context.WithCancel(ctx)
-	watchDone := make(chan struct{})
-	go func() {
-		defer close(watchDone)
-		<-watchCtx.Done()
-		s.close()
-	}()
+	// context.AfterFunc keeps the shutdown hook without an idle watcher
+	// goroutine; it only runs when the context is actually canceled.
+	stopClose := context.AfterFunc(ctx, s.close)
 	defer func() {
-		cancelWatch()
-		<-watchDone
+		// The socket's atomic detach is the guard: whichever path gets there
+		// first closes the connection, and the other becomes a no-op.
+		stopClose()
+		s.close()
+		s.socket.closeDecoders()
 	}()
 
 	for {
@@ -148,10 +146,10 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 
 			s.mu.Lock()
 			s.state = CONNECTING_SHARD_STATE
-			s.heartbeatInterval = 0
 			s.heartbeatAckMissing = false
+			state := s.state
 			s.mu.Unlock()
-			s.tracef("Changing state to %s.", s.state.String())
+			s.tracef("Changing state to %s.", state)
 
 			targetURL := gatewayURL
 			s.mu.RLock()
@@ -161,7 +159,7 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 			if resumeURL != "" {
 				targetURL = strings.TrimRight(resumeURL, "/") + "/?v=10&encoding=json"
 				if s.socket.compress {
-					targetURL += "&compress=zlib-stream"
+					targetURL += "&compress=zstd-stream"
 				}
 			}
 
@@ -187,8 +185,9 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 
 			s.mu.Lock()
 			s.state = AUTHENTICATING_SHARD_STATE
+			state = s.state
 			s.mu.Unlock()
-			s.tracef("Changing state to %s.", s.state.String())
+			s.tracef("Changing state to %s.", state)
 
 			// Create a context for this connection lifecycle to manage the heartbeat loop.
 			connCtx, cancelConn := context.WithCancel(ctx)
@@ -232,9 +231,12 @@ func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 }
 
 func (s *Shard) close() {
-	s.tracef("Closing shard connection.")
-	if err := s.socket.closeGracefully(); err != nil {
-		s.tracef("Failed to close socket gracefully: %v.", err)
+	closed, err := s.socket.closeGracefully()
+	if closed {
+		s.tracef("Closing shard connection.")
+		if err != nil {
+			s.tracef("Failed to close socket gracefully: %v.", err)
+		}
 	}
 
 	s.mu.Lock()
@@ -254,6 +256,8 @@ func (s *Shard) tracef(format string, v ...any) {
 }
 
 func (s *Shard) readLoop(connCtx context.Context) error {
+	defer s.socket.releaseCurrentDecoder()
+
 	for {
 		var packet EventPacket
 		if err := s.socket.readJSON(&packet); err != nil {
@@ -316,7 +320,6 @@ func (s *Shard) handlePacket(connCtx context.Context, p EventPacket) error {
 			return fmt.Errorf("gateway HELLO contained invalid heartbeat interval %s", interval)
 		}
 		s.mu.Lock()
-		s.heartbeatInterval = interval
 		s.heartbeatAckMissing = false
 		s.mu.Unlock()
 		s.tracef("HELLO Heartbeat interval set to %s.", interval)
