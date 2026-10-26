@@ -16,8 +16,8 @@ import (
 // Represents a Discord rate limit bucket.
 type Bucket struct {
 	ResetAt   time.Time
-	Window    time.Duration
 	ID        string
+	Window    time.Duration
 	Remaining int
 	Limit     int
 	mu        sync.Mutex
@@ -33,12 +33,12 @@ type RateLimiterOptions struct {
 
 type RateLimiter struct {
 	start           time.Time
-	lastSweep       atomic.Int64
-	sweepCounter    atomic.Uint64
-	buckets         map[string]*Bucket // Bucket ID -> Bucket
-	routeMapping    map[string]string  // Route (Method:Path) -> Bucket ID
+	routeMapping    map[string]string // Route (Method:Path) -> Bucket ID
 	traceLogger     *log.Logger
+	buckets         map[string]*Bucket // Bucket ID -> Bucket
 	globalWait      atomic.Int64
+	sweepCounter    atomic.Uint64
+	lastSweep       atomic.Int64
 	sweepInterval   time.Duration
 	sweepThreshold  int
 	sweepEvery      uint64

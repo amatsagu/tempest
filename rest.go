@@ -39,18 +39,18 @@ type rateLimitError struct {
 }
 
 type Rest struct {
+	baseCtx     context.Context
 	limiter     *RateLimiter
 	traceLogger *log.Logger
 	// Timeout is intentionally left unset; Rest methods apply MaxWaitTime
 	// through the request context so retries share one deadline.
 	HTTPClient     http.Client
-	baseCtx        context.Context
-	baseCtxMu      sync.RWMutex
 	token          string
 	maxWaitTime    time.Duration
 	retryCounter   atomic.Int64
 	retryThreshold int64
 	trippedUntil   atomic.Int64 // UnixNano
+	baseCtxMu      sync.RWMutex
 	maxRetries     uint8
 	trace          bool
 }

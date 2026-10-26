@@ -35,21 +35,20 @@ type BaseClient struct {
 }
 
 type BaseClientOptions struct {
-	PreCommandHook   func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	PostCommandHook  func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
-	ComponentHandler func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
-	ModalHandler     func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
-
-	Logger                     *log.Logger // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
-	Token                      string
-	DefaultInteractionContexts []InteractionContextType
-	RestOptions                RestOptions
 	// Context is the client lifecycle context used for REST and rate-limiter
 	// work without a more specific context. It is ignored when
 	// RestOptions.Context is set. Gateway clients replace it with the context
 	// passed to ShardManager.Start. HTTP clients should provide their
 	// server/application context so shutdown also stops post-response work.
-	Context context.Context
+	Context                    context.Context
+	PreCommandHook             func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
+	PostCommandHook            func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
+	ComponentHandler           func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
+	ModalHandler               func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
+	Logger                     *log.Logger                                     // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
+	Token                      string
+	DefaultInteractionContexts []InteractionContextType
+	RestOptions                RestOptions
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
