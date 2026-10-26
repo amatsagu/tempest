@@ -95,15 +95,17 @@ func (s *interactionSweeper) run(client *BaseClient) {
 		if shortest >= 0 {
 			timer.Reset(shortest)
 
-			var upcoming []time.Duration
-			now := time.Now()
-			for _, t := range lowestTimesCopy {
-				if !t.IsZero() {
-					upcoming = append(upcoming, t.Sub(now).Round(time.Millisecond))
+			if client.trace {
+				now := time.Now()
+				upcoming := make([]time.Duration, 0, len(lowestTimesCopy))
+				for _, t := range lowestTimesCopy {
+					if !t.IsZero() {
+						upcoming = append(upcoming, t.Sub(now).Round(time.Millisecond))
+					}
 				}
-			}
 
-			client.tracef("Interaction Sweeper timer set to %s. Run cleanup in: %v", shortest.Round(time.Millisecond), upcoming)
+				client.tracef("Interaction Sweeper timer set to %s. Run cleanup in: %v", shortest.Round(time.Millisecond), upcoming)
+			}
 		}
 
 		select {
