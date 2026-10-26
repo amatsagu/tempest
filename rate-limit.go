@@ -157,6 +157,15 @@ func (rl *RateLimiter) acquire(ctx context.Context, route string) (*Bucket, erro
 	}
 }
 
+// firstHeaderValue reads a canonical MIME header without the allocation
+// performed by http.Header.Get when the lookup key is not already canonical.
+func firstHeaderValue(headers http.Header, canonicalKey string) string {
+	if values := headers[canonicalKey]; len(values) > 0 {
+		return values[0]
+	}
+	return ""
+}
+
 // Consumes the response headers and publishes any rate limit state
 // learned from Discord. A nil header set means the request failed before a
 // response was received.
@@ -165,8 +174,10 @@ func (rl *RateLimiter) release(bucket *Bucket, route string, headers http.Header
 		return
 	}
 
-	retryAfterStr := headers.Get("Retry-After")
-	if headers.Get("X-RateLimit-Global") == "true" {
+	// net/http stores response headers under canonical MIME keys. Index the
+	// map directly so hot-path header reads do not re-canonicalize every key.
+	retryAfterStr := firstHeaderValue(headers, "Retry-After")
+	if firstHeaderValue(headers, "X-Ratelimit-Global") == "true" {
 		if retryAfterStr != "" {
 			retryAfter, _ := strconv.ParseFloat(retryAfterStr, 64)
 			rl.globalWait.Store(time.Now().Add(time.Duration(retryAfter*float64(time.Second)) + 250*time.Millisecond).UnixNano())
@@ -177,14 +188,14 @@ func (rl *RateLimiter) release(bucket *Bucket, route string, headers http.Header
 		return
 	}
 
-	bucketHeader := headers.Get("X-RateLimit-Bucket")
+	bucketHeader := firstHeaderValue(headers, "X-Ratelimit-Bucket")
 	if bucketHeader == "" {
 		return
 	}
 
-	remainingStr := headers.Get("X-RateLimit-Remaining")
-	limitStr := headers.Get("X-RateLimit-Limit")
-	resetAfterStr := headers.Get("X-RateLimit-Reset-After")
+	remainingStr := firstHeaderValue(headers, "X-Ratelimit-Remaining")
+	limitStr := firstHeaderValue(headers, "X-Ratelimit-Limit")
+	resetAfterStr := firstHeaderValue(headers, "X-Ratelimit-Reset-After")
 
 	bucket.mu.Lock()
 	defer bucket.mu.Unlock()
