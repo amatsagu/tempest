@@ -10,8 +10,8 @@ import (
 
 // colorCommand holds the known colors; names is a slice so autocomplete stays ordered.
 type colorCommand struct {
-	names  []string
 	values map[string]uint32
+	names  []string
 }
 
 func newColorCommand() *colorCommand {

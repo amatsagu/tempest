@@ -16,12 +16,12 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 	ticket := newTicketCommand(client)
 
 	components := []struct {
-		id      string
 		handler func(tempest.ComponentInteraction)
+		id      string
 	}{
-		{openID, util.ComponentHandler(panel.handleOpenForm)},
-		{dismissID, util.ComponentHandler(panel.handleDismiss)},
-		{pickID, util.ComponentHandler(panel.handlePick)},
+		{handler: util.ComponentHandler(panel.handleOpenForm), id: openID},
+		{handler: util.ComponentHandler(panel.handleDismiss), id: dismissID},
+		{handler: util.ComponentHandler(panel.handlePick), id: pickID},
 	}
 
 	for _, component := range components {

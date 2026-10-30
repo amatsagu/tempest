@@ -31,12 +31,12 @@ const (
 
 // sku is the subset of Discord's SKU object this example displays.
 type sku struct {
-	ID            tempest.Snowflake `json:"id"`
-	ApplicationID tempest.Snowflake `json:"application_id"`
-	Type          uint8             `json:"type"`
 	Name          string            `json:"name"`
 	Slug          string            `json:"slug"`
+	ID            tempest.Snowflake `json:"id"`
+	ApplicationID tempest.Snowflake `json:"application_id"`
 	Flags         uint64            `json:"flags"`
+	Type          uint8             `json:"type"`
 }
 
 func (s sku) isSubscription() bool { return s.Type == skuSubscription }
@@ -56,9 +56,9 @@ const (
 type subscription struct {
 	CurrentPeriodEnd time.Time           `json:"current_period_end"`
 	CanceledAt       *time.Time          `json:"canceled_at"`
+	SkuIDs           []tempest.Snowflake `json:"sku_ids"`
 	ID               tempest.Snowflake   `json:"id"`
 	UserID           tempest.Snowflake   `json:"user_id"`
-	SkuIDs           []tempest.Snowflake `json:"sku_ids"`
 	Status           uint8               `json:"status"`
 }
 
