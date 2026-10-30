@@ -233,10 +233,10 @@ func (role *Role) IconURL() string {
 
 // https://docs.discord.com/developers/topics/permissions#role-object-role-tags-structure
 type RoleTag struct {
-	BotID                 Snowflake `json:"bot_id,omitempty"`
-	IntegrationID         Snowflake `json:"integration_id,omitempty"`          // The id of the integration this role belongs to.
-	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitempty"` // The id of this role's subscription sku and listing.
-	PremiumSubscriber     bool      `json:"premium_subscriber"`                // Whether this is the guild's Booster role.
+	BotID                 Snowflake `json:"bot_id,omitzero"`
+	IntegrationID         Snowflake `json:"integration_id,omitzero"`          // The id of the integration this role belongs to.
+	SubscriptionListingID Snowflake `json:"subscription_listing_id,omitzero"` // The id of this role's subscription sku and listing.
+	PremiumSubscriber     bool      `json:"premium_subscriber"`               // Whether this is the guild's Booster role.
 	AvailableForPurchase  bool      `json:"available_for_purchase"`
 	GuildConnections      bool      `json:"guild_connections"` // Whether this role is a guild's linked role.
 }

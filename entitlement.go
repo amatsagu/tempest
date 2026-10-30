@@ -27,8 +27,8 @@ type Entitlement struct {
 	ID            Snowflake       `json:"id"`
 	SkuID         Snowflake       `json:"sku_id"`
 	ApplicationID Snowflake       `json:"application_id"`
-	UserID        Snowflake       `json:"user_id,omitempty"` // ID of the user that is granted access to the entitlement's sku
-	GuildID       Snowflake       `json:"guild_id,omitempty"`
+	UserID        Snowflake       `json:"user_id,omitzero"` // ID of the user that is granted access to the entitlement's sku
+	GuildID       Snowflake       `json:"guild_id,omitzero"`
 	Type          EntitlementType `json:"type"`
 	Deleted       bool            `json:"deleted"`  // Whether entitlement was deleted
 	Consumed      bool            `json:"consumed"` // Whether entitlement was already used

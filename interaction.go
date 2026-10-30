@@ -47,7 +47,7 @@ type Interaction struct {
 
 	// partial guild struct is skipped
 
-	GuildID Snowflake `json:"guild_id,omitempty"`
+	GuildID Snowflake `json:"guild_id,omitzero"`
 	// This struct is purposefully lacking some large but hardly ever used fields like Message or (partial) Guild.
 	// We find that there's no reason in having duplicate of data app/bot already knows or can easily receive & cache as it very slowly changes.
 	// If you truly need them - apply changes and open pull request to discuss.
@@ -56,7 +56,7 @@ type Interaction struct {
 
 	// partial channel struct is skipped
 
-	ChannelID Snowflake `json:"channel_id,omitempty"`
+	ChannelID Snowflake `json:"channel_id,omitzero"`
 
 	// version is skipped (docs says it's always 1, read-only property)
 
@@ -99,13 +99,13 @@ type ModalInteraction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-data-structure
 type CommandInteractionData struct {
-	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`  // Data that Discord has resolved for the command, such as user and role objects. Fields will only be available to bots with the requisite permissions.
-	Name     string                     `json:"name"`                // The name of the invoked command, not including subcommand names.
-	Options  []CommandInteractionOption `json:"options,omitzero"`    // The options and values passed by the user.
-	ID       Snowflake                  `json:"id"`                  // The ID of the invoked command.
-	GuildID  Snowflake                  `json:"guild_id,omitempty"`  // The ID of the guild the command was invoked from. Will be null (i.e. 0) if invoked in a DM.
-	TargetID Snowflake                  `json:"target_id,omitempty"` // The ID of the user or message targeted by a user or message command from the context menu. Will be empty for slash commands.
-	Type     CommandType                `json:"type"`                // The type of comamnd that was invoked.
+	Resolved *InteractionDataResolved   `json:"resolved,omitempty"` // Data that Discord has resolved for the command, such as user and role objects. Fields will only be available to bots with the requisite permissions.
+	Name     string                     `json:"name"`               // The name of the invoked command, not including subcommand names.
+	Options  []CommandInteractionOption `json:"options,omitzero"`   // The options and values passed by the user.
+	ID       Snowflake                  `json:"id"`                 // The ID of the invoked command.
+	GuildID  Snowflake                  `json:"guild_id,omitzero"`  // The ID of the guild the command was invoked from. Will be null (i.e. 0) if invoked in a DM.
+	TargetID Snowflake                  `json:"target_id,omitzero"` // The ID of the user or message targeted by a user or message command from the context menu. Will be empty for slash commands.
+	Type     CommandType                `json:"type"`               // The type of comamnd that was invoked.
 }
 
 // A CommandInteractionOption represents data about a single option passed to a command.

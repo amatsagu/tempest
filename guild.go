@@ -90,14 +90,14 @@ type Guild struct {
 	Roles                     []Role             `json:"roles,omitzero"`
 	Features                  []string           `json:"features,omitzero"` // https://docs.discord.com/developers/resources/guild#guild-object-guild-features
 	ID                        Snowflake          `json:"id"`
-	AFKChannelID              Snowflake          `json:"afk_channel_id,omitempty"`
+	AFKChannelID              Snowflake          `json:"afk_channel_id,omitzero"`
 	OwnerID                   Snowflake          `json:"owner_id"`
-	RulesChannelID            Snowflake          `json:"rules_channel_id,omitempty"`
-	WidgetChannelID           Snowflake          `json:"widget_channel_id,omitempty"` // The channel ID that the widget will generate an invite to, or null if set to no invite.
-	ApplicationID             Snowflake          `json:"application_id,omitempty"`    // Application id of the guild creator if it is bot-created (never seen it in use).
-	SystemChannelID           Snowflake          `json:"system_channel_id,omitempty"`
-	PublicUpdatesChannelID    Snowflake          `json:"public_updates_channel_id,omitempty"`
-	SafetyAlertsChannelID     Snowflake          `json:"safety_alerts_channel_id,omitempty"`
+	RulesChannelID            Snowflake          `json:"rules_channel_id,omitzero"`
+	WidgetChannelID           Snowflake          `json:"widget_channel_id,omitzero"` // The channel ID that the widget will generate an invite to, or null if set to no invite.
+	ApplicationID             Snowflake          `json:"application_id,omitzero"`    // Application id of the guild creator if it is bot-created (never seen it in use).
+	SystemChannelID           Snowflake          `json:"system_channel_id,omitzero"`
+	PublicUpdatesChannelID    Snowflake          `json:"public_updates_channel_id,omitzero"`
+	SafetyAlertsChannelID     Snowflake          `json:"safety_alerts_channel_id,omitzero"`
 	SystemChannelFlags        SystemChannelFlags `json:"system_channel_flags"`
 	AFKChannelTimeout         uint32             `json:"afk_timeout"`             // AFK timeout value in seconds.
 	MaxPresences              uint32             `json:"max_presences,omitempty"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
