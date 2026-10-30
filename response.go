@@ -47,7 +47,7 @@ type ResponseMessageData struct {
 	Components      []MessageComponent `json:"components,omitzero"`        // Any components to send alongside the message.
 	Attachments     []Attachment       `json:"attachments,omitzero"`       // Any attachments to send alongside the message.
 	Flags           MessageFlags       `json:"flags,omitempty"`            // A bitfield containing message flags. Note that only [SUPPRESS_EMBEDS_MESSAGE_FLAG], [EPHEMERAL_MESSAGE_FLAG], [IS_COMPONENTS_V2_MESSAGE_FLAG], [IS_VOICE_MESSAGE_MESSAGE_FLAG] and [SUPPRESS_NOTIFICATIONS_MESSAGE_FLAG] can be set.
-	TTS             bool               `json:"tts"`                        // Whether the message is a TTS message.
+	TTS             bool               `json:"tts,omitzero"`               // Whether the message is a TTS message.
 }
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object-autocomplete

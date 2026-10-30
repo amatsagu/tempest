@@ -186,7 +186,7 @@ type Emoji struct {
 	User          *User       `json:"user,omitempty"`
 	Name          string      `json:"name,omitempty"` // Note: may be empty for deleted emojis.
 	Roles         []Snowflake `json:"roles,omitzero"`
-	ID            Snowflake   `json:"id,omitempty"`
+	ID            Snowflake   `json:"id,omitzero"`
 	RequireColons bool        `json:"require_colons"`
 	Managed       bool        `json:"managed"`
 	Animated      bool        `json:"animated"`
@@ -253,7 +253,7 @@ type EmbedThumbnail struct {
 type EmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
-	Inline bool   `json:"inline"`
+	Inline bool   `json:"inline,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-footer-structure
@@ -316,9 +316,9 @@ type Message struct {
 	StickerItems        []StickerItem               `json:"sticker_items,omitzero"`
 	Reactions           []Reaction                  `json:"reactions,omitzero"`
 	Components          []MessageComponent          `json:"components,omitzero"` // All components included in the message.
-	WebhookID           Snowflake                   `json:"webhook_id,omitempty"`
-	ApplicationID       Snowflake                   `json:"application_id,omitempty"`
-	GuildID             Snowflake                   `json:"guild_id,omitempty"`
+	WebhookID           Snowflake                   `json:"webhook_id,omitzero"`
+	ApplicationID       Snowflake                   `json:"application_id,omitzero"`
+	GuildID             Snowflake                   `json:"guild_id,omitzero"`
 	Flags               MessageFlags                `json:"flags,omitempty"`
 	ChannelID           Snowflake                   `json:"channel_id"`
 	ID                  Snowflake                   `json:"id"`
@@ -331,9 +331,9 @@ type Message struct {
 
 // https://docs.discord.com/developers/resources/message#message-reference-structure
 type MessageReference struct {
-	MessageID       Snowflake            `json:"message_id,omitempty"`
-	ChannelID       Snowflake            `json:"channel_id,omitempty"`
-	GuildID         Snowflake            `json:"guild_id,omitempty"`
+	MessageID       Snowflake            `json:"message_id,omitzero"`
+	ChannelID       Snowflake            `json:"channel_id,omitzero"`
+	GuildID         Snowflake            `json:"guild_id,omitzero"`
 	Type            MessageReferenceType `json:"type,omitempty"`
 	FailIfNotExists bool                 `json:"fail_if_not_exists"`
 }
@@ -351,7 +351,7 @@ type MessageInteractionMetadata struct {
 	TargetUser      *User           `json:"target_user,omitempty"`
 	User            User            `json:"user"`
 	ID              Snowflake       `json:"id"`
-	TargetMessageID Snowflake       `json:"target_message_id,omitempty"`
+	TargetMessageID Snowflake       `json:"target_message_id,omitzero"`
 	Type            InteractionType `json:"type"`
 }
 

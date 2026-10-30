@@ -114,8 +114,8 @@ type StringSelectComponent struct {
 	ComponentType ComponentType      `json:"component_type,omitempty"` // Always = STRING_SELECT_COMPONENT_TYPE (3). Omitted in anything BUT interaction responses from messages.
 	MinValues     uint8              `json:"min_values,omitempty"`     // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
 	MaxValues     uint8              `json:"max_values,omitempty"`     // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
-	Disabled      bool               `json:"disabled"`                 // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
-	Required      bool               `json:"required"`                 // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
+	Disabled      bool               `json:"disabled,omitzero"`        // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
+	Required      bool               `json:"required,omitzero"`        // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
 }
 
 // A SelectMenuOption represents a single option within a [StringSelectComponent].
@@ -126,7 +126,7 @@ type SelectMenuOption struct {
 	Label       string `json:"label"`                 // Text label that appears on the option label, max 80 characters.
 	Value       string `json:"value"`                 // Value to return back to app once clicked, max 100 characters.
 	Description string `json:"description,omitempty"` // An additional description of the option, max 100 characters.
-	Default     bool   `json:"default"`               // Whether to render this option as selected by default.
+	Default     bool   `json:"default,omitzero"`      // Whether to render this option as selected by default.
 }
 
 // A TextInputComponent displays a field for the user to input free-form text.
@@ -173,8 +173,8 @@ type SelectComponent struct {
 	MinValues     uint8                `json:"min_values,omitempty"` // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
 	MaxValues     uint8                `json:"max_values,omitempty"` // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
 	Type          ComponentType        `json:"type"`                 // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
-	Required      bool                 `json:"required"`             // Whether a selection is required to submit the modal (defaults to true).
-	Disabled      bool                 `json:"disabled"`             // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
+	Required      bool                 `json:"required,omitzero"`    // Whether a selection is required to submit the modal (defaults to true).
+	Disabled      bool                 `json:"disabled,omitzero"`    // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
 // https://docs.discord.com/developers/components/reference#user-select-select-default-value-structure
@@ -231,7 +231,7 @@ type UnfurledMediaItem struct {
 	ProxyURL           string                 `json:"proxy_url,omitempty"`
 	ContentType        string                 `json:"content_type,omitempty"` // This field is ignored and provided by the API as part of the response
 	Placeholder        string                 `json:"placeholder,omitempty"`
-	AttachmentID       Snowflake              `json:"attachment_id,omitempty"` // This field is ignored and provided by the API as part of the response
+	AttachmentID       Snowflake              `json:"attachment_id,omitzero"` // This field is ignored and provided by the API as part of the response
 	Width              uint32                 `json:"width,omitempty"`
 	Height             uint32                 `json:"height,omitempty"`
 	PlaceholderVersion uint32                 `json:"placeholder_version,omitempty"`
@@ -249,7 +249,7 @@ type MediaGalleryComponent struct {
 type MediaGalleryItem struct {
 	Description string            `json:"description,omitempty"` // Alt text for the media, max 1024 characters
 	Media       UnfurledMediaItem `json:"media"`
-	Spoiler     bool              `json:"spoiler"`
+	Spoiler     bool              `json:"spoiler,omitzero"`
 }
 
 // https://docs.discord.com/developers/components/reference#file-file-structure
@@ -261,7 +261,7 @@ type FileComponent struct {
 	ID      uint32            `json:"id,omitempty"`
 	Size    uint32            `json:"size,omitempty"` // The size of the file in bytes. This field is ignored and provided by the API as part of the response.
 	Type    ComponentType     `json:"type"`           // Always = FILE_COMPONENT_TYPE (13)
-	Spoiler bool              `json:"spoiler"`
+	Spoiler bool              `json:"spoiler,omitzero"`
 }
 
 // https://docs.discord.com/developers/components/reference#separator-separator-structure
@@ -358,7 +358,7 @@ type RadioGroupOption struct {
 	Value       string `json:"value"`
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
-	Default     bool   `json:"default"` // Whether to render this option as selected by default.
+	Default     bool   `json:"default,omitzero"` // Whether to render this option as selected by default.
 }
 
 // A CheckboxGroupComponent displays a list of one or more options selectable via checkboxes.
@@ -385,7 +385,7 @@ type CheckboxGroupOption struct {
 	Value       string `json:"value"`
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
-	Default     bool   `json:"default"` // Whether to render this option as selected by default.
+	Default     bool   `json:"default,omitzero"` // Whether to render this option as selected by default.
 }
 
 // A CheckboxComponent displays a single, non-required yes/no style question.
@@ -398,8 +398,8 @@ type CheckboxComponent struct {
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	CustomID string        `json:"custom_id,omitempty"`
-	ID       uint32        `json:"id,omitempty"`    // Optional identifier for component
-	Type     ComponentType `json:"type"`            // Always = CHECKBOX_COMPONENT_TYPE (23)
-	Default  bool          `json:"default"`         // Whether to render this option as selected by default.
-	Value    bool          `json:"value,omitempty"` // The state of the checkbox (true if checked, false if unchecked). Populated on modal submission.
+	ID       uint32        `json:"id,omitempty"`     // Optional identifier for component
+	Type     ComponentType `json:"type"`             // Always = CHECKBOX_COMPONENT_TYPE (23)
+	Default  bool          `json:"default,omitzero"` // Whether to render this option as selected by default.
+	Value    bool          `json:"value,omitzero"`   // The state of the checkbox (true if checked, false if unchecked). Populated on modal submission.
 }
