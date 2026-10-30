@@ -1,12 +1,15 @@
-.PHONY: clean build run
+.PHONY: build run clean
 
 build:
 	@echo "Building..."
-	@go build -o bin/example-bot cmd/example-bot/main.go
-	@echo "Finished script. Check bin directory."
+	@mkdir -p bin
+	@go build -o bin/example-bot .
+	@echo "Finished. Check the bin directory."
+
+run: build
+	@./bin/example-bot
+
 clean:
 	@echo "Cleaning up..."
-	@rm bin/example-bot
-	@echo "Done!"
-run: build
-	@bin/example-bot
+	@rm -rf bin
+	@echo "Done."

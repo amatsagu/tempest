@@ -1,4 +1,17 @@
+# Required for both gateway and HTTP modes.
 DISCORD_BOT_TOKEN=
+
+# Required only in HTTP mode.
 DISCORD_PUBLIC_KEY=
-DISCORD_TEST_SERVER_ID=
+
+# Set this to serve the HTTP interaction endpoint instead of using the gateway.
+# APP_ADDRESS is accepted as a fallback for older checkouts.
+HTTP_ADDR=
 APP_ADDRESS=
+
+# Optional: sync commands to one server while iterating; empty means global.
+DISCORD_TEST_SERVER_ID=
+
+# Optional runtime switches.
+DEBUG=
+GATEWAY_ZLIB=
