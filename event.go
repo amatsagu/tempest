@@ -1,7 +1,7 @@
 package tempest
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"time"
 )
 
@@ -35,10 +35,10 @@ const (
 //
 // https://docs.discord.com/developers/events/gateway#gateway-events
 type EventPacket struct {
-	Event    EventName       `json:"t,omitempty"`
-	Data     json.RawMessage `json:"d"`
-	Sequence uint32          `json:"s,omitempty"`
-	Opcode   Opcode          `json:"op"`
+	Event    EventName      `json:"t,omitempty"`
+	Data     jsontext.Value `json:"d"`
+	Sequence uint32         `json:"s,omitempty"`
+	Opcode   Opcode         `json:"op"`
 }
 
 // https://docs.discord.com/developers/events/gateway-events#hello

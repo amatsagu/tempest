@@ -2,7 +2,7 @@ package tempest
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 )
 
 // Nonce is a message nonce. Discord sends it as either a string or an integer,

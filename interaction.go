@@ -2,7 +2,7 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 )
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-type
@@ -25,11 +25,6 @@ const (
 	PRIVATE_CHANNEL_CONTEXT_TYPE
 )
 
-// Used only for partial JSON parsing.
-type InteractionTypeExtractor struct {
-	Type InteractionType `json:"type"`
-}
-
 // Represents general interaction.
 // Use Command/Component/Modal interaction to read Data field.
 //
@@ -46,7 +41,7 @@ type Interaction struct {
 	Locale                       Language                                 `json:"locale,omitempty"`       // Selected language of the invoking user.
 	GuildLocale                  string                                   `json:"guild_locale,omitempty"` // Guild's preferred locale, available if invoked in a guild.
 	Token                        string                                   `json:"token"`                  // Temporary token used for responding to the interaction. It's not the same as bot token.
-	Data                         json.RawMessage                          `json:"data"`
+	Data                         jsontext.Value                           `json:"data"`
 	AuthorizingIntegrationOwners map[ApplicationIntegrationType]Snowflake `json:"authorizing_integration_owners,omitzero"` // Mapping of installation contexts that the interaction was authorized for to related user or guild IDs.
 	Entitlements                 []Entitlement                            `json:"entitlements,omitzero"`                   // For monetized apps, any entitlements for the invoking user, representing access to premium SKUs.
 
