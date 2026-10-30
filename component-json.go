@@ -1,21 +1,19 @@
 package tempest
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"fmt"
 )
 
-// UnmarshalComponent inspects the "type" field and returns the proper component struct.
+// Inspects the "type" field and returns the proper component struct.
 func UnmarshalComponent(data []byte) (AnyComponent, error) {
-	var partial struct {
-		Type ComponentType `json:"type"`
-	}
-
-	if err := json.Unmarshal(data, &partial); err != nil {
+	compType, err := peekComponentType(data)
+	if err != nil {
 		return nil, err
 	}
 
-	switch partial.Type {
+	switch compType {
 	case BUTTON_COMPONENT_TYPE:
 		var cmp ButtonComponent
 		if err := json.Unmarshal(data, &cmp); err != nil {
@@ -123,15 +121,16 @@ func UnmarshalComponent(data []byte) (AnyComponent, error) {
 		return cmp, nil
 	}
 
-	return nil, fmt.Errorf("unknown component type: %d", partial.Type)
+	return nil, fmt.Errorf("unknown component type: %d", compType)
 }
 
 func (c *LabelComponent) UnmarshalJSON(data []byte) error {
 	type alias LabelComponent
 	var raw struct {
 		alias
-		Component json.RawMessage `json:"component"`
+		Component jsontext.Value `json:"component"`
 	}
+
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
@@ -152,7 +151,7 @@ func (c *LabelComponent) UnmarshalJSON(data []byte) error {
 func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 	type alias ActionRowComponent
 	var raw struct {
-		Components []json.RawMessage `json:"components"`
+		Components []jsontext.Value `json:"components"`
 		alias
 	}
 
@@ -179,7 +178,7 @@ func (c *ActionRowComponent) UnmarshalJSON(data []byte) error {
 func (c *ContainerComponent) UnmarshalJSON(data []byte) error {
 	type alias ContainerComponent
 	var raw struct {
-		Components []json.RawMessage `json:"components"`
+		Components []jsontext.Value `json:"components"`
 		alias
 	}
 
@@ -206,8 +205,8 @@ func (c *ContainerComponent) UnmarshalJSON(data []byte) error {
 func (c *SectionComponent) UnmarshalJSON(data []byte) error {
 	type alias SectionComponent
 	var raw struct {
-		Accessory  *json.RawMessage  `json:"accessory,omitempty"`
-		Components []json.RawMessage `json:"components"`
+		Accessory  *jsontext.Value  `json:"accessory,omitempty"`
+		Components []jsontext.Value `json:"components"`
 		alias
 	}
 

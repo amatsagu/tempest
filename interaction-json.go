@@ -1,12 +1,15 @@
 package tempest
 
-import "encoding/json"
+import (
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
+)
 
 func (msd *ModalInteractionData) UnmarshalJSON(data []byte) error {
 	type alias ModalInteractionData
 	var raw struct {
 		alias
-		Components []json.RawMessage `json:"components"`
+		Components []jsontext.Value `json:"components"`
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -20,8 +23,6 @@ func (msd *ModalInteractionData) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		// TODO: This should always implement ModalComponent, as Discord silently rejects payloads with invalid components;
-		// we should arguably return an error of some sort here
 		if cmp, ok := parsed.(ModalComponent); ok {
 			msd.Components = append(msd.Components, cmp)
 		}

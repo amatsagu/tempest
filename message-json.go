@@ -1,13 +1,14 @@
 package tempest
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 )
 
 func (msg *Message) UnmarshalJSON(data []byte) error {
 	type alias Message
 	var raw struct {
-		Components []json.RawMessage `json:"components"`
+		Components []jsontext.Value `json:"components"`
 		alias
 	}
 
@@ -22,8 +23,6 @@ func (msg *Message) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-		// TODO: This should always implement MessageComponent, as Discord silently rejects payloads with invalid components;
-		// we should arguably return an error of some sort here
 		if cmp, ok := parsed.(MessageComponent); ok {
 			msg.Components = append(msg.Components, cmp)
 		}
