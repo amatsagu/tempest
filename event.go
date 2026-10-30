@@ -166,14 +166,12 @@ type UpdatePresenceEventData struct {
 //
 // https://docs.discord.com/developers/events/gateway-events#guild-create
 type CreateGuildEventData struct {
-	*Guild
-
-	JoinedAt *time.Time `json:"joined_at"`
-
-	Members     []Member         `json:"members"`
-	Channels    []PartialChannel `json:"channels"`
-	Threads     []PartialChannel `json:"threads"`
-	MemberCount uint32           `json:"member_count"`
-	Large       bool             `json:"large"`
-	Unavailable bool             `json:"unavailable,omitempty"`
+	JoinedAt *time.Time       `json:"joined_at"`
+	Members  []Member         `json:"members"`
+	Channels []PartialChannel `json:"channels"`
+	Threads  []PartialChannel `json:"threads"`
+	Guild
+	MemberCount uint32 `json:"member_count"`
+	Large       bool   `json:"large,omitzero"`
+	Unavailable bool   `json:"unavailable,omitzero"`
 }
