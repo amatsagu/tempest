@@ -19,18 +19,20 @@ lefthook install
 **You only need to run this command once after cloning the repository.**
 
 > [!TIP]
-> For those using VSCode for development, add the following settings to your workspace `settings.json` to ensure the editor uses the same formatting and linting tools as the pre-commit hooks:
+> For those using VSCode for development, add the following settings to your workspace `settings.json` to ensure the editor uses `gopls` with `gofumpt` formatting and `golangci-lint`:
 > ```json
 > {
->     "go.lintTool": "golangci-lint-v2",
->     "go.formatTool": "custom",
->     "go.alternateTools": {
->         "customFormatter": "golangci-lint-v2"
+>     "go.lintTool": "golangci-lint",
+>     "go.lintOnSave": "package",
+>     "[go]": {
+>         "editor.formatOnSave": true,
+>         "editor.codeActionsOnSave": {
+>             "source.organizeImports": "always"
+>         }
 >     },
->     "go.formatFlags": [
->         "fmt",
->         "--stdin"
->     ],
+>     "gopls": {
+>         "formatting.gofumpt": true
+>     }
 > }
 > ```
 
