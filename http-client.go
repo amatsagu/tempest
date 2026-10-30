@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"net/http"
@@ -89,14 +89,14 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	}
 	defer cleanup()
 
-	var extractor InteractionTypeExtractor
-	if err := json.Unmarshal(rawData, &extractor); err != nil {
+	itxType, err := peekInteractionType(rawData)
+	if err != nil {
 		client.tracef("Received interaction event but failed to extract type: %v", err)
 		http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 		return
 	}
 
-	switch extractor.Type {
+	switch itxType {
 	case PING_INTERACTION_TYPE:
 		w.Header().Add("Content-Type", CONTENT_TYPE_JSON)
 		if _, err := w.Write(bodyPingResponse); err != nil {

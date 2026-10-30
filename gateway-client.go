@@ -1,7 +1,7 @@
 package tempest
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"io"
 	"net/http"
 	"os"
@@ -81,13 +81,13 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		return
 	}
 
-	var extractor InteractionTypeExtractor
-	if err := json.Unmarshal(packet.Data, &extractor); err != nil {
+	itxType, err := peekInteractionType(packet.Data)
+	if err != nil {
 		client.tracef("Received interaction event but failed to extract type: %v", err)
 		return
 	}
 
-	switch extractor.Type {
+	switch itxType {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
 		var interaction CommandInteraction
 		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
@@ -98,8 +98,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		interaction.GatewayClient = client
 		interaction.ShardID = shardID
 		interaction.responder = func(res Response) error {
-			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
-			return err
+			return client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res, nil)
 		}
 
 		client.commandInteractionHandler(interaction)
@@ -114,8 +113,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		interaction.GatewayClient = client
 		interaction.ShardID = shardID
 		interaction.responder = func(res Response) error {
-			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
-			return err
+			return client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res, nil)
 		}
 
 		client.componentInteractionHandler(interaction)
@@ -130,8 +128,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		interaction.GatewayClient = client
 		interaction.ShardID = shardID
 		interaction.responder = func(res Response) error {
-			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
-			return err
+			return client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res, nil)
 		}
 
 		client.autoCompleteInteractionHandler(interaction)
@@ -146,8 +143,7 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 		interaction.GatewayClient = client
 		interaction.ShardID = shardID
 		interaction.responder = func(res Response) error {
-			_, err := client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res)
-			return err
+			return client.Rest.Request(http.MethodPost, "/interactions/"+interaction.ID.String()+"/"+interaction.Token+"/callback", res, nil)
 		}
 
 		client.modalInteractionHandler(interaction)
