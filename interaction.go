@@ -102,7 +102,7 @@ type ModalInteraction struct {
 
 // A CommandInteractionData represents the data received from a user invoking an application command, such as a slash command or a context menu command.
 //
-// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-data
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-application-command-data-structure
 type CommandInteractionData struct {
 	Resolved *InteractionDataResolved   `json:"resolved,omitempty"`  // Data that Discord has resolved for the command, such as user and role objects. Fields will only be available to bots with the requisite permissions.
 	Name     string                     `json:"name"`                // The name of the invoked command, not including subcommand names.
@@ -163,6 +163,8 @@ type ModalInteractionData struct {
 // Unified response type for all interaction replies.
 // Data field holds one of three response data types (message/modal/auto-complete).
 // We're using "any" type because those types are not compatible with each other and will never be used at the same time.
+//
+// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 type Response struct {
 	Data  any          `json:"data,omitempty"`
 	Files []File       `json:"-"`

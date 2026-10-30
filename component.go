@@ -79,7 +79,7 @@ type ActionRowComponent struct {
 // They must be placed within an [ActionRowComponent] or a [SectionComponent]'s accessory field,
 // both of which are only valid inside messages.
 //
-// https://docs.discord.com/developers/components/reference#button
+// https://docs.discord.com/developers/components/reference#button-button-structure
 type ButtonComponent struct {
 	Emoji *Emoji `json:"emoji,omitempty"` // It may only contain id, name, and animated from regular Emoji struct.
 	Label string `json:"label,omitempty"`
@@ -100,7 +100,7 @@ type ButtonComponent struct {
 // They are available in both messages and modals, but
 // must be placed inside an [ActionRowComponent] or [LabelComponent] respectively.
 //
-// https://docs.discord.com/developers/components/reference#string-select
+// https://docs.discord.com/developers/components/reference#string-select-string-select-structure
 type StringSelectComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
@@ -133,7 +133,7 @@ type SelectMenuOption struct {
 //
 // They can only be used inside [LabelComponent]s within modals.
 //
-// https://docs.discord.com/developers/components/reference#text-input
+// https://docs.discord.com/developers/components/reference#text-input-text-input-structure
 type TextInputComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
@@ -218,14 +218,24 @@ type ThumbnailComponent struct {
 	Spoiler     bool              `json:"spoiler"`
 }
 
-// https://docs.discord.com/developers/components/reference#unfurled-media-item-structure
+// https://docs.discord.com/developers/components/reference#unfurled-media-item-unfurled-media-item-flags
+type UnfurledMediaItemFlags = BitSet
+
+const (
+	IS_ANIMATED_UNFURLED_MEDIA_ITEM_FLAG UnfurledMediaItemFlags = 1 << 0
+)
+
+// https://docs.discord.com/developers/components/reference#unfurled-media-item-unfurled-media-item-structure
 type UnfurledMediaItem struct {
-	URL          string    `json:"url"` // 	Supports arbitrary urls and attachment://<filename> references
-	ProxyURL     string    `json:"proxy_url,omitempty"`
-	ContentType  string    `json:"content_type,omitempty"`  // This field is ignored and provided by the API as part of the response
-	AttachmentID Snowflake `json:"attachment_id,omitempty"` // This field is ignored and provided by the API as part of the response
-	Width        uint32    `json:"width,omitempty"`
-	Height       uint32    `json:"height,omitempty"`
+	URL                string                 `json:"url"` // 	Supports arbitrary urls and attachment://<filename> references
+	ProxyURL           string                 `json:"proxy_url,omitempty"`
+	ContentType        string                 `json:"content_type,omitempty"` // This field is ignored and provided by the API as part of the response
+	Placeholder        string                 `json:"placeholder,omitempty"`
+	AttachmentID       Snowflake              `json:"attachment_id,omitempty"` // This field is ignored and provided by the API as part of the response
+	Width              uint32                 `json:"width,omitempty"`
+	Height             uint32                 `json:"height,omitempty"`
+	PlaceholderVersion uint32                 `json:"placeholder_version,omitempty"`
+	Flags              UnfurledMediaItemFlags `json:"flags,omitempty"`
 }
 
 // https://docs.discord.com/developers/components/reference#media-gallery-media-gallery-structure
@@ -280,7 +290,7 @@ type ContainerComponent struct {
 //
 // They can only be used inside modals.
 //
-// https://docs.discord.com/developers/components/reference#label
+// https://docs.discord.com/developers/components/reference#label-label-structure
 type LabelComponent struct {
 	Component   LabelChildComponent `json:"component"`             // The component nested within the label.
 	Label       string              `json:"label"`                 // The header text to show on the label; max 45 characters.
@@ -294,7 +304,7 @@ type LabelComponent struct {
 //
 // They can only be used inside [LabelComponent]s within modals.
 //
-// https://docs.discord.com/developers/components/reference#file-upload
+// https://docs.discord.com/developers/components/reference#file-upload-file-upload-structure
 type FileUploadComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//

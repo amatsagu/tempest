@@ -17,9 +17,9 @@ const (
 	BASIC_NITRO_TYPE
 )
 
-// https://docs.discord.com/developers/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
+// https://docs.discord.com/developers/resources/user#avatar-decoration-data-object
 type AvatarDecoration struct {
-	AssetHash string    `json:"avatar"` // Hash code used to access user's avatar decoration.
+	AssetHash string    `json:"asset"` // Hash code used to access user's avatar decoration.
 	SkuID     Snowflake `json:"sku_id"`
 }
 
@@ -65,7 +65,7 @@ const (
 	ACTIVE_DEVELOPER_USER_FLAG // User has regular discord developer badge
 )
 
-// https://docs.discord.com/developers/resources/user#user-object-user-structure
+// https://docs.discord.com/developers/resources/user#user-object
 type User struct {
 	AvatarDecorationData *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 	Username             string            `json:"username"`
@@ -74,7 +74,7 @@ type User struct {
 	BannerHash           string            `json:"banner,omitempty"`      // Hash code used to access user's baner. Call User.BannerURL to get direct url.
 	Locale               string            `json:"locale,omitempty"`
 	ID                   Snowflake         `json:"id"`
-	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // (Same as regular, user flags)
+	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // Public flags on user's account.
 	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
 	Bot                  bool              `json:"bot"`                    // Whether it's bot/app account.
 	System               bool              `json:"system"`                 // Whether user is Discord System Message account.
@@ -145,9 +145,10 @@ const (
 	AUTOMOD_QUARANTINED_USERNAME_MEMBER_FLAG
 	_
 	DM_SETTINGS_UPSELL_ACKNOWLEDGED_MEMBER_FLAG
+	AUTOMOD_QUARANTINED_GUILD_TAG_MEMBER_FLAG
 )
 
-// https://docs.discord.com/developers/resources/guild#guild-member-object-guild-member-structure
+// https://docs.discord.com/developers/resources/guild#guild-member-object
 type Member struct {
 	JoinedAt                   *time.Time        `json:"joined_at"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
@@ -204,7 +205,14 @@ func (member *Member) GuildBannerURL() string {
 	return DiscordCDNBaseURL() + "/guilds/" + member.GuildID.String() + "/users/" + member.User.ID.String() + "/banners/" + member.GuildBannerHash
 }
 
-// https://docs.discord.com/developers/topics/permissions#role-object-role-structure
+// https://docs.discord.com/developers/topics/permissions#role-object-role-flags
+type RoleFlags = BitSet
+
+const (
+	IN_PROMPT_ROLE_FLAG RoleFlags = 1 << 0
+)
+
+// https://docs.discord.com/developers/topics/permissions#role-object
 type Role struct {
 	Colors          RoleColors      `json:"colors"`
 	Tags            *RoleTag        `json:"tags,omitempty"`
@@ -213,7 +221,7 @@ type Role struct {
 	UnicodeEmoji    string          `json:"unicode_emoji,omitempty"`
 	ID              Snowflake       `json:"id"`
 	PermissionFlags PermissionFlags `json:"permissions,string"`
-	Flags           BitSet          `json:"flags"`
+	Flags           RoleFlags       `json:"flags"`
 	Hoist           bool            `json:"hoist"`
 	Position        uint8           `json:"position"`
 	Managed         bool            `json:"managed"`

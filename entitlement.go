@@ -35,8 +35,16 @@ type Entitlement struct {
 }
 
 // https://docs.discord.com/developers/resources/entitlement#create-test-entitlement-json-params
+type EntitlementOwnerType uint8
+
+const (
+	GUILD_ENTITLEMENT_OWNER_TYPE EntitlementOwnerType = iota + 1
+	USER_ENTITLEMENT_OWNER_TYPE
+)
+
+// https://docs.discord.com/developers/resources/entitlement#create-test-entitlement-json-params
 type TestEntitlementPayload struct {
-	SkuID     Snowflake `json:"sku_id"`
-	OwnerID   Snowflake `json:"owner_id"`
-	OwnerType uint8     `json:"owner_type"` // 1 for a guild subscription, 2 for a user subscription
+	SkuID     Snowflake            `json:"sku_id"`
+	OwnerID   Snowflake            `json:"owner_id"`
+	OwnerType EntitlementOwnerType `json:"owner_type"`
 }
