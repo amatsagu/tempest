@@ -74,8 +74,8 @@ type Interaction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
-	Interaction
 	Data CommandInteractionData `json:"data"`
+	Interaction
 }
 
 // A ComponentInteraction represents an interaction received from a user interacting with a message component,
@@ -83,16 +83,16 @@ type CommandInteraction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
-	Interaction
 	Data ComponentInteractionData `json:"data"`
+	Interaction
 }
 
 // A ModalInteraction represents an interaction received from a user submitting a modal.
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
-	Interaction
 	Data ModalInteractionData `json:"data"`
+	Interaction
 }
 
 // A CommandInteractionData represents the data received from a user invoking an application command, such as a slash command or a context menu command.
