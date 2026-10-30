@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -170,60 +170,66 @@ func (rest *Rest) tracef(format string, v ...any) {
 	rest.traceLogger.Printf("[(REST) CLIENT] "+format, v...)
 }
 
-func (rest *Rest) Request(method, route string, jsonPayload any) ([]byte, error) {
-	return rest.RequestContext(rest.baseContext(), method, route, jsonPayload)
+func (rest *Rest) Request(method, route string, jsonPayload any, into any) error {
+	return rest.RequestContext(rest.baseContext(), method, route, jsonPayload, into)
 }
 
 // RequestContext is like Request, but it honors ctx for limiter waits, retries,
 // and the HTTP request itself.
-func (rest *Rest) RequestContext(ctx context.Context, method, route string, jsonPayload any) ([]byte, error) {
+func (rest *Rest) RequestContext(ctx context.Context, method, route string, jsonPayload any, into any) error {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
 	body, err := rest.BufferJSON(jsonPayload)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return rest.DirectRequestContext(ctx, method, route, body, CONTENT_TYPE_JSON, "")
+	return rest.DirectRequestContext(ctx, method, route, body, CONTENT_TYPE_JSON, "", into)
+}
+
+// Runs a request and returns the raw response bytes.
+func (rest *Rest) RequestBytes(method, route string, jsonPayload any) ([]byte, error) {
+	return rest.RequestBytesContext(rest.baseContext(), method, route, jsonPayload)
+}
+
+func (rest *Rest) RequestBytesContext(ctx context.Context, method, route string, jsonPayload any) ([]byte, error) {
+	var b []byte
+	err := rest.RequestContext(ctx, method, route, jsonPayload, &b)
+	return b, err
 }
 
 // Prepares new json buffered request payload that can be used by DirectRequest() method.
 // Please use regular Request() or RequestWithFiles() if you're not sure what you're doing.
 func (rest *Rest) BufferJSON(jsonPayload any) (io.ReadSeeker, error) {
-	var body io.ReadSeeker
-	if jsonPayload != nil {
-		var buf bytes.Buffer
-		encoder := json.NewEncoder(&buf)
-		encoder.SetEscapeHTML(false)
-		if err := encoder.Encode(jsonPayload); err != nil {
-			return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
-		}
-		body = bytes.NewReader(buf.Bytes())
+	if jsonPayload == nil {
+		return nil, nil
 	}
 
-	return body, nil
+	b, err := json.Marshal(jsonPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode JSON payload: %w", err)
+	}
+
+	return bytes.NewReader(b), nil
 }
 
 func (rest *Rest) isTripped() bool {
 	return rest.trippedUntil.Load() > time.Now().UnixNano()
 }
 
-// DirectRequest is the context-free wrapper for DirectRequestContext.
-func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, contentType string, auditLogReason string) ([]byte, error) {
-	return rest.DirectRequestContext(rest.baseContext(), method, route, body, contentType, auditLogReason)
+func (rest *Rest) DirectRequest(method, route string, body io.ReadSeeker, contentType string, auditLogReason string, into any) error {
+	return rest.DirectRequestContext(rest.baseContext(), method, route, body, contentType, auditLogReason, into)
 }
 
-// DirectRequestContext is like DirectRequest, but it honors ctx for limiter
-// waits, retry backoff, and the HTTP request itself. When ctx has no deadline,
-// or a deadline later than MaxWaitTime, the request is capped at MaxWaitTime.
-func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string, body io.ReadSeeker, contentType string, auditLogReason string) ([]byte, error) {
+func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string, body io.ReadSeeker, contentType string, auditLogReason string, into any) error {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
+
 	if contentType == "" {
-		return nil, errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
+		return errors.New("requests must have content type provided - for most Discord API requests, you probably want tempest.CONTENT_TYPE_JSON")
 	}
 
 	if rest.maxWaitTime > 0 {
@@ -235,10 +241,9 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 	}
 
 	var (
-		responseBody []byte
-		lastErr      error
-		retrying     bool
-		rateLimited  bool
+		lastErr     error
+		retrying    bool
+		rateLimited bool
 	)
 
 	defer func() {
@@ -249,23 +254,23 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 
 	for i := uint8(0); i < rest.maxRetries; i++ {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return err
 		}
 
 		if body != nil {
 			if _, err := body.Seek(0, io.SeekStart); err != nil {
-				return nil, fmt.Errorf("failed to seek request body: %w", err)
+				return fmt.Errorf("failed to seek request body: %w", err)
 			}
 		}
 
 		if rest.isTripped() {
-			return nil, errTooManyRetries
+			return errTooManyRetries
 		}
 
 		// #nosec G704
 		req, err := http.NewRequestWithContext(ctx, method, DiscordAPIBaseURL()+route, body)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return fmt.Errorf("failed to create request: %w", err)
 		}
 
 		req.Header.Set("Content-Type", contentType)
@@ -274,12 +279,12 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 			req.Header.Set("X-Audit-Log-Reason", url.PathEscape(auditLogReason))
 		}
 
-		responseBody, rateLimited, err = rest.executeOnce(req)
+		rateLimited, err = rest.executeOnce(req, into)
 		if err != nil {
 			lastErr = err
 
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return nil, err
+				return err
 			}
 
 			// 429 responses are safe to retry because Discord rejected the
@@ -291,7 +296,7 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 					retrying = true
 					if rest.retryCounter.Add(1) > rest.retryThreshold {
 						rest.trippedUntil.Store(time.Now().Add(5 * time.Second).UnixNano())
-						return nil, fmt.Errorf("%w: global retry threshold (%d) exceeded", errTooManyRetries, rest.retryThreshold)
+						return fmt.Errorf("%w: global retry threshold (%d) exceeded", errTooManyRetries, rest.retryThreshold)
 					}
 				}
 
@@ -300,32 +305,30 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 				}
 
 				if err := sleepContext(ctx, time.Millisecond*time.Duration(250*int64(i+1))); err != nil {
-					return nil, err
+					return err
 				}
 				continue
 			}
 
-			return nil, err // Not a retryable error.
+			return err // Not a retryable error.
 		}
-		return responseBody, nil
+		return nil
 	}
 
-	return nil, fmt.Errorf("request failed after %d retries on %s %s: %w", rest.maxRetries, method, route, lastErr)
+	return fmt.Errorf("request failed after %d retries on %s %s: %w", rest.maxRetries, method, route, lastErr)
 }
 
-func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File) ([]byte, error) {
-	return rest.RequestWithFilesContext(rest.baseContext(), method, route, jsonPayload, files)
+func (rest *Rest) RequestWithFiles(method string, route string, jsonPayload any, files []File, into any) error {
+	return rest.RequestWithFilesContext(rest.baseContext(), method, route, jsonPayload, files, into)
 }
 
-// RequestWithFilesContext is like RequestWithFiles, but it honors ctx for
-// limiter waits, retry backoff, multipart buffering, and the HTTP request.
-func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, route string, jsonPayload any, files []File) ([]byte, error) {
+func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, route string, jsonPayload any, files []File, into any) error {
 	if len(files) == 0 {
-		return rest.RequestContext(ctx, method, route, jsonPayload)
+		return rest.RequestContext(ctx, method, route, jsonPayload, into)
 	}
 
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
 	// To avoid issues with retrying requests that have streaming bodies (which can't be re-read),
@@ -334,14 +337,14 @@ func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, ro
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 	if err := writeMultipartContext(ctx, writer, jsonPayload, files); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return rest.DirectRequestContext(ctx, method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "")
+	return rest.DirectRequestContext(ctx, method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "", into)
 }
 
 // Writes the JSON payload and files to a multipart writer.
@@ -350,21 +353,20 @@ func writeMultipartContext(ctx context.Context, writer *multipart.Writer, jsonPa
 		return err
 	}
 
-	// Write JSON payload part.
-	jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
-		"Content-Disposition": []string{`form-data; name="payload_json"`},
-		"Content-Type":        []string{CONTENT_TYPE_JSON},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create payload_json part: %w", err)
-	}
-	encoder := json.NewEncoder(jsonPart)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(jsonPayload); err != nil {
-		return fmt.Errorf("failed to encode payload_json: %w", err)
+	if jsonPayload != nil {
+		jsonPart, err := writer.CreatePart(textproto.MIMEHeader{
+			"Content-Disposition": []string{`form-data; name="payload_json"`},
+			"Content-Type":        []string{CONTENT_TYPE_JSON},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create payload_json part: %w", err)
+		}
+
+		if err := json.MarshalWrite(jsonPart, jsonPayload); err != nil {
+			return fmt.Errorf("failed to encode payload_json: %w", err)
+		}
 	}
 
-	// Write file parts.
 	for i, file := range files {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -389,6 +391,7 @@ func writeMultipartContext(ctx context.Context, writer *multipart.Writer, jsonPa
 		if err != nil {
 			return fmt.Errorf("failed to stream file [%s]: %w", file.Name, err)
 		}
+
 		if n > MAX_FILE_UPLOAD_SIZE {
 			return fmt.Errorf("file [%s] exceeds maximum upload size of 10MB", file.Name)
 		}
@@ -397,6 +400,7 @@ func writeMultipartContext(ctx context.Context, writer *multipart.Writer, jsonPa
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
 	if err := writer.Close(); err != nil {
 		return fmt.Errorf("failed to close multipart writer: %w", err)
 	}
@@ -423,14 +427,11 @@ var multipartFilenameReplacer = strings.NewReplacer(
 	"\n", "",
 )
 
-// escapeMultipartFilename makes a filename safe for a quoted MIME parameter.
 func escapeMultipartFilename(name string) string {
 	return multipartFilenameReplacer.Replace(name)
 }
 
-// executeOnce handles the lifecycle of a single request attempt. The boolean
-// reports a 429 response, which is safe to retry for any HTTP method.
-func (rest *Rest) executeOnce(req *http.Request) ([]byte, bool, error) {
+func (rest *Rest) executeOnce(req *http.Request, into any) (bool, error) {
 	req.Header.Set("User-Agent", USER_AGENT)
 	req.Header.Set("Authorization", rest.token)
 
@@ -446,44 +447,65 @@ func (rest *Rest) executeOnce(req *http.Request) ([]byte, bool, error) {
 
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return nil, false, err
+			return false, err
 		}
-		return nil, false, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
+
+		return false, fmt.Errorf("%w: http request execution failed: %s", errRetryable, err.Error())
 	}
 	defer res.Body.Close() //nolint:errcheck
+
+	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
+		if into == nil {
+			_, _ = io.Copy(io.Discard, res.Body)
+			return false, nil
+		}
+
+		if rawTarget, ok := into.(*[]byte); ok {
+			b, err := io.ReadAll(res.Body)
+			if err != nil {
+				return false, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			*rawTarget = b
+			return false, nil
+		}
+
+		if err := json.UnmarshalRead(res.Body, into); err != nil {
+			return false, fmt.Errorf("failed to decode response json: %w", err)
+		}
+
+		return false, nil
+	}
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return nil, false, err
+			return false, err
 		}
-		return nil, false, fmt.Errorf("failed to read response body: %w", err)
-	}
 
-	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
-		return responseBody, false, nil
+		return false, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if res.StatusCode == http.StatusTooManyRequests {
 		var rateErr rateLimitError
 		err = json.Unmarshal(responseBody, &rateErr)
 		if err != nil {
-			return nil, false, fmt.Errorf("failed to parse rate limit details: %w", err)
+			return false, fmt.Errorf("failed to parse rate limit details: %w", err)
 		}
 
 		if rateErr.Global {
 			retryAfter := time.Duration(rateErr.RetryAfter * float64(time.Second))
-			return nil, true, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
+			return true, fmt.Errorf("%w: retrying after %s", errGlobalRateLimit, retryAfter.String())
 		}
 
-		return nil, true, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", req.Method, req.URL.Path, string(responseBody))
+		return true, fmt.Errorf("hit per-route rate limit (429) on %s %s: %s", req.Method, req.URL.Path, string(responseBody))
 	}
 
 	if res.StatusCode >= http.StatusInternalServerError {
-		return nil, false, fmt.Errorf("%w: discord API internal server error: %s", errRetryable, res.Status)
+		return false, fmt.Errorf("%w: discord API internal server error: %s", errRetryable, res.Status)
 	}
 
-	return nil, false, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
+	return false, fmt.Errorf("request failed with status %s: %s", res.Status, string(responseBody))
 }
 
 func isIdempotentMethod(method string) bool {
@@ -507,9 +529,11 @@ func extractUserIDFromToken(token string) (Snowflake, error) {
 	if err != nil {
 		byteID, err = base64.RawStdEncoding.DecodeString(encodedID)
 	}
+
 	if err != nil {
 		byteID, err = base64.StdEncoding.DecodeString(encodedID)
 	}
+
 	if err != nil {
 		return 0, err
 	}
@@ -518,8 +542,10 @@ func extractUserIDFromToken(token string) (Snowflake, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if id == 0 {
 		return 0, errors.New("token contains an invalid bot user ID")
 	}
+
 	return id, nil
 }

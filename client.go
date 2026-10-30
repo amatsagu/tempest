@@ -2,8 +2,6 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -128,15 +126,10 @@ func (s *BaseClient) context() context.Context {
 }
 
 func (client *BaseClient) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
-	raw, err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files)
+	var res Message
+	err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
 	if err != nil {
 		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
 	client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
@@ -150,37 +143,23 @@ func (client *BaseClient) SendLinearMessage(channelID Snowflake, content string)
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
 func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
-	res := make(map[string]any, 0)
-	res["recipient_id"] = userID
+	var dmResp struct {
+		ID Snowflake `json:"id"`
+	}
 
-	raw, err := client.Rest.Request(http.MethodPost, "/users/@me/channels", res)
+	err := client.Rest.Request(http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
 	if err != nil {
 		return Message{}, err
 	}
 
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
-	}
-
-	idStr, ok := res["id"].(string)
-	if !ok {
-		return Message{}, errors.New("failed to find channel ID in discord response")
-	}
-
-	channelID, err := StringToSnowflake(idStr)
-	if err != nil {
-		return Message{}, err
-	}
-
-	msg, err := client.SendMessage(channelID, content, files)
-	msg.ChannelID = channelID // Just in case.
+	msg, err := client.SendMessage(dmResp.ID, content, files)
+	msg.ChannelID = dmResp.ID // Just in case.
 
 	return msg, err
 }
 
 func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
-	_, err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content)
+	err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
 	if err == nil {
 		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -189,7 +168,7 @@ func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, 
 }
 
 func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil)
+	err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -198,7 +177,7 @@ func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake
 }
 
 func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil)
+	err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
 	if err == nil {
 		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -207,15 +186,10 @@ func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowfl
 }
 
 func (client *BaseClient) FetchUser(id Snowflake) (User, error) {
-	raw, err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil)
+	var res User
+	err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil, &res)
 	if err != nil {
 		return User{}, err
-	}
-
-	res := User{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return User{}, errors.New("failed to parse received data from discord")
 	}
 
 	client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
@@ -223,15 +197,10 @@ func (client *BaseClient) FetchUser(id Snowflake) (User, error) {
 }
 
 func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
-	raw, err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil)
+	var res Member
+	err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
 	if err != nil {
 		return Member{}, err
-	}
-
-	res := Member{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Member{}, errors.New("failed to parse received data from discord")
 	}
 
 	client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
@@ -244,19 +213,14 @@ func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Me
 //
 // https://docs.discord.com/developers/resources/entitlement#list-entitlements
 func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitlement, error) {
-	if queryFilter[0] != '?' {
+	if queryFilter != "" && queryFilter[0] != '?' {
 		queryFilter = "?" + queryFilter
 	}
 
-	res := make([]Entitlement, 0)
-	raw, err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil)
+	var res []Entitlement
+	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
 	if err != nil {
-		return res, err
-	}
-
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return res, errors.New("failed to parse received data from discord")
+		return nil, err
 	}
 
 	client.tracef("Successfully fetched %d entitlement(s).", len(res))
@@ -265,15 +229,10 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitleme
 
 // https://docs.discord.com/developers/resources/entitlement#get-entitlement
 func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement, error) {
-	raw, err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
+	var res Entitlement
+	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
 	if err != nil {
 		return Entitlement{}, err
-	}
-
-	res := Entitlement{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Entitlement{}, errors.New("failed to parse received data from discord")
 	}
 
 	client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
@@ -285,7 +244,7 @@ func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement
 //
 // https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement
 func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil)
+	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
 	if err == nil {
 		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
 	}
@@ -295,7 +254,7 @@ func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 
 // https://docs.discord.com/developers/resources/entitlement#create-test-entitlement
 func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) error {
-	_, err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload)
+	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload, nil)
 	if err == nil {
 		client.tracef("Successfully created test entitlement.")
 	}
@@ -305,7 +264,7 @@ func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) 
 
 // https://docs.discord.com/developers/resources/entitlement#delete-test-entitlement
 func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
-	_, err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil)
+	err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted test entitlement.")
 	}
@@ -317,12 +276,15 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelis
 	commands := parseCommandsForDiscordAPI(client.commands, whitelist, reverseMode)
 
 	if len(guildIDs) == 0 {
-		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", commands)
+		err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", commands, nil)
+		if err == nil {
+			client.tracef("Successfully synced command data with discord.")
+		}
 		return err
 	}
 
 	for _, guildID := range guildIDs {
-		_, err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", commands)
+		err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", commands, nil)
 		if err != nil {
 			return err
 		}

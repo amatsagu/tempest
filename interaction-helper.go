@@ -2,7 +2,6 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 )
@@ -141,7 +140,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 	endpoint := "/webhooks/" + itx.ApplicationID.String() + "/" + itx.Token
 
 	if itx.deferred {
-		_, err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
 		if err == nil {
 			itx.responded = true
 		}
@@ -159,7 +158,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 
 		itx.deferred = true // Manually set state
 
-		_, err = itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files)
+		err = itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
 		if err == nil {
 			itx.responded = true
 		}
@@ -203,8 +202,7 @@ func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral 
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content)
-	return err
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
 }
 
 func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) error {
@@ -214,8 +212,7 @@ func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) DeleteReply() error {
-	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil)
-	return err
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 func (itx *CommandInteraction) SendFollowUp(content ResponseMessageData, ephemeral bool) (Message, error) {
@@ -223,15 +220,10 @@ func (itx *CommandInteraction) SendFollowUp(content ResponseMessageData, ephemer
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	var res Message
+	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
 	if err != nil {
 		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
 	return res, nil
@@ -248,15 +240,10 @@ func (itx *CommandInteraction) SendFollowUpWithFiles(content ResponseMessageData
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files)
+	var res Message
+	err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files, &res)
 	if err != nil {
 		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
 	return res, nil
@@ -269,8 +256,7 @@ func (itx *CommandInteraction) SendLinearFollowUpWithFiles(content string, ephem
 }
 
 func (itx *CommandInteraction) EditFollowUp(messageID Snowflake, content ResponseMessageData) error {
-	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content)
-	return err
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content, nil)
 }
 
 func (itx *CommandInteraction) EditLinearFollowUp(messageID Snowflake, content string) error {
@@ -280,8 +266,7 @@ func (itx *CommandInteraction) EditLinearFollowUp(messageID Snowflake, content s
 }
 
 func (itx *CommandInteraction) DeleteFollowUp(messageID Snowflake) error {
-	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil)
-	return err
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil, nil)
 }
 
 // Warning! This method is only for handling auto complete interaction which is a part of command logic.
@@ -589,12 +574,12 @@ func (itx *ModalInteraction) Defer(ephemeral bool) error {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	_, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
+	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", ResponseMessage{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{
 			Flags: flags,
 		},
-	})
+	}, nil)
 
 	if err == nil {
 		itx.deferred = true
@@ -610,15 +595,10 @@ func (itx *ModalInteraction) SendFollowUp(content ResponseMessageData, ephemeral
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	raw, err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content)
+	var res Message
+	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
 	if err != nil {
 		return Message{}, err
-	}
-
-	res := Message{}
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return Message{}, errors.New("failed to parse received data from discord")
 	}
 
 	return res, nil
