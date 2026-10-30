@@ -68,7 +68,16 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 		return errors.New("already connected")
 	}
 
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, urlStr, nil)
+	targetURL, err := validateGatewayURL(urlStr)
+	if err != nil {
+		return err
+	}
+
+	if !gatewayURLPattern.MatchString(targetURL) {
+		return errors.New("gateway URL is not allowed")
+	}
+
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, targetURL, nil)
 	if err != nil {
 		return err
 	}
