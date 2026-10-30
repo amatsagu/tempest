@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	json "encoding/json/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -81,24 +80,11 @@ type User struct {
 	PremiumType          NitroType         `json:"premium_type,omitempty"`
 }
 
-func (u *User) UnmarshalJSON(data []byte) error {
-	// Define a local type to avoid recursion
-	type Alias User
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(u),
+func (user User) DisplayName() string {
+	if user.GlobalName != "" {
+		return user.GlobalName
 	}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	if u.GlobalName == "" {
-		u.GlobalName = u.Username
-	}
-
-	return nil
+	return user.Username
 }
 
 func (user *User) Mention() string {
@@ -150,7 +136,7 @@ const (
 
 // https://docs.discord.com/developers/resources/guild#guild-member-object
 type Member struct {
-	JoinedAt                   *time.Time        `json:"joined_at"`
+	JoinedAt                   time.Time         `json:"joined_at"`
 	AvatarDecorationData       *AvatarDecoration `json:"avatar_decoration_data,omitempty"`
 	CommunicationDisabledUntil *time.Time        `json:"communication_disabled_until,omitempty"`
 	User                       *User             `json:"user,omitempty"`
