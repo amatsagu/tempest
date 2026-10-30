@@ -114,7 +114,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+		client.serveInteraction(w, r, &interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
 			client.commandInteractionHandler(interaction, responseCh, responseSent)
 		})
 
@@ -129,7 +129,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+		client.serveInteraction(w, r, &interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
 			client.componentInteractionHandler(interaction, responseCh, responseSent)
 		})
 
@@ -175,7 +175,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveInteraction(w, r, interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
+		client.serveInteraction(w, r, &interaction.Interaction, func(responseCh chan []byte, responseSent *atomic.Bool) {
 			client.modalInteractionHandler(interaction, responseCh, responseSent)
 		})
 

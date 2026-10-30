@@ -74,7 +74,7 @@ type Interaction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type CommandInteraction struct {
-	*Interaction
+	Interaction
 	Data CommandInteractionData `json:"data"`
 }
 
@@ -83,7 +83,7 @@ type CommandInteraction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ComponentInteraction struct {
-	*Interaction
+	Interaction
 	Data ComponentInteractionData `json:"data"`
 }
 
@@ -91,7 +91,7 @@ type ComponentInteraction struct {
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 type ModalInteraction struct {
-	*Interaction
+	Interaction
 	Data ModalInteractionData `json:"data"`
 }
 
