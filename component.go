@@ -63,7 +63,7 @@ const (
 // https://docs.discord.com/developers/components/reference#action-row-action-row-structure
 type ActionRowComponent struct {
 	Components []ActionRowChildComponent `json:"components,omitzero"` // Up to 5 interactive [ButtonComponent]s or a single [SelectComponent]
-	ID         uint32                    `json:"id,omitempty"`
+	ID         uint32                    `json:"id,omitzero"`
 	Type       ComponentType             `json:"type"` // Always = ACTION_ROW_COMPONENT_TYPE (1)
 }
 
@@ -81,18 +81,18 @@ type ActionRowComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#button-button-structure
 type ButtonComponent struct {
-	Emoji *Emoji `json:"emoji,omitempty"` // It may only contain id, name, and animated from regular Emoji struct.
-	Label string `json:"label,omitempty"`
+	Emoji *Emoji `json:"emoji,omitzero"` // It may only contain id, name, and animated from regular Emoji struct.
+	Label string `json:"label,omitzero"`
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
-	CustomID string        `json:"custom_id,omitempty"`
-	URL      string        `json:"url,omitempty"`
-	SkuID    Snowflake     `json:"sku_id,omitempty"` // Identifier for a purchasable SKU, only available when using premium-style buttons. Premium buttons do not send an interaction to your app when clicked.
-	ID       uint32        `json:"id,omitempty"`
+	CustomID string        `json:"custom_id,omitzero"`
+	URL      string        `json:"url,omitzero"`
+	SkuID    Snowflake     `json:"sku_id,omitzero"` // Identifier for a purchasable SKU, only available when using premium-style buttons. Premium buttons do not send an interaction to your app when clicked.
+	ID       uint32        `json:"id,omitzero"`
 	Type     ComponentType `json:"type"` // Always = BUTTON_COMPONENT_TYPE (2)
 	Style    ButtonStyle   `json:"style"`
-	Disabled bool          `json:"disabled"`
+	Disabled bool          `json:"disabled,omitzero"`
 }
 
 // A StringSelectComponent displays a dropdown menu for users to select one or more pre-defined options.
@@ -189,9 +189,9 @@ type DefaultValueOption struct {
 //
 // https://docs.discord.com/developers/components/reference#section-section-structure
 type SectionComponent struct {
-	Accessory  AccessoryComponent     `json:"accessory,omitempty"` // A component contextually associated to the section's content.
+	Accessory  AccessoryComponent     `json:"accessory,omitzero"`  // A component contextually associated to the section's content.
 	Components []TextDisplayComponent `json:"components,omitzero"` // 1-3 text display components representing the section's text content.
-	ID         uint32                 `json:"id,omitempty"`
+	ID         uint32                 `json:"id,omitzero"`
 	Type       ComponentType          `json:"type"` // Always = SECTION_COMPONENT_TYPE (9)
 }
 
@@ -201,7 +201,7 @@ type SectionComponent struct {
 // https://docs.discord.com/developers/components/reference#text-display-text-display-structure
 type TextDisplayComponent struct {
 	Content string        `json:"content"` // The Markdown content to display.
-	ID      uint32        `json:"id,omitempty"`
+	ID      uint32        `json:"id,omitzero"`
 	Type    ComponentType `json:"type"` // Always = TEXT_DISPLAY_COMPONENT_TYPE (10)
 }
 
@@ -211,11 +211,11 @@ type TextDisplayComponent struct {
 //
 // https://docs.discord.com/developers/components/reference#thumbnail-thumbnail-structure
 type ThumbnailComponent struct {
-	Description string            `json:"description,omitempty"` // Alt text for the media, max 1024 characters
+	Description string            `json:"description,omitzero"` // Alt text for the media, max 1024 characters
 	Media       UnfurledMediaItem `json:"media"`
-	ID          uint32            `json:"id,omitempty"`
+	ID          uint32            `json:"id,omitzero"`
 	Type        ComponentType     `json:"type"` // Always = THUMBNAIL_COMPONENT_TYPE (11)
-	Spoiler     bool              `json:"spoiler"`
+	Spoiler     bool              `json:"spoiler,omitzero"`
 }
 
 // https://docs.discord.com/developers/components/reference#unfurled-media-item-unfurled-media-item-flags
@@ -266,10 +266,10 @@ type FileComponent struct {
 
 // https://docs.discord.com/developers/components/reference#separator-separator-structure
 type SeparatorComponent struct {
-	ID      uint32        `json:"id,omitempty"`
-	Type    ComponentType `json:"type"`              // Always = SEPARATOR_COMPONENT_TYPE (14)
-	Divider bool          `json:"divider"`           // Whether a visual divider should be displayed in the component (defaults to true).
-	Spacing uint8         `json:"spacing,omitempty"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
+	ID      uint32        `json:"id,omitzero"`
+	Type    ComponentType `json:"type"`             // Always = SEPARATOR_COMPONENT_TYPE (14)
+	Divider bool          `json:"divider,omitzero"` // Whether a visual divider should be displayed in the component (defaults to true).
+	Spacing uint8         `json:"spacing,omitzero"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
 }
 
 // A ContainerComponent visually encapsulates one or more components inside a message,
@@ -280,10 +280,10 @@ type SeparatorComponent struct {
 // https://docs.discord.com/developers/components/reference#container-container-structure
 type ContainerComponent struct {
 	Components  []ContainerChildComponent `json:"components,omitzero"` // Child components to nest within the container.
-	ID          uint32                    `json:"id,omitempty"`
-	AccentColor uint32                    `json:"accent_color,omitempty"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
-	Type        ComponentType             `json:"type"`                   // Always = CONTAINER_COMPONENT_TYPE (17)
-	Spoiler     bool                      `json:"spoiler"`                // Whether to mark the container as a spoiler.
+	ID          uint32                    `json:"id,omitzero"`
+	AccentColor uint32                    `json:"accent_color,omitzero"` // The accent color of the container, as an RGB value from 0x000000 to 0xFFFFFF. (Write as a hex literal for best results.)
+	Type        ComponentType             `json:"type"`                  // Always = CONTAINER_COMPONENT_TYPE (17)
+	Spoiler     bool                      `json:"spoiler,omitzero"`      // Whether to mark the container as a spoiler.
 }
 
 // A LabelComponent wraps a child component with text and an optional description.

@@ -91,21 +91,21 @@ type Command struct {
 	Options                  []CommandOption                                    `json:"options,omitzero"`
 	IntegrationTypes         []ApplicationIntegrationType                       `json:"integration_types,omitzero"`
 	Contexts                 []InteractionContextType                           `json:"contexts,omitzero"` // Interaction context(s) where the command can be used, only for globally-scoped commands. By default, all interaction context types included for new commands.
-	GuildID                  Snowflake                                          `json:"guild_id,omitempty"`
-	ID                       Snowflake                                          `json:"-"`                                           // It's not needed on app side to work.
-	RequiredPermissions      PermissionFlags                                    `json:"default_member_permissions,string,omitempty"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
-	Version                  Snowflake                                          `json:"version,omitempty"`                           // Autoincrementing version identifier updated during substantial record changes.
-	ApplicationID            Snowflake                                          `json:"application_id"`
-	NSFW                     bool                                               `json:"nsfw"` // https://docs.discord.com/developers/interactions/application-commands#age-restricted-commands
-	Handler                  CommandHandlerType                                 `json:"handler,omitempty"`
-	Type                     CommandType                                        `json:"type,omitempty"`
+	GuildID                  Snowflake                                          `json:"guild_id,omitzero"`
+	ID                       Snowflake                                          `json:"-"`                                          // It's not needed on app side to work.
+	RequiredPermissions      PermissionFlags                                    `json:"default_member_permissions,string,omitzero"` // Set of permissions represented as a bit set that are required from user/member to use command. Set it to 0 to make command unavailable for regular members (guild administrators still can use it).
+	Version                  Snowflake                                          `json:"version,omitzero"`                           // Autoincrementing version identifier updated during substantial record changes.
+	ApplicationID            Snowflake                                          `json:"application_id,omitzero"`
+	NSFW                     bool                                               `json:"nsfw,omitzero"` // https://docs.discord.com/developers/interactions/application-commands#age-restricted-commands
+	Handler                  CommandHandlerType                                 `json:"handler,omitzero"`
+	Type                     CommandType                                        `json:"type,omitzero"`
 }
 
 // https://docs.discord.com/developers/interactions/application-commands#application-command-object-application-command-option-structure
 type CommandOption struct {
-	MinValue                 *float64            `json:"min_value,omitempty"`
+	MinValue                 *float64            `json:"min_value,omitzero"`
 	NameLocalizations        map[Language]string `json:"name_localizations,omitzero"`
-	MaxValue                 *float64            `json:"max_value,omitempty"`
+	MaxValue                 *float64            `json:"max_value,omitzero"`
 	DescriptionLocalizations map[Language]string `json:"description_localizations,omitzero"`
 	Description              string              `json:"description"`
 	Name                     string              `json:"name"`
@@ -130,9 +130,9 @@ type CommandOption struct {
 	// the contents of the file. You still need to make sure that the file is valid.
 	FileTypes    []string              `json:"file_types,omitzero"`
 	Choices      []CommandOptionChoice `json:"choices,omitzero"`
-	MinLength    uint16                `json:"min_length,omitempty"`
-	MaxLength    uint16                `json:"max_length,omitempty"`
-	Required     bool                  `json:"required"`
+	MinLength    uint16                `json:"min_length,omitzero"`
+	MaxLength    uint16                `json:"max_length,omitzero"`
+	Required     bool                  `json:"required,omitzero"`
 	Type         OptionType            `json:"type"`
-	AutoComplete bool                  `json:"autocomplete"` // Required to be = true if you want to catch it later in auto complete handler.
+	AutoComplete bool                  `json:"autocomplete,omitzero"` // Required to be = true if you want to catch it later in auto complete handler.
 }
