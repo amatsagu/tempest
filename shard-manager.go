@@ -2,7 +2,7 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"log"
@@ -326,7 +326,7 @@ func (m *ShardManager) fetchGatewayBotInfo(ctx context.Context) (*GatewayBot, er
 	}
 
 	var gatewayBot GatewayBot
-	if err := json.NewDecoder(resp.Body).Decode(&gatewayBot); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &gatewayBot); err != nil {
 		return nil, err
 	}
 

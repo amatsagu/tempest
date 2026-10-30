@@ -2,7 +2,8 @@ package tempest
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"sync"
@@ -21,7 +22,7 @@ import (
 // connection to the Discord Gateway.
 type socket struct {
 	conn         atomic.Pointer[websocket.Conn]
-	decoder      atomic.Pointer[json.Decoder]
+	decoder      atomic.Pointer[jsontext.Decoder]
 	zstdDecoder  *zstd.Decoder // Reused across reconnects to retain its buffers.
 	readDeadline atomic.Int64
 	writeMu      sync.Mutex
@@ -120,7 +121,7 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 		return err
 	}
 
-	decoder := json.NewDecoder(zr)
+	decoder := jsontext.NewDecoder(zr)
 	s.decoder.Store(decoder)
 	if s.conn.Load() != conn {
 		s.decoder.CompareAndSwap(decoder, nil)
@@ -242,7 +243,11 @@ func (s *socket) readJSON(v any) error {
 	}
 
 	if !s.compress {
-		return conn.ReadJSON(v)
+		_, r, err := conn.NextReader()
+		if err != nil {
+			return err
+		}
+		return json.UnmarshalRead(r, v)
 	}
 
 	decoder := s.decoder.Load()
@@ -250,7 +255,7 @@ func (s *socket) readJSON(v any) error {
 		return errors.New("not connected")
 	}
 
-	return decoder.Decode(v)
+	return json.UnmarshalDecode(decoder, v)
 }
 
 // refreshReadDeadline extends the read deadline only when less than half of
