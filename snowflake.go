@@ -48,14 +48,6 @@ func (s *Snowflake) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (s Snowflake) MarshalJSON() ([]byte, error) {
-	b := make([]byte, 0, 22)
-	b = append(b, '"')
-	b = strconv.AppendUint(b, uint64(s), 10)
-	b = append(b, '"')
-	return b, nil
-}
-
 func (s *Snowflake) UnmarshalJSON(b []byte) error {
 	b = bytes.TrimSpace(b)
 	if len(b) == 0 {
