@@ -1,6 +1,7 @@
 package tempest
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"strconv"
@@ -28,6 +29,25 @@ func (s Snowflake) CreationTimestamp() time.Time {
 	return time.UnixMilli(int64(s>>22 + DISCORD_EPOCH))
 }
 
+func (s Snowflake) AppendText(b []byte) ([]byte, error) {
+	return strconv.AppendUint(b, uint64(s), 10), nil
+}
+
+func (s *Snowflake) UnmarshalText(b []byte) error {
+	if len(b) == 0 {
+		*s = 0
+		return nil
+	}
+
+	val, ok := parseUint64Bytes(b)
+	if !ok {
+		return errors.New("cannot unmarshal invalid snowflake")
+	}
+
+	*s = Snowflake(val)
+	return nil
+}
+
 func (s Snowflake) MarshalJSON() ([]byte, error) {
 	b := make([]byte, 0, 22)
 	b = append(b, '"')
@@ -37,24 +57,51 @@ func (s Snowflake) MarshalJSON() ([]byte, error) {
 }
 
 func (s *Snowflake) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
 	if len(b) == 0 {
 		return errors.New("cannot unmarshal empty snowflake")
 	}
-	if len(b) == 4 && b[0] == 'n' { // "null"
+
+	if len(b) == 4 && b[0] == 'n' && b[1] == 'u' && b[2] == 'l' && b[3] == 'l' {
 		*s = 0
 		return nil
 	}
 
-	// Trim quotes without allocation
-	if b[0] == '"' && b[len(b)-1] == '"' {
+	if len(b) >= 2 && b[0] == '"' && b[len(b)-1] == '"' {
 		b = b[1 : len(b)-1]
 	}
 
-	i, err := strconv.ParseUint(string(b), 10, 64)
-	if err != nil {
-		return err
+	if len(b) == 0 {
+		*s = 0
+		return nil
 	}
 
-	*s = Snowflake(i)
+	val, ok := parseUint64Bytes(b)
+	if !ok {
+		return errors.New("cannot unmarshal invalid snowflake")
+	}
+
+	*s = Snowflake(val)
 	return nil
+}
+
+func parseUint64Bytes(b []byte) (uint64, bool) {
+	if len(b) == 0 {
+		return 0, false
+	}
+
+	var n uint64
+	for _, c := range b {
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+
+		d := uint64(c - '0')
+		if n > (18446744073709551615-d)/10 {
+			return 0, false
+		}
+		n = n*10 + d
+	}
+
+	return n, true
 }
