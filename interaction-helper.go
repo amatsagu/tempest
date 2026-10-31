@@ -1,14 +1,64 @@
 package tempest
 
 import (
+	"bytes"
 	"context"
+	json "encoding/json/v2"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // Returns whether this interaction already was responded to.
 func (itx *Interaction) Responded() bool {
 	return itx.responded
+}
+
+func (itx *Interaction) respond(res *Response) error {
+	if itx.HTTPClient != nil && itx.session != nil {
+		if err := itx.requestContext().Err(); err != nil {
+			return err
+		}
+
+		buf := itx.HTTPClient.bufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		if err := json.MarshalWrite(buf, res); err != nil {
+			itx.HTTPClient.releaseBuffer(buf)
+			return err
+		}
+
+		itx.session.responseSent.Store(true)
+		select {
+		case itx.session.responseCh <- responsePayload{data: buf.Bytes(), buf: buf}:
+			return nil
+		default:
+			itx.HTTPClient.releaseBuffer(buf)
+			return errors.New("initial interaction response already sent")
+		}
+	}
+
+	if itx.GatewayClient != nil {
+		return itx.GatewayClient.Rest.Request(
+			http.MethodPost,
+			interactionCallbackURL(itx.ID, itx.Token),
+			res,
+			nil,
+		)
+	}
+
+	return errors.New("no client attached to interaction")
+}
+
+func interactionCallbackURL(id Snowflake, token string) string {
+	var b strings.Builder
+	b.Grow(24 + len(token) + 20)
+	b.WriteString("/interactions/")
+	b.WriteString(strconv.FormatUint(uint64(id), 10))
+	b.WriteByte('/')
+	b.WriteString(token)
+	b.WriteString("/callback")
+	return b.String()
 }
 
 // requestContext returns the narrowest lifecycle available to this interaction.
@@ -115,7 +165,7 @@ func (itx *CommandInteraction) Defer(ephemeral bool) error {
 		flags = EPHEMERAL_MESSAGE_FLAG
 	}
 
-	err := itx.responder(Response{
+	err := itx.respond(&Response{
 		Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &ResponseMessageData{Flags: flags},
 	})
@@ -148,7 +198,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 	}
 
 	if len(files) > 0 {
-		err := itx.responder(Response{
+		err := itx.respond(&Response{
 			Type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 			Data: &ResponseMessageData{Flags: reply.Flags},
 		})
@@ -166,7 +216,7 @@ func (itx *CommandInteraction) SendReply(reply ResponseMessageData, ephemeral bo
 		return err
 	}
 
-	err := itx.responder(Response{
+	err := itx.respond(&Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
 	})
@@ -185,7 +235,7 @@ func (itx *CommandInteraction) SendLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
-	err := itx.responder(Response{
+	err := itx.respond(&Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -283,7 +333,7 @@ func (itx *CommandInteraction) GetFocusedValue() (string, any) {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx *ComponentInteraction) Acknowledge() error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 }
@@ -293,7 +343,7 @@ func (itx *ComponentInteraction) AcknowledgeWithMessage(reply ResponseMessageDat
 		reply.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &reply,
 	})
@@ -306,7 +356,7 @@ func (itx *ComponentInteraction) AcknowledgeWithLinearMessage(content string, ep
 }
 
 func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -314,7 +364,7 @@ func (itx *ComponentInteraction) AcknowledgeWithModal(modal ResponseModalData) e
 
 // Acknowledges the interaction by updating the message on which the component was attached.
 func (itx *ComponentInteraction) AcknowledgeWithUpdate(reply ResponseMessageData) error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: UPDATE_MESSAGE_RESPONSE_TYPE,
 		Data: &reply,
 	})
@@ -521,7 +571,7 @@ func (itx *ModalInteraction) GetSelectValues(customID string) []Snowflake {
 
 // Sends to discord info that this component was handled successfully without sending anything more.
 func (itx *ModalInteraction) Acknowledge() error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE,
 	})
 }
@@ -531,7 +581,7 @@ func (itx *ModalInteraction) AcknowledgeWithMessage(response ResponseMessageData
 		response.Flags |= EPHEMERAL_MESSAGE_FLAG
 	}
 
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: CHANNEL_MESSAGE_WITH_SOURCE_RESPONSE_TYPE,
 		Data: &response,
 	})
@@ -544,7 +594,7 @@ func (itx *ModalInteraction) AcknowledgeWithLinearMessage(content string, epheme
 }
 
 func (itx *ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: MODAL_RESPONSE_TYPE,
 		Data: &modal,
 	})
@@ -552,7 +602,7 @@ func (itx *ModalInteraction) AcknowledgeWithModal(modal ResponseModalData) error
 
 // Acknowledges the interaction by updating the message on which the component was attached.
 func (itx *ModalInteraction) AcknowledgeWithUpdate(response ResponseMessageData) error {
-	return itx.responder(Response{
+	return itx.respond(&Response{
 		Type: UPDATE_MESSAGE_RESPONSE_TYPE,
 		Data: &response,
 	})

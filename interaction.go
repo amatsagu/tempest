@@ -30,11 +30,11 @@ const (
 //
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	Member        *Member                  `json:"member,omitempty"`
-	responder     func(res Response) error `json:"-"`
-	ctx           context.Context          `json:"-"` // Lifecycle/request context for interaction-driven REST work.
-	GatewayClient *GatewayClient           `json:"-"` // Only provided if using Gateway Client.
-	HTTPClient    *HTTPClient              `json:"-"` // Only provided if using HTTP Client.
+	Member        *Member         `json:"member,omitempty"`
+	session       *httpSession    `json:"-"`
+	ctx           context.Context `json:"-"` // Lifecycle/request context for interaction-driven REST work.
+	GatewayClient *GatewayClient  `json:"-"` // Only provided if using Gateway Client.
+	HTTPClient    *HTTPClient     `json:"-"` // Only provided if using HTTP Client.
 
 	BaseClient                   *BaseClient                              `json:"-"` // Always provided.
 	User                         *User                                    `json:"user,omitempty"`
