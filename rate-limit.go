@@ -337,6 +337,178 @@ func (rl *RateLimiter) bucketFor(route string) *Bucket {
 	return bucket
 }
 
+func (rl *RateLimiter) bucketForBytes(keyBytes []byte) *Bucket {
+	rl.mu.RLock()
+	if bucketID, ok := rl.routeMapping[string(keyBytes)]; ok {
+		if bucket := rl.buckets[bucketID]; bucket != nil {
+			rl.mu.RUnlock()
+			return bucket
+		}
+	}
+	rl.mu.RUnlock()
+
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	route := string(keyBytes)
+	if bucketID, ok := rl.routeMapping[route]; ok {
+		if bucket := rl.buckets[bucketID]; bucket != nil {
+			return bucket
+		}
+		delete(rl.routeMapping, route)
+	}
+
+	if bucket := rl.buckets[route]; bucket != nil {
+		rl.routeMapping[route] = route
+		return bucket
+	}
+
+	bucket := &Bucket{
+		ID:        route,
+		Limit:     1,
+		Remaining: 1,
+	}
+
+	rl.routeMapping[route] = route
+	rl.buckets[route] = bucket
+	if len(rl.buckets) > rl.bucketHighWater {
+		rl.bucketHighWater = len(rl.buckets)
+	}
+
+	return bucket
+}
+
+func (rl *RateLimiter) acquireRoute(ctx context.Context, method, routePath string) (*Bucket, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	rl.recordAcquire()
+
+	var buf [128]byte
+	var keyBytes []byte
+	totalLen := len(method) + 1 + len(routePath)
+	if totalLen <= len(buf) {
+		n := copy(buf[:], method)
+		buf[n] = ':'
+		copy(buf[n+1:], routePath)
+		keyBytes = buf[:totalLen]
+	} else {
+		keyBytes = []byte(method + ":" + routePath)
+	}
+
+	for {
+		if rl.globalWait.Load() != 0 {
+			if err := rl.waitGlobal(ctx); err != nil {
+				return nil, err
+			}
+		}
+
+		bucket := rl.bucketForBytes(keyBytes)
+		bucket.mu.Lock()
+
+		if bucket.Remaining > 0 {
+			bucket.Remaining--
+			bucket.mu.Unlock()
+			return bucket, nil
+		}
+
+		now := time.Now()
+		if now.Before(bucket.ResetAt) {
+			bucketID := bucket.ID
+			waitDuration := bucket.ResetAt.Sub(now)
+			bucket.mu.Unlock()
+
+			if rl.trace {
+				rl.tracef("Rate limit hit on route \"%s\" (bucket ID: %s)! Waiting %s...", string(keyBytes), bucketID, waitDuration.Round(time.Millisecond))
+			}
+			if err := sleepContext(ctx, waitDuration); err != nil {
+				return nil, err
+			}
+
+			continue
+		}
+
+		if bucket.Limit <= 0 {
+			bucket.Limit = 1
+		}
+
+		window := bucket.Window
+		if window <= 0 {
+			window = time.Second
+		}
+
+		bucket.Remaining = bucket.Limit
+		bucket.ResetAt = now.Add(window + RATE_LIMITER_RESET_TIME_FUDGE)
+		bucket.Remaining--
+		bucket.mu.Unlock()
+		return bucket, nil
+	}
+}
+
+func (rl *RateLimiter) releaseRoute(bucket *Bucket, method, routePath string, headers http.Header) {
+	if headers == nil {
+		return
+	}
+
+	retryAfterStr := firstHeaderValue(headers, "Retry-After")
+	if firstHeaderValue(headers, "X-Ratelimit-Global") == "true" {
+		if retryAfterStr != "" {
+			retryAfter, _ := strconv.ParseFloat(retryAfterStr, 64)
+			rl.globalWait.Store(time.Now().Add(time.Duration(retryAfter*float64(time.Second)) + 250*time.Millisecond).UnixNano())
+
+			rl.tracef("Received global rate limit! Retry after: %f", retryAfter)
+		}
+
+		return
+	}
+
+	bucketHeader := firstHeaderValue(headers, "X-Ratelimit-Bucket")
+	if bucketHeader == "" {
+		return
+	}
+
+	bucket.mu.Lock()
+	defer bucket.mu.Unlock()
+
+	rl.mu.Lock()
+	if bucket.ID != bucketHeader {
+		if _, exists := rl.buckets[bucketHeader]; !exists {
+			oldID := bucket.ID
+			bucket.ID = bucketHeader
+			rl.buckets[bucketHeader] = bucket
+			route := method + ":" + routePath
+			rl.routeMapping[route] = bucketHeader
+
+			if current, ok := rl.buckets[oldID]; ok && current == bucket {
+				delete(rl.buckets, oldID)
+			}
+
+			if len(rl.buckets) > rl.bucketHighWater {
+				rl.bucketHighWater = len(rl.buckets)
+			}
+		}
+	}
+	rl.mu.Unlock()
+
+	if limitStr := firstHeaderValue(headers, "X-Ratelimit-Limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+			bucket.Limit = limit
+		}
+	}
+	if remainingStr := firstHeaderValue(headers, "X-Ratelimit-Remaining"); remainingStr != "" {
+		if remaining, err := strconv.Atoi(remainingStr); err == nil && remaining >= 0 {
+			bucket.Remaining = remaining
+		}
+	}
+	if resetAfterStr := firstHeaderValue(headers, "X-Ratelimit-Reset-After"); resetAfterStr != "" {
+		if resetAfter, err := strconv.ParseFloat(resetAfterStr, 64); err == nil && resetAfter >= 0 {
+			window := time.Duration(resetAfter * float64(time.Second))
+			bucket.Window = window
+			bucket.ResetAt = time.Now().Add(window + RATE_LIMITER_RESET_TIME_FUDGE)
+		}
+	}
+}
+
 func (rl *RateLimiter) sweep() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -391,26 +563,27 @@ type rateLimitTransport struct {
 }
 
 func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	route := req.Method + ":" + extractRoute(req.URL.Path)
-	bucket, err := t.limiter.acquire(req.Context(), route)
+	method := req.Method
+	routePath := extractRoute(req.URL.Path)
+	bucket, err := t.limiter.acquireRoute(req.Context(), method, routePath)
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := t.innerTransport.RoundTrip(req)
 	if err != nil {
-		t.limiter.release(bucket, route, nil)
+		t.limiter.releaseRoute(bucket, method, routePath, nil)
 		return nil, err
 	}
 
-	t.limiter.release(bucket, route, resp.Header)
+	t.limiter.releaseRoute(bucket, method, routePath, resp.Header)
 	return resp, nil
 }
 
 func extractRoute(path string) string {
 	orig := path
 	if strings.HasPrefix(path, "/api/v") {
-		idx := strings.Index(path[6:], "/")
+		idx := strings.IndexByte(path[6:], '/')
 		if idx != -1 {
 			path = path[6+idx:]
 		}
@@ -431,12 +604,12 @@ func extractRoute(path string) string {
 		return orig
 	}
 
-	idx1 := strings.Index(rest, "/")
+	idx1 := strings.IndexByte(rest, '/')
 	if idx1 == -1 {
 		return path
 	}
 
-	idx2 := strings.Index(rest[idx1+1:], "/")
+	idx2 := strings.IndexByte(rest[idx1+1:], '/')
 	if idx2 == -1 {
 		return path
 	}
