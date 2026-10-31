@@ -294,7 +294,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelis
 	return nil
 }
 
-func (client *BaseClient) handleInteraction(itx CommandInteraction) (CommandInteraction, Command, bool) {
+func (client *BaseClient) handleInteraction(itx *CommandInteraction) (Command, bool) {
 	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == SUB_COMMAND_OPTION_TYPE {
 		finalName := itx.Data.Name + "@" + itx.Data.Options[0].Name
 		subCommand, available := client.commands.Get(finalName)
@@ -305,7 +305,7 @@ func (client *BaseClient) handleInteraction(itx CommandInteraction) (CommandInte
 
 			itx.Data.Name, itx.Data.Options = finalName, itx.Data.Options[0].Options
 		}
-		return itx, subCommand, available
+		return subCommand, available
 	}
 
 	if itx.Member != nil {
@@ -313,7 +313,7 @@ func (client *BaseClient) handleInteraction(itx CommandInteraction) (CommandInte
 	}
 
 	command, available := client.commands.Get(itx.Data.Name)
-	return itx, command, available
+	return command, available
 }
 
 func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist []string, reverseMode bool) []Command {
