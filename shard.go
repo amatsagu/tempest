@@ -395,7 +395,7 @@ func (s *Shard) sendIdentify() error {
 		},
 	}
 
-	return s.socket.writeJSON(payload)
+	return s.socket.writeJSON(&payload)
 }
 
 func (s *Shard) sendResume() error {
@@ -415,7 +415,7 @@ func (s *Shard) sendResume() error {
 		},
 	}
 
-	return s.socket.writeJSON(payload)
+	return s.socket.writeJSON(&payload)
 }
 
 func (s *Shard) runHeartbeat(ctx context.Context, interval time.Duration) {
@@ -485,5 +485,5 @@ func (s *Shard) sendHeartbeat() error {
 		Sequence: seq,
 	}
 
-	return s.socket.writeJSON(payload)
+	return s.socket.writeJSON(&payload)
 }

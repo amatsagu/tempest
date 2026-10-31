@@ -283,16 +283,22 @@ func (s *socket) writeJSON(v any) error {
 		return errors.New("not connected")
 	}
 
-	payload, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
 	if err := conn.SetWriteDeadline(time.Now().Add(GATEWAY_WRITE_TIMEOUT)); err != nil {
 		return err
 	}
-	return conn.WriteMessage(websocket.TextMessage, payload)
+
+	w, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		return err
+	}
+
+	if err := json.MarshalWrite(w, v); err != nil {
+		_ = w.Close()
+		return err
+	}
+
+	return w.Close()
 }
