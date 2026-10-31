@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/hex"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -22,6 +23,11 @@ func TestVerifyRequest(t *testing.T) {
 				return new(bytes.Buffer)
 			},
 		},
+		readerPool: &sync.Pool{
+			New: func() any {
+				return new(io.LimitedReader)
+			},
+		},
 	}
 
 	timestamp := "1234567890"
@@ -35,14 +41,14 @@ func TestVerifyRequest(t *testing.T) {
 		req.Header.Set("X-Signature-Ed25519", sigHex)
 		req.Header.Set("X-Signature-Timestamp", timestamp)
 
-		resBody, cleanup, verified := client.verifyRequest(req, pub, 1024)
+		resBody, buf, verified := client.verifyRequest(req, pub, 1024)
 		if !verified {
 			t.Error("expected verification to succeed")
 		}
 		if !bytes.Equal(resBody, body) {
 			t.Errorf("expected body %s, got %s", body, resBody)
 		}
-		cleanup()
+		client.releaseBuffer(buf)
 	})
 
 	t.Run("Invalid signature", func(t *testing.T) {
