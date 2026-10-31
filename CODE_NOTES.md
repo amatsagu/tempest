@@ -19,6 +19,8 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
 
 - **Prefer `omitzero` for optional fields**:
   `omitzero` is standard in `json/v2`. It omits fields whose value equals their Go zero value (`""`, `0`, `false`, `nil`, or an `IsZero() bool` returning true).
+- **Numbers and Flags**:
+  Always use `omitzero` rather than `omitempty` on primitive numbers (`uint*`, `int*`, `float*`) and bitset flags. In `json/v2`, `omitempty` does not omit `0`, which causes Discord API rejection (e.g. `max_values: 0`, `duration: 0`).
 - **Boolean fields**:
   Use `omitzero` on boolean fields that default to `false` in Discord (e.g. `Disabled`, `NSFW`, `Required`, `AutoComplete`, `Spoiler`, `Divider`).
   - When `false` (default): omitted completely from outgoing JSON, saving bytes and parsing time.
