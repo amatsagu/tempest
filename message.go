@@ -224,8 +224,8 @@ type Embed struct {
 	URL         string          `json:"url,omitempty"`
 	Description string          `json:"description,omitempty"`
 	Fields      []EmbedField    `json:"fields,omitzero"`
-	Color       uint32          `json:"color,omitempty"`
-	Flags       EmbedFlags      `json:"flags,omitempty"`
+	Color       uint32          `json:"color,omitzero"`
+	Flags       EmbedFlags      `json:"flags,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-author-structure
@@ -243,10 +243,10 @@ type EmbedThumbnail struct {
 	ContentType        string          `json:"content_type,omitempty"`
 	Placeholder        string          `json:"placeholder,omitempty"`
 	Description        string          `json:"description,omitempty"`
-	Flags              EmbedMediaFlags `json:"flags,omitempty"`
-	Width              uint32          `json:"width,omitempty"`
-	Height             uint32          `json:"height,omitempty"`
-	PlaceholderVersion uint32          `json:"placeholder_version,omitempty"`
+	Flags              EmbedMediaFlags `json:"flags,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-field-structure
@@ -270,10 +270,10 @@ type EmbedImage struct {
 	ContentType        string          `json:"content_type,omitempty"`
 	Placeholder        string          `json:"placeholder,omitempty"`
 	Description        string          `json:"description,omitempty"`
-	Flags              EmbedMediaFlags `json:"flags,omitempty"`
-	Width              uint32          `json:"width,omitempty"`
-	Height             uint32          `json:"height,omitempty"`
-	PlaceholderVersion uint32          `json:"placeholder_version,omitempty"`
+	Flags              EmbedMediaFlags `json:"flags,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-video-structure
@@ -283,10 +283,10 @@ type EmbedVideo struct {
 	ContentType        string          `json:"content_type,omitempty"`
 	Placeholder        string          `json:"placeholder,omitempty"`
 	Description        string          `json:"description,omitempty"`
-	Flags              EmbedMediaFlags `json:"flags,omitempty"`
-	Width              uint32          `json:"width,omitempty"`
-	Height             uint32          `json:"height,omitempty"`
-	PlaceholderVersion uint32          `json:"placeholder_version,omitempty"`
+	Flags              EmbedMediaFlags `json:"flags,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/message#embed-object-embed-provider-structure
@@ -319,11 +319,11 @@ type Message struct {
 	WebhookID           Snowflake                   `json:"webhook_id,omitzero"`
 	ApplicationID       Snowflake                   `json:"application_id,omitzero"`
 	GuildID             Snowflake                   `json:"guild_id,omitzero"`
-	Flags               MessageFlags                `json:"flags,omitempty"`
+	Flags               MessageFlags                `json:"flags,omitzero"`
 	ChannelID           Snowflake                   `json:"channel_id"`
 	ID                  Snowflake                   `json:"id"`
-	Position            uint32                      `json:"position,omitempty"`
-	Type                MessageType                 `json:"type,omitempty"`
+	Position            uint32                      `json:"position,omitzero"`
+	Type                MessageType                 `json:"type,omitzero"`
 	MentionEveryone     bool                        `json:"mention_everyone"` // Whether this message mentions everyone.
 	TTS                 bool                        `json:"tts"`              // Whether this was a TTS message.
 	Pinned              bool                        `json:"pinned"`
@@ -334,7 +334,7 @@ type MessageReference struct {
 	MessageID       Snowflake            `json:"message_id,omitzero"`
 	ChannelID       Snowflake            `json:"channel_id,omitzero"`
 	GuildID         Snowflake            `json:"guild_id,omitzero"`
-	Type            MessageReferenceType `json:"type,omitempty"`
+	Type            MessageReferenceType `json:"type,omitzero"`
 	FailIfNotExists bool                 `json:"fail_if_not_exists"`
 }
 
@@ -383,11 +383,11 @@ type Attachment struct {
 	ClipParticipants   []User          `json:"clip_participants,omitzero"`
 	ID                 Snowflake       `json:"id"`
 	Size               uint64          `json:"size"`
-	Flags              AttachmentFlags `json:"flags,omitempty"`
-	DurationSecs       float64         `json:"duration_secs,omitempty"`
-	Height             uint32          `json:"height,omitempty"`
-	Width              uint32          `json:"width,omitempty"`
-	PlaceholderVersion uint32          `json:"placeholder_version,omitempty"`
+	Flags              AttachmentFlags `json:"flags,omitzero"`
+	DurationSecs       float64         `json:"duration_secs,omitzero"`
+	Height             uint32          `json:"height,omitzero"`
+	Width              uint32          `json:"width,omitzero"`
+	PlaceholderVersion uint32          `json:"placeholder_version,omitzero"`
 	Ephemeral          bool            `json:"ephemeral"`
 }
 
@@ -397,7 +397,7 @@ type Poll struct {
 	Results     *PoolResult    `json:"results,omitempty"`
 	Question    PollMedia      `json:"question"`
 	Answers     []PollAnswer   `json:"answers,omitzero"`
-	Duration    uint16         `json:"duration,omitempty"` // Number of hours the poll should be open for, up to 32 days (defaults to 24)
+	Duration    uint16         `json:"duration,omitzero"` // Number of hours the poll should be open for, up to 32 days (defaults to 24)
 	Multiselect bool           `json:"allow_multiselect"`
 	LayoutType  PoolLayoutType `json:"layout_type"`
 }
@@ -411,7 +411,7 @@ type PollMedia struct {
 // https://docs.discord.com/developers/resources/poll#poll-answer-object
 type PollAnswer struct {
 	PollMedia PollMedia `json:"poll_media"`
-	AnswerID  uint32    `json:"answer_id,omitempty"`
+	AnswerID  uint32    `json:"answer_id,omitzero"`
 }
 
 // https://docs.discord.com/developers/resources/poll#poll-results-object

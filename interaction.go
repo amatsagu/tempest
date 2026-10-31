@@ -62,9 +62,9 @@ type Interaction struct {
 
 	PermissionFlags     PermissionFlags        `json:"app_permissions,string"` // Bitwise set of permissions the app/bot has within the channel the interaction was sent from (guild text channel or DM channel).
 	ApplicationID       Snowflake              `json:"application_id"`
-	AttachmentSizeLimit uint64                 `json:"attachment_size_limit,omitempty"` // Attachment size limit in bytes.
-	Context             InteractionContextType `json:"context,omitempty"`               // Context where the interaction was triggered from.
-	ShardID             uint16                 `json:"-"`                               // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
+	AttachmentSizeLimit uint64                 `json:"attachment_size_limit,omitzero"` // Attachment size limit in bytes.
+	Context             InteractionContextType `json:"context,omitzero"`               // Context where the interaction was triggered from.
+	ShardID             uint16                 `json:"-"`                              // Only provided if using Gateway Client. Shard ID = 0 is also a valid ID.
 	Type                InteractionType        `json:"type"`
 	responded           bool                   `json:"-"`
 	deferred            bool                   `json:"-"`

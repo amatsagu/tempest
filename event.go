@@ -37,7 +37,7 @@ const (
 type EventPacket struct {
 	Event    EventName      `json:"t,omitempty"`
 	Data     jsontext.Value `json:"d"`
-	Sequence uint32         `json:"s,omitempty"`
+	Sequence uint32         `json:"s,omitzero"`
 	Opcode   Opcode         `json:"op"`
 }
 

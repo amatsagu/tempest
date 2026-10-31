@@ -99,17 +99,17 @@ type Guild struct {
 	PublicUpdatesChannelID    Snowflake          `json:"public_updates_channel_id,omitzero"`
 	SafetyAlertsChannelID     Snowflake          `json:"safety_alerts_channel_id,omitzero"`
 	SystemChannelFlags        SystemChannelFlags `json:"system_channel_flags"`
-	AFKChannelTimeout         uint32             `json:"afk_timeout"`             // AFK timeout value in seconds.
-	MaxPresences              uint32             `json:"max_presences,omitempty"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
-	MaxMembers                uint32             `json:"max_members,omitempty"`
-	MaxVideoChannelUsers      uint32             `json:"max_video_channel_users,omitempty"`
-	MaxStageVideoChannelUsers uint32             `json:"max_stage_video_channel_users,omitempty"`
-	PremiumSubscriptionCount  uint32             `json:"premium_subscription_count,omitempty"` // The number of boosts this guild currently has.
+	AFKChannelTimeout         uint32             `json:"afk_timeout"`            // AFK timeout value in seconds.
+	MaxPresences              uint32             `json:"max_presences,omitzero"` // The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
+	MaxMembers                uint32             `json:"max_members,omitzero"`
+	MaxVideoChannelUsers      uint32             `json:"max_video_channel_users,omitzero"`
+	MaxStageVideoChannelUsers uint32             `json:"max_stage_video_channel_users,omitzero"`
+	PremiumSubscriptionCount  uint32             `json:"premium_subscription_count,omitzero"` // The number of boosts this guild currently has.
 
 	// Some fields were ignored on purpose as they are random junk...
 
-	ApproximateMemberCount      uint32                   `json:"approximate_member_count,omitempty"`
-	ApproximatePresenceCount    uint32                   `json:"approximate_presence_count,omitempty"`
+	ApproximateMemberCount      uint32                   `json:"approximate_member_count,omitzero"`
+	ApproximatePresenceCount    uint32                   `json:"approximate_presence_count,omitzero"`
 	MFALevel                    MFALevel                 `json:"mfa_level"`
 	ExplicitContentFilter       ExplicitContentFilter    `json:"explicit_content_filter"`
 	DefaultMessageNotifications MessageNotificationLevel `json:"default_message_notifications"`

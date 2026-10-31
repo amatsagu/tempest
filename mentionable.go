@@ -73,11 +73,11 @@ type User struct {
 	BannerHash           string            `json:"banner,omitempty"`      // Hash code used to access user's baner. Call User.BannerURL to get direct url.
 	Locale               string            `json:"locale,omitempty"`
 	ID                   Snowflake         `json:"id"`
-	PublicFlags          UserFlags         `json:"public_flags,omitempty"` // Public flags on user's account.
-	AccentColor          uint32            `json:"accent_color,omitempty"` // User's banner color, encoded as an integer representation of hexadecimal color code.
-	Bot                  bool              `json:"bot"`                    // Whether it's bot/app account.
-	System               bool              `json:"system"`                 // Whether user is Discord System Message account.
-	PremiumType          NitroType         `json:"premium_type,omitempty"`
+	PublicFlags          UserFlags         `json:"public_flags,omitzero"` // Public flags on user's account.
+	AccentColor          uint32            `json:"accent_color,omitzero"` // User's banner color, encoded as an integer representation of hexadecimal color code.
+	Bot                  bool              `json:"bot"`                   // Whether it's bot/app account.
+	System               bool              `json:"system"`                // Whether user is Discord System Message account.
+	PremiumType          NitroType         `json:"premium_type,omitzero"`
 }
 
 func (user User) DisplayName() string {
