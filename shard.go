@@ -115,7 +115,7 @@ func (s *Shard) UpdatePresence(payload *UpdatePresenceEvent) error {
 	return s.Send(payload)
 }
 
-// Start establishes a connection to the Discord Gateway and starts handling events.
+// Establishes a connection to the Discord Gateway and starts handling events.
 // This is a blocking call that will manage the connection until the context is canceled.
 func (s *Shard) Start(ctx context.Context, gatewayURL string) {
 	s.tracef("Starting connection loop.")

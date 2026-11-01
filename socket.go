@@ -132,7 +132,7 @@ func (s *socket) connect(ctx context.Context, urlStr string) error {
 	return nil
 }
 
-// zstdReader returns the socket's reusable zstd decoder, reset to stream. The
+// Returns the socket's reusable zstd decoder, reset to stream. The
 // decoder's history ring is the largest part of its working set (about 0.7 MiB
 // for a 256 KiB zstd window and 0.3 MiB for a 64 KiB window), so keeping it
 // across reconnects avoids reallocating that memory on every disconnect.
@@ -162,7 +162,7 @@ func (s *socket) zstdReader(stream io.Reader) (*zstd.Decoder, error) {
 	return zr, nil
 }
 
-// releaseCurrentDecoder drops the current stream from the decoders after the
+// Drops the current stream from the decoders after the
 // read loop returns. The zstd decoder keeps its buffers for the next reconnect;
 // only its reference to the old websocket connection is cleared. This is
 // intentionally not called from detach: the read loop may still be blocked
@@ -173,7 +173,7 @@ func (s *socket) releaseCurrentDecoder() {
 	}
 }
 
-// closeDecoders releases decoder memory when the shard stops permanently.
+// Releases decoder memory when the shard stops permanently.
 func (s *socket) closeDecoders() {
 	if s.zstdDecoder != nil {
 		s.zstdDecoder.Close()
@@ -181,7 +181,7 @@ func (s *socket) closeDecoders() {
 	}
 }
 
-// detach removes the active connection from the socket and returns it.
+// Removes the active connection from the socket and returns it.
 // The caller closes it outside of any lock so a blocked write cannot prevent
 // shutdown or reconnection.
 func (s *socket) detach() *websocket.Conn {
@@ -191,8 +191,8 @@ func (s *socket) detach() *websocket.Conn {
 	return conn
 }
 
-// replaceConnAndClose clears conn if it is still the active connection and
-// closes it. It is used for setup failures before the socket is fully ready.
+// Clears conn if it is still the active connection and closes it.
+// Used for setup failures before the socket is fully ready.
 func (s *socket) replaceConnAndClose(conn *websocket.Conn) {
 	if s.conn.CompareAndSwap(conn, nil) {
 		s.decoder.Store(nil)
@@ -258,9 +258,9 @@ func (s *socket) readJSON(v any) error {
 	return json.UnmarshalDecode(decoder, v)
 }
 
-// refreshReadDeadline extends the read deadline only when less than half of
-// the timeout remains. Gateway traffic can produce thousands of frames per
-// second, and resetting the runtime poll deadline for every one of them adds
+// Extends the read deadline only when less than half of the timeout
+// remains. Gateway traffic can produce thousands of frames per second,
+// and resetting the runtime poll deadline for every one of them adds
 // measurable CPU overhead without improving the timeout guarantee.
 func (s *socket) refreshReadDeadline(conn *websocket.Conn) error {
 	now := time.Now()

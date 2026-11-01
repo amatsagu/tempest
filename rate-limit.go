@@ -157,7 +157,7 @@ func (rl *RateLimiter) acquire(ctx context.Context, route string) (*Bucket, erro
 	}
 }
 
-// firstHeaderValue reads a canonical MIME header without the allocation
+// Reads a canonical MIME header without the allocation
 // performed by http.Header.Get when the lookup key is not already canonical.
 func firstHeaderValue(headers http.Header, canonicalKey string) string {
 	if values := headers[canonicalKey]; len(values) > 0 {

@@ -61,12 +61,12 @@ func NewShardManager(token string, trace bool, zstdCompression bool, eventHandle
 	return m
 }
 
-// Start connects the manager to Discord. It fetches the gateway configuration,
+// Connects the manager to Discord. It fetches the gateway configuration,
 // creates the necessary shards, and starts them in parallel. This is a
 // blocking call that waits for all shards to complete their lifecycle.
 //
 // Canceling ctx stops the startup process and gracefully closes every active
-// shard. Start returns nil after a context-triggered shutdown. Callers do not
+// shard. Returns nil after a context-triggered shutdown. Callers do not
 // need a separate stop method; the context owns the connection lifecycle just
 // like it does for an http.Server.
 //

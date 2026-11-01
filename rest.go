@@ -221,8 +221,7 @@ func (rest *Rest) releaseReader(r *bytes.Reader) {
 	}
 }
 
-// RequestContext is like Request, but it honors ctx for limiter waits, retries,
-// and the HTTP request itself.
+// Executes a request while honoring ctx for limiter waits, retries and dial/TLS cancellation.
 func (rest *Rest) RequestContext(ctx context.Context, method, route string, jsonPayload any, into any) error {
 	if err := ctx.Err(); err != nil {
 		return err

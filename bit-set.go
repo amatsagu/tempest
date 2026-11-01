@@ -4,7 +4,7 @@ package tempest
 // For example all the user badges or member permissions.
 type BitSet uint64
 
-// Add allows you to add multiple bits together, producing a new bit set.
+// Combines multiple bits together, producing a new bit set.
 func (f BitSet) Add(bits ...BitSet) BitSet {
 	for _, bit := range bits {
 		f |= bit
@@ -20,7 +20,7 @@ func (f BitSet) Remove(bits ...BitSet) BitSet {
 	return f
 }
 
-// Has will ensure that the bit set includes all the bits entered.
+// Ensures that the bit set includes all the specified bits.
 func (f BitSet) Has(bits ...BitSet) bool {
 	for _, bit := range bits {
 		if (f & bit) != bit {
@@ -30,7 +30,7 @@ func (f BitSet) Has(bits ...BitSet) bool {
 	return true
 }
 
-// Missing will check whether the bit set is missing any one of the bits.
+// Checks whether the bit set is missing any one of the specified bits.
 func (f BitSet) Missing(bits ...BitSet) bool {
 	for _, bit := range bits {
 		if (f & bit) != bit {

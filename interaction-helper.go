@@ -62,16 +62,18 @@ func interactionCallbackURL(id Snowflake, token string) string {
 	return b.String()
 }
 
-// requestContext returns the narrowest lifecycle available to this interaction.
+// Returns the narrowest lifecycle available to this interaction.
 // HTTP interactions carry a request-specific context; gateway interactions fall
 // back to the REST client lifecycle context set when the gateway starts.
 func (itx *Interaction) requestContext() context.Context {
 	if itx.ctx != nil {
 		return itx.ctx
 	}
+
 	if itx.BaseClient != nil {
 		return itx.BaseClient.context()
 	}
+
 	return context.Background()
 }
 
@@ -112,12 +114,14 @@ func (r *InteractionDataResolved) ResolveMember(id Snowflake) Member {
 	if r == nil {
 		return Member{}
 	}
+
 	member, available := r.Members[id]
 	if available {
 		user := r.Users[id]
 		member.User = &user
 		return member
 	}
+
 	return Member{}
 }
 

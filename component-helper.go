@@ -1,6 +1,6 @@
 package tempest
 
-// FindInteractiveComponent recursively scans the components array for the first interactive component that satisfies filter.
+// Recursively scans the components array for the first interactive component that satisfies filter.
 //
 // Warning - This function can traverse arbitrarily deep nested component trees & uses frequent type assertions, reducing overall performance.
 // Prefer checking individual components for interactions with smaller numbers of components.
