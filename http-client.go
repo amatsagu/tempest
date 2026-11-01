@@ -155,8 +155,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		return
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
+		interaction := new(CommandInteraction)
+		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received command interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
@@ -164,11 +164,11 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveCommand(w, r, &interaction)
+		client.serveCommand(w, r, interaction)
 		return
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var interaction ComponentInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
+		interaction := new(ComponentInteraction)
+		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received component interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
@@ -176,11 +176,11 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveComponent(w, r, &interaction)
+		client.serveComponent(w, r, interaction)
 		return
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
+		interaction := new(CommandInteraction)
+		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
@@ -190,10 +190,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		interaction.HTTPClient = client
 		interaction.ctx = r.Context()
 
-		choices := client.autoCompleteInteractionHandler(&interaction)
+		choices := client.autoCompleteInteractionHandler(interaction)
 
-		buf := client.bufferPool.Get().(*bytes.Buffer)
-		buf.Reset()
+		buf := client.acquireBuffer()
 		res := ResponseAutoComplete{
 			Type: AUTOCOMPLETE_RESPONSE_TYPE,
 			Data: &ResponseAutoCompleteData{
@@ -214,8 +213,8 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		return
 	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var interaction ModalInteraction
-		if err := json.Unmarshal(rawData, &interaction); err != nil {
+		interaction := new(ModalInteraction)
+		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
@@ -223,7 +222,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 
 		interaction.BaseClient = client.BaseClient
 		interaction.HTTPClient = client
-		client.serveModal(w, r, &interaction)
+		client.serveModal(w, r, interaction)
 		return
 	}
 }
@@ -450,9 +449,7 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 		return nil, nil, false
 	}
 
-	buf = client.bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-
+	buf = client.acquireBuffer()
 	buf.WriteString(timestamp)
 
 	defer func() {
@@ -475,6 +472,17 @@ func (client *HTTPClient) verifyRequest(r *http.Request, key ed25519.PublicKey, 
 
 	client.releaseBuffer(buf)
 	return nil, nil, false
+}
+
+func (client *HTTPClient) acquireBuffer() *bytes.Buffer {
+	if client.bufferPool == nil {
+		b := new(bytes.Buffer)
+		b.Grow(1024 * 32)
+		return b
+	}
+	buf := client.bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	return buf
 }
 
 func (client *HTTPClient) releaseBuffer(buf *bytes.Buffer) {

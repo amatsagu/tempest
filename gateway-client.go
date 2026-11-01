@@ -88,8 +88,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 
 	switch itxType {
 	case APPLICATION_COMMAND_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
+		interaction := new(CommandInteraction)
+		if err := json.Unmarshal(packet.Data, interaction); err != nil {
 			client.tracef("Received command interaction event but failed to parse its data: %v", err)
 			return
 		}
@@ -99,8 +99,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 
 		client.commandInteractionHandler(interaction)
 	case MESSAGE_COMPONENT_INTERACTION_TYPE:
-		var interaction ComponentInteraction
-		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
+		interaction := new(ComponentInteraction)
+		if err := json.Unmarshal(packet.Data, interaction); err != nil {
 			client.tracef("Received component interaction event but failed to parse its data: %v", err)
 			return
 		}
@@ -111,8 +111,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 
 		client.componentInteractionHandler(interaction)
 	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
-		var interaction CommandInteraction
-		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
+		interaction := new(CommandInteraction)
+		if err := json.Unmarshal(packet.Data, interaction); err != nil {
 			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
 			return
 		}
@@ -123,8 +123,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 
 		client.autoCompleteInteractionHandler(interaction)
 	case MODAL_SUBMIT_INTERACTION_TYPE:
-		var interaction ModalInteraction
-		if err := json.Unmarshal(packet.Data, &interaction); err != nil {
+		interaction := new(ModalInteraction)
+		if err := json.Unmarshal(packet.Data, interaction); err != nil {
 			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
 			return
 		}
@@ -137,8 +137,8 @@ func (client *GatewayClient) eventHandler(shardID uint16, packet EventPacket) {
 	}
 }
 
-func (client *GatewayClient) commandInteractionHandler(interaction CommandInteraction) {
-	command, available := client.handleInteraction(&interaction)
+func (client *GatewayClient) commandInteractionHandler(interaction *CommandInteraction) {
+	command, available := client.handleInteraction(interaction)
 	if !available {
 		client.tracef("Received command interaction (ID = %s) but there's no matching command! (requested \"%s\")", interaction.ID.String(), interaction.Data.Name)
 		return
@@ -146,25 +146,25 @@ func (client *GatewayClient) commandInteractionHandler(interaction CommandIntera
 
 	client.tracef("Received command interaction (ID = %s, Command = \"%s\") - moved to target command's handler.", interaction.ID.String(), interaction.Data.Name)
 
-	if client.preCommandHandler != nil && !client.preCommandHandler(command, &interaction) {
+	if client.preCommandHandler != nil && !client.preCommandHandler(command, interaction) {
 		return
 	}
 
 	if client.trace {
 		start := time.Now()
-		command.SlashCommandHandler(&interaction)
+		command.SlashCommandHandler(interaction)
 		client.tracef("Command %s execution took %v", command.Name, time.Since(start))
 	} else {
-		command.SlashCommandHandler(&interaction)
+		command.SlashCommandHandler(interaction)
 	}
 
 	if client.postCommandHandler != nil {
-		client.postCommandHandler(command, &interaction)
+		client.postCommandHandler(command, interaction)
 	}
 }
 
-func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandInteraction) {
-	command, available := client.handleInteraction(&interaction)
+func (client *GatewayClient) autoCompleteInteractionHandler(interaction *CommandInteraction) {
+	command, available := client.handleInteraction(interaction)
 	if !available || command.AutoCompleteHandler == nil {
 		client.tracef("Dropped auto complete interaction (ID = %s). You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.", interaction.ID.String())
 		return
@@ -172,7 +172,7 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 
 	client.tracef("Received slash command's auto complete interaction (ID = %s, Command = \"%s\") - moved to target (sub) command auto complete handler.", interaction.ID.String(), interaction.Data.Name)
 
-	choices := command.AutoCompleteHandler(interaction)
+	choices := command.AutoCompleteHandler(*interaction)
 	err := interaction.respond(&Response{
 		Type: AUTOCOMPLETE_RESPONSE_TYPE,
 		Data: &ResponseAutoCompleteData{
@@ -184,10 +184,10 @@ func (client *GatewayClient) autoCompleteInteractionHandler(interaction CommandI
 	}
 }
 
-func (client *GatewayClient) componentInteractionHandler(interaction ComponentInteraction) {
+func (client *GatewayClient) componentInteractionHandler(interaction *ComponentInteraction) {
 	if fn, ok := client.staticComponents.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
-		fn(interaction)
+		fn(*interaction)
 		return
 	}
 
@@ -209,23 +209,23 @@ func (client *GatewayClient) componentInteractionHandler(interaction ComponentIn
 			client.tracef("failed to send deferred update message response: %v", err)
 		}
 
-		handler.Handler(&interaction)
+		handler.Handler(interaction)
 		return
 	}
 
 	if hasGlobal {
 		client.tracef("Received component interaction (ID = %s, CustomID = \"%s\") - moved to defined component handler.", interaction.ID.String(), interaction.Data.CustomID)
-		client.componentHandler(&interaction)
+		client.componentHandler(interaction)
 		return
 	}
 
 	client.tracef("Dropped component interaction (ID = %s, CustomID = \"%s\"). You see this trace message because client received component interaction but there's no defined handler for it.", interaction.ID.String(), interaction.Data.CustomID)
 }
 
-func (client *GatewayClient) modalInteractionHandler(interaction ModalInteraction) {
+func (client *GatewayClient) modalInteractionHandler(interaction *ModalInteraction) {
 	if fn, ok := client.staticModals.Get(interaction.Data.CustomID); ok {
 		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") with matching custom ID for static handler - moved to registered handler.", interaction.ID.String(), interaction.Data.CustomID)
-		fn(interaction)
+		fn(*interaction)
 		return
 	}
 
@@ -247,13 +247,13 @@ func (client *GatewayClient) modalInteractionHandler(interaction ModalInteractio
 			client.tracef("failed to send deferred update message response: %v", err)
 		}
 
-		handler.Handler(&interaction)
+		handler.Handler(interaction)
 		return
 	}
 
 	if hasGlobal {
 		client.tracef("Received modal interaction (ID = %s, CustomID = \"%s\") - moved to defined modal handler.", interaction.ID.String(), interaction.Data.CustomID)
-		client.modalHandler(&interaction)
+		client.modalHandler(interaction)
 		return
 	}
 

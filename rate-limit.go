@@ -384,7 +384,7 @@ func (rl *RateLimiter) acquireRoute(ctx context.Context, method, routePath strin
 	}
 	rl.recordAcquire()
 
-	var buf [128]byte
+	var buf [160]byte
 	var keyBytes []byte
 	totalLen := len(method) + 1 + len(routePath)
 	if totalLen <= len(buf) {
@@ -563,8 +563,13 @@ type rateLimitTransport struct {
 }
 
 func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	path := req.URL.Path
+	if strings.Contains(path, "/interactions/") {
+		return t.innerTransport.RoundTrip(req)
+	}
+
 	method := req.Method
-	routePath := extractRoute(req.URL.Path)
+	routePath := extractRoute(path)
 	bucket, err := t.limiter.acquireRoute(req.Context(), method, routePath)
 	if err != nil {
 		return nil, err

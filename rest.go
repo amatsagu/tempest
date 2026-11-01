@@ -42,6 +42,8 @@ type Rest struct {
 	baseCtx     context.Context
 	limiter     *RateLimiter
 	traceLogger *log.Logger
+	bufferPool  *sync.Pool
+	readerPool  *sync.Pool
 	// Timeout is intentionally left unset; Rest methods apply MaxWaitTime
 	// through the request context so retries share one deadline.
 	HTTPClient     http.Client
@@ -125,6 +127,18 @@ func NewRest(opt RestOptions) *Rest {
 
 	return &Rest{
 		limiter: limiter,
+		bufferPool: &sync.Pool{
+			New: func() any {
+				b := new(bytes.Buffer)
+				b.Grow(4096)
+				return b
+			},
+		},
+		readerPool: &sync.Pool{
+			New: func() any {
+				return bytes.NewReader(nil)
+			},
+		},
 		HTTPClient: http.Client{
 			Transport: &rateLimitTransport{
 				limiter:        limiter,
@@ -174,6 +188,39 @@ func (rest *Rest) Request(method, route string, jsonPayload any, into any) error
 	return rest.RequestContext(rest.baseContext(), method, route, jsonPayload, into)
 }
 
+func (rest *Rest) acquireBuffer() *bytes.Buffer {
+	if rest.bufferPool == nil {
+		return new(bytes.Buffer)
+	}
+	buf := rest.bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	return buf
+}
+
+func (rest *Rest) releaseBuffer(buf *bytes.Buffer) {
+	if rest.bufferPool != nil && buf != nil {
+		if buf.Cap() <= 64*1024 {
+			rest.bufferPool.Put(buf)
+		}
+	}
+}
+
+func (rest *Rest) acquireReader(b []byte) *bytes.Reader {
+	if rest.readerPool == nil {
+		return bytes.NewReader(b)
+	}
+	r := rest.readerPool.Get().(*bytes.Reader)
+	r.Reset(b)
+	return r
+}
+
+func (rest *Rest) releaseReader(r *bytes.Reader) {
+	if rest.readerPool != nil && r != nil {
+		r.Reset(nil)
+		rest.readerPool.Put(r)
+	}
+}
+
 // RequestContext is like Request, but it honors ctx for limiter waits, retries,
 // and the HTTP request itself.
 func (rest *Rest) RequestContext(ctx context.Context, method, route string, jsonPayload any, into any) error {
@@ -181,12 +228,21 @@ func (rest *Rest) RequestContext(ctx context.Context, method, route string, json
 		return err
 	}
 
-	body, err := rest.BufferJSON(jsonPayload)
-	if err != nil {
-		return err
+	if jsonPayload == nil {
+		return rest.DirectRequestContext(ctx, method, route, nil, CONTENT_TYPE_JSON, "", into)
 	}
 
-	return rest.DirectRequestContext(ctx, method, route, body, CONTENT_TYPE_JSON, "", into)
+	buf := rest.acquireBuffer()
+	defer rest.releaseBuffer(buf)
+
+	if err := json.MarshalWrite(buf, jsonPayload); err != nil {
+		return fmt.Errorf("failed to encode JSON payload: %w", err)
+	}
+
+	r := rest.acquireReader(buf.Bytes())
+	defer rest.releaseReader(r)
+
+	return rest.DirectRequestContext(ctx, method, route, r, CONTENT_TYPE_JSON, "", into)
 }
 
 // Runs a request and returns the raw response bytes.
@@ -334,8 +390,10 @@ func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, ro
 	// To avoid issues with retrying requests that have streaming bodies (which can't be re-read),
 	// we pre-buffer the multipart request into memory. This ensures that the request body can be
 	// reliably sent multiple times in case of retries.
-	var requestBody bytes.Buffer
-	writer := multipart.NewWriter(&requestBody)
+	requestBody := rest.acquireBuffer()
+	defer rest.releaseBuffer(requestBody)
+
+	writer := multipart.NewWriter(requestBody)
 	if err := writeMultipartContext(ctx, writer, jsonPayload, files); err != nil {
 		return err
 	}
@@ -344,7 +402,10 @@ func (rest *Rest) RequestWithFilesContext(ctx context.Context, method string, ro
 		return err
 	}
 
-	return rest.DirectRequestContext(ctx, method, route, bytes.NewReader(requestBody.Bytes()), writer.FormDataContentType(), "", into)
+	r := rest.acquireReader(requestBody.Bytes())
+	defer rest.releaseReader(r)
+
+	return rest.DirectRequestContext(ctx, method, route, r, writer.FormDataContentType(), "", into)
 }
 
 // Writes the JSON payload and files to a multipart writer.

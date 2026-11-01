@@ -1,7 +1,6 @@
 package tempest
 
 import (
-	"bytes"
 	"context"
 	json "encoding/json/v2"
 	"errors"
@@ -21,8 +20,7 @@ func (itx *Interaction) respond(res *Response) error {
 			return err
 		}
 
-		buf := itx.HTTPClient.bufferPool.Get().(*bytes.Buffer)
-		buf.Reset()
+		buf := itx.HTTPClient.acquireBuffer()
 		if err := json.MarshalWrite(buf, res); err != nil {
 			itx.HTTPClient.releaseBuffer(buf)
 			return err
@@ -51,10 +49,13 @@ func (itx *Interaction) respond(res *Response) error {
 }
 
 func interactionCallbackURL(id Snowflake, token string) string {
+	var numBuf [20]byte
+	idBytes := strconv.AppendUint(numBuf[:0], uint64(id), 10)
+
 	var b strings.Builder
-	b.Grow(24 + len(token) + 20)
+	b.Grow(24 + len(idBytes) + len(token))
 	b.WriteString("/interactions/")
-	b.WriteString(strconv.FormatUint(uint64(id), 10))
+	b.Write(idBytes)
 	b.WriteByte('/')
 	b.WriteString(token)
 	b.WriteString("/callback")
