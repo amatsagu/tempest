@@ -76,7 +76,7 @@ func (c *calcCommand) handle(itx *tempest.CommandInteraction) error {
 			return true
 		}
 
-		if err := itx.EditReply(calcData(session, state.display), false); err != nil {
+		if err := itx.EditReply(calcData(session, state.display), false, nil); err != nil {
 			return true
 		}
 

@@ -252,9 +252,13 @@ func (itx *CommandInteraction) SendModal(modal ResponseModalData) error {
 	return err
 }
 
-func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool) error {
+func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral bool, files []File) error {
 	if ephemeral {
 		content.Flags |= EPHEMERAL_MESSAGE_FLAG
+	}
+
+	if len(files) > 0 {
+		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
 	}
 
 	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
@@ -263,7 +267,7 @@ func (itx *CommandInteraction) EditReply(content ResponseMessageData, ephemeral 
 func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) error {
 	return itx.EditReply(ResponseMessageData{
 		Content: content,
-	}, ephemeral)
+	}, ephemeral, nil)
 }
 
 func (itx *CommandInteraction) DeleteReply() error {
@@ -379,6 +383,29 @@ func (itx *ComponentInteraction) AcknowledgeWithLinearUpdate(content string) err
 	return itx.AcknowledgeWithUpdate(ResponseMessageData{
 		Content: content,
 	})
+}
+
+// Edits the original message on which the component was attached.
+// This is typically used after itx.Acknowledge() (which defers the message update via DEFERRED_UPDATE_MESSAGE_RESPONSE_TYPE).
+// Passing files = nil or an empty slice is handled properly without multipart encoding.
+func (itx *ComponentInteraction) EditOriginal(content ResponseMessageData, files []File) error {
+	if len(files) > 0 {
+		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
+	}
+
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
+}
+
+// Edits the original message on which the component was attached with plain text content.
+func (itx *ComponentInteraction) EditLinearOriginal(content string) error {
+	return itx.EditOriginal(ResponseMessageData{
+		Content: content,
+	}, nil)
+}
+
+// Deletes the original message on which the component was attached.
+func (itx *ComponentInteraction) DeleteOriginal() error {
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 // Retrieves the contents of the first [TextInputComponent] inside the modal (at any depth) with the given customID.
@@ -617,6 +644,28 @@ func (itx *ModalInteraction) AcknowledgeWithLinearUpdate(content string) error {
 	return itx.AcknowledgeWithUpdate(ResponseMessageData{
 		Content: content,
 	})
+}
+
+// Edits the original message/response after deferring the modal submission or updating in place.
+// Passing files = nil or an empty slice is handled properly without multipart encoding.
+func (itx *ModalInteraction) EditOriginal(response ResponseMessageData, files []File) error {
+	if len(files) > 0 {
+		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, files, nil)
+	}
+
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, nil)
+}
+
+// Edits the original message/response with plain text content.
+func (itx *ModalInteraction) EditLinearOriginal(content string) error {
+	return itx.EditOriginal(ResponseMessageData{
+		Content: content,
+	}, nil)
+}
+
+// Deletes the original message/response.
+func (itx *ModalInteraction) DeleteOriginal() error {
+	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 // Used to let user/member know that the bot is processing the modal submission,

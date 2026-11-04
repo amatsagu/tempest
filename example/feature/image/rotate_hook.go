@@ -50,14 +50,7 @@ func (c *rotateCommand) handleSubmit(itx *tempest.ModalInteraction) error {
 		Reader: bytes.NewReader(out.Bytes()),
 	}}
 
-	return sendModalFile(itx, tempest.ResponseMessageData{Content: "Rotated image."}, files)
-}
-
-// sendModalFile patches the deferred modal response with a multipart body. Master
-// has no ModalInteraction.WithFiles helper, so this uses the REST client directly.
-func sendModalFile(itx *tempest.ModalInteraction, data tempest.ResponseMessageData, files []tempest.File) error {
-	endpoint := "/webhooks/" + itx.ApplicationID.String() + "/" + itx.Token + "/messages/@original"
-	return itx.BaseClient.Rest.RequestWithFiles(http.MethodPatch, endpoint, data, files, nil)
+	return itx.EditOriginal(tempest.ResponseMessageData{Content: "Rotated image."}, files)
 }
 
 func downloadImage(ctx context.Context, url string) ([]byte, error) {

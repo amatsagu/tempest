@@ -47,11 +47,11 @@ func (c *ticketCommand) handle(itx *tempest.CommandInteraction) error {
 			}
 		}
 
-		if err := itx.EditReply(tempest.ResponseMessageData{Content: "Ticket created."}, false); err != nil {
+		if err := itx.EditReply(tempest.ResponseMessageData{Content: "Ticket created."}, false, nil); err != nil {
 			return true
 		}
 		return true
 	}, func() {
-		_ = itx.EditReply(tempest.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false)
+		_ = itx.EditReply(tempest.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false, nil)
 	})
 }
