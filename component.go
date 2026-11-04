@@ -115,7 +115,7 @@ type StringSelectComponent struct {
 	MinValues     uint8              `json:"min_values,omitzero"`     // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
 	MaxValues     uint8              `json:"max_values,omitzero"`     // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	Disabled      bool               `json:"disabled,omitzero"`       // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
-	Required      bool               `json:"required,omitzero"`       // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
+	Required      bool               `json:"required"`                // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
 }
 
 // A SelectMenuOption represents a single option within a [StringSelectComponent].
@@ -173,7 +173,7 @@ type SelectComponent struct {
 	MinValues     uint8                `json:"min_values,omitzero"` // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
 	MaxValues     uint8                `json:"max_values,omitzero"` // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
 	Type          ComponentType        `json:"type"`                // Either USER_SELECT_COMPONENT_TYPE, ROLE_SELECT_COMPONENT_TYPE, MENTIONABLE_SELECT_COMPONENT_TYPE or CHANNEL_SELECT_COMPONENT_TYPE
-	Required      bool                 `json:"required,omitzero"`   // Whether a selection is required to submit the modal (defaults to true).
+	Required      bool                 `json:"required"`            // Whether a selection is required to submit the modal (defaults to true).
 	Disabled      bool                 `json:"disabled,omitzero"`   // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
@@ -268,7 +268,7 @@ type FileComponent struct {
 type SeparatorComponent struct {
 	ID      uint32        `json:"id,omitzero"`
 	Type    ComponentType `json:"type"`             // Always = SEPARATOR_COMPONENT_TYPE (14)
-	Divider bool          `json:"divider,omitzero"` // Whether a visual divider should be displayed in the component (defaults to true).
+	Divider bool          `json:"divider"`          // Whether a visual divider should be displayed in the component (defaults to true).
 	Spacing uint8         `json:"spacing,omitzero"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
 }
 

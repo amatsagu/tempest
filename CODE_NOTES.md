@@ -22,9 +22,10 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
 - **Numbers and Flags**:
   Always use `omitzero` rather than `omitempty` on primitive numbers (`uint*`, `int*`, `float*`) and bitset flags. In `json/v2`, `omitempty` does not omit `0`, which causes Discord API rejection (e.g. `max_values: 0`, `duration: 0`).
 - **Boolean fields**:
-  Use `omitzero` on boolean fields that default to `false` in Discord (e.g. `Disabled`, `NSFW`, `Required`, `AutoComplete`, `Spoiler`, `Divider`).
+  Use `omitzero` on boolean fields that default to `false` in Discord (e.g. `Disabled`, `NSFW`, `CommandOption.Required`, `AutoComplete`, `Spoiler`).
   - When `false` (default): omitted completely from outgoing JSON, saving bytes and parsing time.
   - When `true`: serialized as `"field": true`.
+  - **Important**: Do NOT use `omitzero` on fields that default to `true` in Discord (e.g. `Required` on modal components like `SelectComponent`/`StringSelectComponent`/`TextInputComponent`/`FileUploadComponent`, or `Divider` on `SeparatorComponent`). If omitted, Discord will apply its `true` default, preventing developers from setting them to `false`.
 - **Snowflake fields**:
   Use `omitzero` on optional snowflakes (e.g. `GuildID`, `ApplicationID`). `Snowflake(0)` is omitted automatically without requiring pointer wrapping.
 - **Slices and Maps (Discord Resource Clearing Semantics)**:

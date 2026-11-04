@@ -2,5 +2,5 @@
 set -euo pipefail
 
 echo "==> Staging and committing changes..."
-git add commit.sh gateway-client.go http-client.go interaction-helper.go rate-limit.go rest.go
-git commit -m "perf: optimize interaction dispatch, REST request buffering, and rate limit routing"
+git add commit.sh component.go component_test.go CODE_NOTES.md
+git commit -m "fix: serialize required and divider when false to avoid discord default-true regression"
