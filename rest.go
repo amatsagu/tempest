@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand/v2"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -359,9 +360,12 @@ func (rest *Rest) DirectRequestContext(ctx context.Context, method, route string
 					continue
 				}
 
-				if err := sleepContext(ctx, time.Millisecond*time.Duration(250*int64(i+1))); err != nil {
+				baseDelay := time.Millisecond * time.Duration(250*int64(i+1))
+				jitter := time.Duration(rand.Int64N(int64(100 * time.Millisecond)))
+				if err := sleepContext(ctx, baseDelay+jitter); err != nil {
 					return err
 				}
+
 				continue
 			}
 
