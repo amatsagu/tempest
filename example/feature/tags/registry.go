@@ -1,11 +1,10 @@
-// Package tags shows a slash command with subcommands, in-memory state, and
-// autocomplete.
 package tags
 
 import (
 	"fmt"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -21,38 +20,46 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 	}
 
 	add := tempest.Command{
-		Name:        "add",
-		Description: "Save a tag.",
-		Options: []tempest.CommandOption{
-			{Type: tempest.STRING_OPTION_TYPE, Name: "name", Description: "The tag name.", Required: true},
-			{Type: tempest.STRING_OPTION_TYPE, Name: "value", Description: "The text to save.", Required: true},
+		Command: discord.Command{
+			Name:        "add",
+			Description: "Save a tag.",
+			Options: []discord.CommandOption{
+				{Type: discord.StringOptionType, Name: "name", Description: "The tag name.", Required: true},
+				{Type: discord.StringOptionType, Name: "value", Description: "The text to save.", Required: true},
+			},
 		},
 		SlashCommandHandler: util.CommandHandler(tag.add),
 	}
 
 	show := tempest.Command{
-		Name:        "show",
-		Description: "Show a tag.",
-		Options: []tempest.CommandOption{
-			{Type: tempest.STRING_OPTION_TYPE, Name: "name", Description: "The tag to show.", Required: true, AutoComplete: true},
+		Command: discord.Command{
+			Name:        "show",
+			Description: "Show a tag.",
+			Options: []discord.CommandOption{
+				{Type: discord.StringOptionType, Name: "name", Description: "The tag to show.", Required: true, AutoComplete: true},
+			},
 		},
 		AutoCompleteHandler: tag.autocomplete,
 		SlashCommandHandler: util.CommandHandler(tag.show),
 	}
 
 	remove := tempest.Command{
-		Name:        "remove",
-		Description: "Delete a tag.",
-		Options: []tempest.CommandOption{
-			{Type: tempest.STRING_OPTION_TYPE, Name: "name", Description: "The tag to delete.", Required: true, AutoComplete: true},
+		Command: discord.Command{
+			Name:        "remove",
+			Description: "Delete a tag.",
+			Options: []discord.CommandOption{
+				{Type: discord.StringOptionType, Name: "name", Description: "The tag to delete.", Required: true, AutoComplete: true},
+			},
 		},
 		AutoCompleteHandler: tag.autocomplete,
 		SlashCommandHandler: util.CommandHandler(tag.remove),
 	}
 
 	list := tempest.Command{
-		Name:                "list",
-		Description:         "List the tags saved in this server.",
+		Command: discord.Command{
+			Name:        "list",
+			Description: "List the tags saved in this server.",
+		},
 		SlashCommandHandler: util.CommandHandler(tag.list),
 	}
 

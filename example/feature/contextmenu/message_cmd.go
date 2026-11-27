@@ -2,6 +2,7 @@ package contextmenu
 
 import (
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -12,15 +13,17 @@ func newQuoteCommand() *quoteCommand { return &quoteCommand{} }
 
 func (c *quoteCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Type:                tempest.MESSAGE_COMMAND_TYPE,
-		Name:                "Quote",
+		Command: discord.Command{
+			Type: discord.MessageCommandType,
+			Name: "Quote",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }
 
 // handle reads the resolved target message.
 func (c *quoteCommand) handle(itx *tempest.CommandInteraction) error {
-	message := itx.Data.Resolved.ResolveMessage(itx.Data.TargetID)
+	message := itx.Data.Resolved.ResolveMessage(discord.MessageID{Snowflake: itx.Data.TargetID})
 
 	content := message.Content
 	if content == "" {
@@ -33,9 +36,9 @@ func (c *quoteCommand) handle(itx *tempest.CommandInteraction) error {
 	}
 
 	card := util.Embed("Quoted message", content)
-	card.Fields = []tempest.EmbedField{
+	card.Fields = []discord.EmbedField{
 		util.EmbedField("Author", author, true),
 	}
 
-	return itx.SendReply(tempest.ResponseMessageData{Embeds: []tempest.Embed{card}}, true, nil)
+	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true, nil)
 }

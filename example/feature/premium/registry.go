@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// Register wires /premium and its autocomplete. Entitlement events are handled
-// by the gateway event handler in example/events.
+// Register wires /premium and its autocomplete.
 func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 	premium := newPremiumCommand(client)
 	root := premium.Definition()
@@ -19,22 +19,28 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 	}
 
 	status := tempest.Command{
-		Name:                "status",
-		Description:         "Show what you and this server are entitled to right now.",
+		Command: discord.Command{
+			Name:        "status",
+			Description: "Show what you and this server are entitled to right now.",
+		},
 		SlashCommandHandler: util.CommandHandler(premium.status),
 	}
 
 	skus := tempest.Command{
-		Name:                "skus",
-		Description:         "List the app's premium offerings.",
+		Command: discord.Command{
+			Name:        "skus",
+			Description: "List the app's premium offerings.",
+		},
 		SlashCommandHandler: util.CommandHandler(premium.skus),
 	}
 
 	subscriptions := tempest.Command{
-		Name:        "subscriptions",
-		Description: "List your subscriptions for one SKU.",
-		Options: []tempest.CommandOption{
-			{Type: tempest.STRING_OPTION_TYPE, Name: "sku", Description: "The subscription SKU.", Required: true, AutoComplete: true},
+		Command: discord.Command{
+			Name:        "subscriptions",
+			Description: "List your subscriptions for one SKU.",
+			Options: []discord.CommandOption{
+				{Type: discord.StringOptionType, Name: "sku", Description: "The subscription SKU.", Required: true, AutoComplete: true},
+			},
 		},
 		AutoCompleteHandler: premium.autocomplete,
 		SlashCommandHandler: util.CommandHandler(premium.subscriptions),

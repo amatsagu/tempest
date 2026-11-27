@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 )
 
 // tagStore keeps each server's tags in memory, shared by every invocation.
@@ -13,15 +13,15 @@ import (
 // This is intentionally never persisted or pruned; a real bot would back it with
 // a database and cap the tags per server.
 type tagStore struct {
-	servers map[tempest.Snowflake]map[string]string
+	servers map[discord.GuildID]map[string]string
 	mu      sync.RWMutex
 }
 
 func newTagStore() *tagStore {
-	return &tagStore{servers: make(map[tempest.Snowflake]map[string]string)}
+	return &tagStore{servers: make(map[discord.GuildID]map[string]string)}
 }
 
-func (s *tagStore) add(guild tempest.Snowflake, name, value string) {
+func (s *tagStore) add(guild discord.GuildID, name, value string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +33,7 @@ func (s *tagStore) add(guild tempest.Snowflake, name, value string) {
 	tags[name] = value
 }
 
-func (s *tagStore) get(guild tempest.Snowflake, name string) (string, bool) {
+func (s *tagStore) get(guild discord.GuildID, name string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -41,7 +41,7 @@ func (s *tagStore) get(guild tempest.Snowflake, name string) (string, bool) {
 	return value, ok
 }
 
-func (s *tagStore) remove(guild tempest.Snowflake, name string) bool {
+func (s *tagStore) remove(guild discord.GuildID, name string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -54,14 +54,14 @@ func (s *tagStore) remove(guild tempest.Snowflake, name string) bool {
 }
 
 // names returns a guild's tag names in a stable order.
-func (s *tagStore) names(guild tempest.Snowflake) []string {
+func (s *tagStore) names(guild discord.GuildID) []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return slices.Sorted(maps.Keys(s.servers[guild]))
 }
 
-func (s *tagStore) clear(guild tempest.Snowflake) {
+func (s *tagStore) clear(guild discord.GuildID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

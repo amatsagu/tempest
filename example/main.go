@@ -1,5 +1,5 @@
 // Command tempest-example is a small but complete Discord bot built on Tempest's
-// master API.
+// HTTP interactions API.
 package main
 
 import (
@@ -15,8 +15,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
-	"github.com/amatsagu/tempest-example/events"
 	"github.com/amatsagu/tempest-example/feature/calc"
 	"github.com/amatsagu/tempest-example/feature/commands"
 	"github.com/amatsagu/tempest-example/feature/components"
@@ -28,9 +28,6 @@ import (
 	"github.com/amatsagu/tempest-example/feature/tags"
 	"github.com/amatsagu/tempest-example/util"
 )
-
-// GUILDS is all this example needs; the guild lifecycle events arrive with it.
-const intentGuilds uint32 = 1 << 0
 
 func main() {
 	if err := run(); err != nil {
@@ -50,20 +47,28 @@ func run() error {
 		return errors.New("DISCORD_BOT_TOKEN is required")
 	}
 
+	publicKey := os.Getenv("DISCORD_PUBLIC_KEY")
+	if publicKey == "" {
+		return errors.New("DISCORD_PUBLIC_KEY is required")
+	}
+
 	httpAddr := os.Getenv("HTTP_ADDR")
 	if httpAddr == "" {
 		httpAddr = os.Getenv("APP_ADDRESS")
+	}
+	if httpAddr == "" {
+		httpAddr = "127.0.0.1:8080"
 	}
 
 	trace := os.Getenv("DEBUG") != ""
 
 	// Created before the client so the command hook and /stats share one counter.
 	botStats := stats.NewStats()
-	eventHandler := events.NewHandler(util.Logger)
 
 	baseOptions := tempest.BaseClientOptions{
+		Context:                    ctx,
 		Token:                      token,
-		DefaultInteractionContexts: []tempest.InteractionContextType{tempest.GUILD_CONTEXT_TYPE},
+		DefaultInteractionContexts: []discord.InteractionContextType{discord.GuildContextType},
 		PreCommandHook:             botStats.PreCommand,
 	}
 	if trace {
@@ -72,33 +77,12 @@ func run() error {
 		baseOptions.Logger = util.Logger
 	}
 
-	var (
-		base          *tempest.BaseClient
-		gatewayClient *tempest.GatewayClient
-		httpClient    *tempest.HTTPClient
-	)
-
-	if httpAddr != "" {
-		publicKey := os.Getenv("DISCORD_PUBLIC_KEY")
-		if publicKey == "" {
-			return errors.New("DISCORD_PUBLIC_KEY is required in HTTP mode")
-		}
-
-		httpClient = tempest.NewHTTPClient(tempest.HTTPClientOptions{
-			Trace:             trace,
-			PublicKey:         publicKey,
-			BaseClientOptions: baseOptions,
-		})
-		base = httpClient.BaseClient
-	} else {
-		gatewayClient = tempest.NewGatewayClient(tempest.GatewayClientOptions{
-			Trace:              trace,
-			Compression:        os.Getenv("GATEWAY_ZLIB") != "" || os.Getenv("GATEWAY_COMPRESS") != "",
-			CustomEventHandler: eventHandler,
-			BaseClientOptions:  baseOptions,
-		})
-		base = gatewayClient.BaseClient
-	}
+	httpClient := tempest.NewHTTPClient(tempest.HTTPClientOptions{
+		Trace:             trace,
+		PublicKey:         publicKey,
+		BaseClientOptions: baseOptions,
+	})
+	base := httpClient.BaseClient
 
 	// Every feature registers its handlers and returns its command definitions; a
 	// failure stops startup instead of running with a missing handler.
@@ -112,7 +96,7 @@ func run() error {
 		calc.Register,
 		premium.Register,
 		func(client *tempest.BaseClient) ([]tempest.Command, error) {
-			return stats.Register(client, gatewayClient, botStats)
+			return stats.Register(client, botStats)
 		},
 	}
 
@@ -127,13 +111,13 @@ func run() error {
 
 	// A guild ID instead of the zero value would sync to one guild for faster
 	// iteration. The zero-value slice syncs globally.
-	var guildIDs []tempest.Snowflake
+	var guildIDs []discord.GuildID
 	if rawGuildID := os.Getenv("DISCORD_TEST_SERVER_ID"); rawGuildID != "" {
-		guildID, err := tempest.StringToSnowflake(rawGuildID)
+		guildID, err := discord.StringToSnowflake(rawGuildID)
 		if err != nil {
 			return fmt.Errorf("parse DISCORD_TEST_SERVER_ID: %w", err)
 		}
-		guildIDs = []tempest.Snowflake{guildID}
+		guildIDs = []discord.GuildID{{Snowflake: guildID}}
 	}
 
 	if err := base.SyncCommandsWithDiscord(guildIDs, nil, false); err != nil {
@@ -141,24 +125,7 @@ func run() error {
 	}
 	util.Logger.Printf("synced %d command definitions across %d guild target(s)", len(definitions), len(guildIDs))
 
-	if httpClient != nil {
-		return runHTTP(ctx, httpAddr, httpClient)
-	}
-
-	util.Logger.Print("starting bot over gateway")
-	return gatewayClient.Gateway.Start(ctx, intentGuilds, 0, func() {
-		gatewayClient.Gateway.UpdateStatus(func(_ uint16) *tempest.UpdatePresenceEvent {
-			return &tempest.UpdatePresenceEvent{
-				Data: tempest.UpdatePresenceEventData{
-					Status: tempest.ONLINE_STATUS,
-					Activities: []tempest.Activity{
-						{Name: "Type /help to start", Type: tempest.CUSTOM_ACTIVITY_TYPE},
-					},
-				},
-			}
-		})
-		util.Logger.Print("all gateway shards launched")
-	})
+	return runHTTP(ctx, httpAddr, httpClient)
 }
 
 func runHTTP(ctx context.Context, addr string, client *tempest.HTTPClient) error {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 )
 
 // maxImageBytes caps the download so an oversized upload cannot exhaust memory.
@@ -50,7 +51,7 @@ func (c *rotateCommand) handleSubmit(itx *tempest.ModalInteraction) error {
 		Reader: bytes.NewReader(out.Bytes()),
 	}}
 
-	return itx.EditOriginal(tempest.ResponseMessageData{Content: "Rotated image."}, files)
+	return itx.EditOriginal(discord.ResponseMessageData{Content: "Rotated image."}, files)
 }
 
 func downloadImage(ctx context.Context, url string) ([]byte, error) {

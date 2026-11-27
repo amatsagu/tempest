@@ -6,6 +6,8 @@ import (
 	"iter"
 	"sync"
 	"time"
+
+	"github.com/amatsagu/tempest/discord"
 )
 
 // Makes client dynamically "listen" incoming component type interactions.
@@ -146,10 +148,10 @@ func (client *BaseClient) RegisterCommand(cmd Command) error {
 	}
 
 	if cmd.Type == 0 {
-		cmd.Type = CHAT_INPUT_COMMAND_TYPE
+		cmd.Type = discord.ChatInputCommandType
 	}
 
-	if cmd.ApplicationID == 0 {
+	if cmd.ApplicationID.Snowflake == 0 {
 		cmd.ApplicationID = client.ApplicationID
 	}
 
@@ -174,10 +176,10 @@ func (client *BaseClient) RegisterSubCommand(subCommand Command, parentCommandNa
 	}
 
 	if subCommand.Type == 0 {
-		subCommand.Type = CHAT_INPUT_COMMAND_TYPE
+		subCommand.Type = discord.ChatInputCommandType
 	}
 
-	if subCommand.ApplicationID == 0 {
+	if subCommand.ApplicationID.Snowflake == 0 {
 		subCommand.ApplicationID = client.ApplicationID
 	}
 

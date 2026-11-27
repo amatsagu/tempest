@@ -12,6 +12,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/amatsagu/tempest/discord"
 )
 
 type HTTPClient struct {
@@ -147,14 +149,14 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 	}
 
 	switch itxType {
-	case PING_INTERACTION_TYPE:
+	case discord.PingInteractionType:
 		w.Header().Set("Content-Type", CONTENT_TYPE_JSON)
 		if _, err := w.Write(bodyPingResponse); err != nil {
 			client.tracef("Failed to write ping response: %v.", err)
 		}
 
 		return
-	case APPLICATION_COMMAND_INTERACTION_TYPE:
+	case discord.ApplicationCommandInteractionType:
 		interaction := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received command interaction event but failed to parse its data: %v", err)
@@ -166,7 +168,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		interaction.HTTPClient = client
 		client.serveCommand(w, r, interaction)
 		return
-	case MESSAGE_COMPONENT_INTERACTION_TYPE:
+	case discord.MessageComponentInteractionType:
 		interaction := new(ComponentInteraction)
 		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received component interaction event but failed to parse its data: %v", err)
@@ -178,7 +180,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		interaction.HTTPClient = client
 		client.serveComponent(w, r, interaction)
 		return
-	case APPLICATION_COMMAND_AUTO_COMPLETE_INTERACTION_TYPE:
+	case discord.ApplicationCommandAutoCompleteInteractionType:
 		interaction := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received auto complete interaction event but failed to parse its data: %v", err)
@@ -193,9 +195,9 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		choices := client.autoCompleteInteractionHandler(interaction)
 
 		buf := client.acquireBuffer()
-		res := ResponseAutoComplete{
-			Type: AUTOCOMPLETE_RESPONSE_TYPE,
-			Data: &ResponseAutoCompleteData{
+		res := discord.ResponseAutoComplete{
+			Type: discord.AutocompleteResponseType,
+			Data: &discord.ResponseAutoCompleteData{
 				Choices: choices,
 			},
 		}
@@ -212,7 +214,7 @@ func (client *HTTPClient) DiscordRequestHandler(w http.ResponseWriter, r *http.R
 		client.releaseBuffer(buf)
 
 		return
-	case MODAL_SUBMIT_INTERACTION_TYPE:
+	case discord.ModalSubmitInteractionType:
 		interaction := new(ModalInteraction)
 		if err := json.Unmarshal(rawData, interaction); err != nil {
 			client.tracef("Received modal interaction event but failed to parse its data: %v", err)
@@ -556,7 +558,7 @@ func (client *HTTPClient) commandInteractionHandler(interaction *CommandInteract
 	}
 }
 
-func (client *HTTPClient) autoCompleteInteractionHandler(interaction *CommandInteraction) []CommandOptionChoice {
+func (client *HTTPClient) autoCompleteInteractionHandler(interaction *CommandInteraction) []discord.CommandOptionChoice {
 	command, available := client.handleInteraction(interaction)
 	if !available || command.AutoCompleteHandler == nil {
 		client.tracef("Dropped auto complete interaction (ID = %s). You see this trace message because client received slash command's auto complete interaction but there's no defined handler for it.", interaction.ID.String())

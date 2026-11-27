@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -12,8 +13,10 @@ func newPingCommand() *pingCommand { return &pingCommand{} }
 
 func (c *pingCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "ping",
-		Description:         "Check that the bot is alive.",
+		Command: discord.Command{
+			Name:        "ping",
+			Description: "Check that the bot is alive.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }

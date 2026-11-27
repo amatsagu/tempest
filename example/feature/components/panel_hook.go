@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -17,7 +18,7 @@ func (c *panelCommand) handleOpenForm(itx *tempest.ComponentInteraction) error {
 
 // handleDismiss edits the message the button was attached to.
 func (c *panelCommand) handleDismiss(itx *tempest.ComponentInteraction) error {
-	return itx.AcknowledgeWithUpdate(tempest.ResponseMessageData{Content: "Panel dismissed."})
+	return itx.AcknowledgeWithUpdate(discord.ResponseMessageData{Content: "Panel dismissed."})
 }
 
 // handlePick answers the string select from Data.Values.
@@ -26,5 +27,5 @@ func (c *panelCommand) handlePick(itx *tempest.ComponentInteraction) error {
 	if len(itx.Data.Values) > 0 {
 		picked = itx.Data.Values[0]
 	}
-	return itx.AcknowledgeWithUpdate(tempest.ResponseMessageData{Content: "You picked: " + picked})
+	return itx.AcknowledgeWithUpdate(discord.ResponseMessageData{Content: "You picked: " + picked})
 }

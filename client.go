@@ -6,15 +6,17 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/amatsagu/tempest/discord"
 )
 
-// BaseClient is the core tempest entrypoint. It's used to create either HTTP or Gateway clients.
+// BaseClient is the core tempest entrypoint. It is used to create HTTP clients.
 // You should avoid using base version unless you know what you're doing.
 type BaseClient struct {
 	sweeper      interactionSweeper
 	staticModals *SharedMap[string, func(ModalInteraction)]
 
-	traceLogger *log.Logger // Inherited from HTTPClient or GatewayClient
+	traceLogger *log.Logger // Inherited from HTTPClient
 
 	commands         *SharedMap[string, Command]
 	staticComponents *SharedMap[string, func(ComponentInteraction)]
@@ -27,16 +29,15 @@ type BaseClient struct {
 	queuedComponents *SharedMap[string, *queuedComponent]
 	queuedModals     *SharedMap[string, *queuedModal]
 	Rest             *Rest
-	commandContexts  []InteractionContextType
-	ApplicationID    Snowflake
+	commandContexts  []discord.InteractionContextType
+	ApplicationID    discord.AppID
 	trace            bool
 }
 
 type BaseClientOptions struct {
 	// Context is the client lifecycle context used for REST and rate-limiter
 	// work without a more specific context. It is ignored when
-	// RestOptions.Context is set. Gateway clients replace it with the context
-	// passed to ShardManager.Start. HTTP clients should provide their
+	// RestOptions.Context is set. HTTP clients should provide their
 	// server/application context so shutdown also stops post-response work.
 	Context                    context.Context
 	PreCommandHook             func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
@@ -45,7 +46,7 @@ type BaseClientOptions struct {
 	ModalHandler               func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
 	Logger                     *log.Logger                                     // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
 	Token                      string
-	DefaultInteractionContexts []InteractionContextType
+	DefaultInteractionContexts []discord.InteractionContextType
 	RestOptions                RestOptions
 }
 
@@ -55,8 +56,8 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
-	contexts := []InteractionContextType{0}
-	if opt.DefaultInteractionContexts != nil || len(opt.DefaultInteractionContexts) > 0 {
+	contexts := []discord.InteractionContextType{0}
+	if len(opt.DefaultInteractionContexts) > 0 {
 		contexts = opt.DefaultInteractionContexts
 	}
 
@@ -81,7 +82,7 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 	}
 
 	client := &BaseClient{
-		ApplicationID:      botUserID,
+		ApplicationID:      discord.AppID{Snowflake: botUserID},
 		Rest:               NewRest(opt.RestOptions),
 		traceLogger:        traceLogger,
 		trace:              traceLogger.Writer() != io.Discard,
@@ -111,13 +112,6 @@ func (s *BaseClient) tracef(format string, v ...any) {
 	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
 }
 
-func (s *BaseClient) setLifecycleContext(ctx context.Context) {
-	if s == nil || s.Rest == nil || ctx == nil {
-		return
-	}
-	s.Rest.setBaseContext(ctx)
-}
-
 func (s *BaseClient) context() context.Context {
 	if s == nil || s.Rest == nil {
 		return context.Background()
@@ -125,31 +119,31 @@ func (s *BaseClient) context() context.Context {
 	return s.Rest.baseContext()
 }
 
-func (client *BaseClient) SendMessage(channelID Snowflake, message Message, files []File) (Message, error) {
-	var res Message
+func (client *BaseClient) SendMessage(channelID discord.ChannelID, message discord.Message, files []File) (discord.Message, error) {
+	var res discord.Message
 	err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
 	if err != nil {
-		return Message{}, err
+		return discord.Message{}, err
 	}
 
 	client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
 	return res, nil
 }
 
-func (client *BaseClient) SendLinearMessage(channelID Snowflake, content string) (Message, error) {
-	return client.SendMessage(channelID, Message{Content: content}, nil)
+func (client *BaseClient) SendLinearMessage(channelID discord.ChannelID, content string) (discord.Message, error) {
+	return client.SendMessage(channelID, discord.Message{Content: content}, nil)
 }
 
 // Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
 // Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
-func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, files []File) (Message, error) {
+func (client *BaseClient) SendPrivateMessage(userID discord.UserID, content discord.Message, files []File) (discord.Message, error) {
 	var dmResp struct {
-		ID Snowflake `json:"id"`
+		ID discord.ChannelID `json:"id"`
 	}
 
 	err := client.Rest.Request(http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
 	if err != nil {
-		return Message{}, err
+		return discord.Message{}, err
 	}
 
 	msg, err := client.SendMessage(dmResp.ID, content, files)
@@ -158,7 +152,7 @@ func (client *BaseClient) SendPrivateMessage(userID Snowflake, content Message, 
 	return msg, err
 }
 
-func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, content Message) error {
+func (client *BaseClient) EditMessage(channelID discord.ChannelID, messageID discord.MessageID, content discord.Message) error {
 	err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
 	if err == nil {
 		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
@@ -167,7 +161,7 @@ func (client *BaseClient) EditMessage(channelID Snowflake, messageID Snowflake, 
 	return err
 }
 
-func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake) error {
+func (client *BaseClient) DeleteMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
 	err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
@@ -176,7 +170,7 @@ func (client *BaseClient) DeleteMessage(channelID Snowflake, messageID Snowflake
 	return err
 }
 
-func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowflake) error {
+func (client *BaseClient) CrosspostMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
 	err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
 	if err == nil {
 		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
@@ -185,22 +179,22 @@ func (client *BaseClient) CrosspostMessage(channelID Snowflake, messageID Snowfl
 	return err
 }
 
-func (client *BaseClient) FetchUser(id Snowflake) (User, error) {
-	var res User
+func (client *BaseClient) FetchUser(id discord.UserID) (discord.User, error) {
+	var res discord.User
 	err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil, &res)
 	if err != nil {
-		return User{}, err
+		return discord.User{}, err
 	}
 
 	client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
 	return res, nil
 }
 
-func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Member, error) {
-	var res Member
+func (client *BaseClient) FetchMember(guildID discord.GuildID, memberID discord.UserID) (discord.Member, error) {
+	var res discord.Member
 	err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
 	if err != nil {
-		return Member{}, err
+		return discord.Member{}, err
 	}
 
 	client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
@@ -212,12 +206,12 @@ func (client *BaseClient) FetchMember(guildID Snowflake, memberID Snowflake) (Me
 // By default it will attempt to return all, existing entitlements - provide query filter to control this behavior.
 //
 // https://docs.discord.com/developers/resources/entitlement#list-entitlements
-func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitlement, error) {
+func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]discord.Entitlement, error) {
 	if queryFilter != "" && queryFilter[0] != '?' {
 		queryFilter = "?" + queryFilter
 	}
 
-	var res []Entitlement
+	var res []discord.Entitlement
 	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
 	if err != nil {
 		return nil, err
@@ -228,11 +222,11 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]Entitleme
 }
 
 // https://docs.discord.com/developers/resources/entitlement#get-entitlement
-func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement, error) {
-	var res Entitlement
+func (client *BaseClient) FetchEntitlement(entitlementID discord.EntitlementID) (discord.Entitlement, error) {
+	var res discord.Entitlement
 	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
 	if err != nil {
-		return Entitlement{}, err
+		return discord.Entitlement{}, err
 	}
 
 	client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
@@ -243,7 +237,7 @@ func (client *BaseClient) FetchEntitlement(entitlementID Snowflake) (Entitlement
 // The entitlement will have consumed: true when using Client.FetchEntitlements.
 //
 // https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement
-func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
+func (client *BaseClient) ConsumeEntitlement(entitlementID discord.EntitlementID) error {
 	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
 	if err == nil {
 		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
@@ -253,7 +247,7 @@ func (client *BaseClient) ConsumeEntitlement(entitlementID Snowflake) error {
 }
 
 // https://docs.discord.com/developers/resources/entitlement#create-test-entitlement
-func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) error {
+func (client *BaseClient) CreateTestEntitlement(payload discord.TestEntitlementPayload) error {
 	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload, nil)
 	if err == nil {
 		client.tracef("Successfully created test entitlement.")
@@ -263,7 +257,7 @@ func (client *BaseClient) CreateTestEntitlement(payload TestEntitlementPayload) 
 }
 
 // https://docs.discord.com/developers/resources/entitlement#delete-test-entitlement
-func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
+func (client *BaseClient) DeleteTestEntitlement(entitlementID discord.EntitlementID) error {
 	err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted test entitlement.")
@@ -272,7 +266,7 @@ func (client *BaseClient) DeleteTestEntitlement(entitlementID Snowflake) error {
 	return err
 }
 
-func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelist []string, reverseMode bool) error {
+func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []discord.GuildID, whitelist []string, reverseMode bool) error {
 	commands := parseCommandsForDiscordAPI(client.commands, whitelist, reverseMode)
 
 	if len(guildIDs) == 0 {
@@ -295,7 +289,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []Snowflake, whitelis
 }
 
 func (client *BaseClient) handleInteraction(itx *CommandInteraction) (Command, bool) {
-	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == SUB_COMMAND_OPTION_TYPE {
+	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == discord.SubCommandOptionType {
 		finalName := itx.Data.Name + "@" + itx.Data.Options[0].Name
 		subCommand, available := client.commands.Get(finalName)
 		if available {
@@ -316,11 +310,11 @@ func (client *BaseClient) handleInteraction(itx *CommandInteraction) (Command, b
 	return command, available
 }
 
-func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist []string, reverseMode bool) []Command {
+func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist []string, reverseMode bool) []discord.Command {
 	commands.mu.RLock()
 
-	tree := make(map[string]map[string]Command, len(commands.cache))
-	parsedCommands := make([]Command, 0, len(commands.cache))
+	tree := make(map[string]map[string]discord.Command, len(commands.cache))
+	parsedCommands := make([]discord.Command, 0, len(commands.cache))
 
 	// First loop - prepare nested space for potential sub commands
 	for name, command := range commands.cache {
@@ -328,8 +322,8 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 			continue
 		}
 
-		group := make(map[string]Command, 0)
-		group[ROOT_PLACEHOLDER] = command
+		group := make(map[string]discord.Command, 0)
+		group[ROOT_PLACEHOLDER] = command.Command
 		tree[name] = group
 	}
 
@@ -342,8 +336,9 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 				continue
 			}
 
-			command.Type = CommandType(SUB_COMMAND_OPTION_TYPE)
-			group[parts[1]] = command
+			cmd := command.Command
+			cmd.Type = discord.CommandType(discord.SubCommandOptionType)
+			group[parts[1]] = cmd
 			tree[parts[0]] = group
 		}
 	}
@@ -355,7 +350,7 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 		baseCommand := branch[ROOT_PLACEHOLDER]
 
 		if len(branch) > 1 {
-			copiedOptions := make([]CommandOption, len(baseCommand.Options), len(baseCommand.Options)+len(branch)-1)
+			copiedOptions := make([]discord.CommandOption, len(baseCommand.Options), len(baseCommand.Options)+len(branch)-1)
 			copy(copiedOptions, baseCommand.Options)
 			baseCommand.Options = copiedOptions
 
@@ -364,10 +359,10 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 					continue
 				}
 
-				baseCommand.Options = append(baseCommand.Options, CommandOption{
+				baseCommand.Options = append(baseCommand.Options, discord.CommandOption{
 					Name:        subCommand.Name,
 					Description: subCommand.Description,
-					Type:        SUB_COMMAND_OPTION_TYPE,
+					Type:        discord.SubCommandOptionType,
 					Options:     subCommand.Options,
 				})
 			}
@@ -386,7 +381,7 @@ func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist 
 		filterMap[name] = struct{}{}
 	}
 
-	var filtered []Command
+	var filtered []discord.Command
 
 	if reverseMode {
 		// BLACKLIST: exclude listed commands

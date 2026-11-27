@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -14,8 +15,10 @@ func newSlowCommand() *slowCommand { return &slowCommand{} }
 
 func (c *slowCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "slow",
-		Description:         "Acknowledges at once, then finishes a slow task and edits the reply.",
+		Command: discord.Command{
+			Name:        "slow",
+			Description: "Acknowledges at once, then finishes a slow task and edits the reply.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }
@@ -29,5 +32,5 @@ func (c *slowCommand) handle(itx *tempest.CommandInteraction) error {
 
 	time.Sleep(1500 * time.Millisecond)
 
-	return itx.SendReply(tempest.ResponseMessageData{Content: "The slow task finished."}, false, nil)
+	return itx.SendReply(discord.ResponseMessageData{Content: "The slow task finished."}, false, nil)
 }

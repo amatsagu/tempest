@@ -1,7 +1,10 @@
 // Package util holds the small helpers shared by the example features.
 package util
 
-import "github.com/amatsagu/tempest"
+import (
+	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
+)
 
 // Ptr returns a pointer to v, for optional pointer fields on Discord objects.
 func Ptr[T any](v T) *T { return &v }
@@ -58,7 +61,7 @@ func BoolOption(itx *tempest.CommandInteraction, name string) (bool, bool) {
 
 // SnowflakeOption returns a snowflake option. Discord sends ID options as strings,
 // but this also accepts numeric JSON values.
-func SnowflakeOption(itx *tempest.CommandInteraction, name string) (tempest.Snowflake, bool) {
+func SnowflakeOption(itx *tempest.CommandInteraction, name string) (discord.Snowflake, bool) {
 	raw, ok := itx.GetOptionValue(name)
 	if !ok {
 		return 0, false
@@ -66,11 +69,11 @@ func SnowflakeOption(itx *tempest.CommandInteraction, name string) (tempest.Snow
 
 	switch value := raw.(type) {
 	case string:
-		id, err := tempest.StringToSnowflake(value)
+		id, err := discord.StringToSnowflake(value)
 		return id, err == nil
 	case float64:
-		return tempest.Snowflake(uint64(value)), true
-	case tempest.Snowflake:
+		return discord.Snowflake(uint64(value)), true
+	case discord.Snowflake:
 		return value, true
 	default:
 		return 0, false
@@ -97,12 +100,12 @@ func IntegerOption(itx *tempest.CommandInteraction, name string) (int64, bool) {
 }
 
 // ChannelMention renders a channel ID as a Discord channel mention.
-func ChannelMention(id tempest.Snowflake) string {
-	return "<#" + id.String() + ">"
+func ChannelMention(id discord.ChannelID) string {
+	return id.Mention()
 }
 
 // EffectiveName returns the display name Discord shows for a user.
-func EffectiveName(user tempest.User) string {
+func EffectiveName(user discord.User) string {
 	if user.GlobalName != "" {
 		return user.GlobalName
 	}
@@ -110,16 +113,16 @@ func EffectiveName(user tempest.User) string {
 }
 
 // Embed starts a rich embed with a title and description.
-func Embed(title, description string) tempest.Embed {
-	return tempest.Embed{Title: title, Description: description}
+func Embed(title, description string) discord.Embed {
+	return discord.Embed{Title: title, Description: description}
 }
 
 // EmbedField builds one embed field.
-func EmbedField(name, value string, inline bool) tempest.EmbedField {
-	return tempest.EmbedField{Name: name, Value: value, Inline: inline}
+func EmbedField(name, value string, inline bool) discord.EmbedField {
+	return discord.EmbedField{Name: name, Value: value, Inline: inline}
 }
 
 // EmbedFooter builds an embed footer.
-func EmbedFooter(text string) tempest.EmbedFooter {
-	return tempest.EmbedFooter{Text: text}
+func EmbedFooter(text string) discord.EmbedFooter {
+	return discord.EmbedFooter{Text: text}
 }

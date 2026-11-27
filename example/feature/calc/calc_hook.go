@@ -3,7 +3,7 @@ package calc
 import (
 	"fmt"
 
-	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -25,39 +25,39 @@ var calcKeys = []string{
 }
 
 // calcButton builds one key, packing its session and key into its custom ID.
-func calcButton(session, label, key string, style tempest.ButtonStyle) tempest.ButtonComponent {
+func calcButton(session, label, key string, style discord.ButtonStyle) discord.ButtonComponent {
 	return util.Button(fmt.Sprintf("calc:%s:%s", session, key), label, style)
 }
 
-func calcComponents(session string) []tempest.MessageComponent {
-	return []tempest.MessageComponent{
+func calcComponents(session string) []discord.MessageComponent {
+	return []discord.MessageComponent{
 		util.ActionRow(
-			calcButton(session, "7", "7", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "8", "8", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "9", "9", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "÷", "÷", tempest.PRIMARY_BUTTON_STYLE),
+			calcButton(session, "7", "7", discord.SecondaryButtonStyle),
+			calcButton(session, "8", "8", discord.SecondaryButtonStyle),
+			calcButton(session, "9", "9", discord.SecondaryButtonStyle),
+			calcButton(session, "÷", "÷", discord.PrimaryButtonStyle),
 		),
 		util.ActionRow(
-			calcButton(session, "4", "4", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "5", "5", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "6", "6", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "×", "×", tempest.PRIMARY_BUTTON_STYLE),
+			calcButton(session, "4", "4", discord.SecondaryButtonStyle),
+			calcButton(session, "5", "5", discord.SecondaryButtonStyle),
+			calcButton(session, "6", "6", discord.SecondaryButtonStyle),
+			calcButton(session, "×", "×", discord.PrimaryButtonStyle),
 		),
 		util.ActionRow(
-			calcButton(session, "1", "1", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "2", "2", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "3", "3", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "-", "-", tempest.PRIMARY_BUTTON_STYLE),
+			calcButton(session, "1", "1", discord.SecondaryButtonStyle),
+			calcButton(session, "2", "2", discord.SecondaryButtonStyle),
+			calcButton(session, "3", "3", discord.SecondaryButtonStyle),
+			calcButton(session, "-", "-", discord.PrimaryButtonStyle),
 		),
 		util.ActionRow(
-			calcButton(session, ".", ".", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "0", "0", tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "C", keyClear, tempest.DANGER_BUTTON_STYLE),
-			calcButton(session, "+", "+", tempest.PRIMARY_BUTTON_STYLE),
+			calcButton(session, ".", ".", discord.SecondaryButtonStyle),
+			calcButton(session, "0", "0", discord.SecondaryButtonStyle),
+			calcButton(session, "C", keyClear, discord.DangerButtonStyle),
+			calcButton(session, "+", "+", discord.PrimaryButtonStyle),
 		),
 		util.ActionRow(
-			calcButton(session, "⌫", keyBack, tempest.SECONDARY_BUTTON_STYLE),
-			calcButton(session, "=", keyEquals, tempest.SUCCESS_BUTTON_STYLE),
+			calcButton(session, "⌫", keyBack, discord.SecondaryButtonStyle),
+			calcButton(session, "=", keyEquals, discord.SuccessButtonStyle),
 		),
 	}
 }
@@ -71,8 +71,8 @@ func calcButtonIDs(session string) []string {
 }
 
 // calcData renders a session's display and keypad.
-func calcData(session, display string) tempest.ResponseMessageData {
-	return tempest.ResponseMessageData{
+func calcData(session, display string) discord.ResponseMessageData {
+	return discord.ResponseMessageData{
 		Content:    display,
 		Components: calcComponents(session),
 	}

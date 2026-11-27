@@ -7,27 +7,29 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
 
 const accent = 0x5865F2
 
-// statsCommand holds the client (for REST/gateway latency) and the counters.
+// statsCommand holds the client (for REST latency) and the counters.
 type statsCommand struct {
-	client  *tempest.BaseClient
-	gateway *tempest.GatewayClient
-	stats   *Stats
+	client *tempest.BaseClient
+	stats  *Stats
 }
 
-func newStatsCommand(client *tempest.BaseClient, gateway *tempest.GatewayClient, stats *Stats) *statsCommand {
-	return &statsCommand{client: client, gateway: gateway, stats: stats}
+func newStatsCommand(client *tempest.BaseClient, stats *Stats) *statsCommand {
+	return &statsCommand{client: client, stats: stats}
 }
 
 func (c *statsCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "stats",
-		Description:         "Show runtime stats: uptime, commands, memory, and latency.",
+		Command: discord.Command{
+			Name:        "stats",
+			Description: "Show runtime stats: uptime, commands, memory, and latency.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }
@@ -55,9 +57,9 @@ func (c *statsCommand) handle(itx *tempest.CommandInteraction) error {
 		util.TextDisplay(c.latencySection()),
 	)
 
-	return itx.SendReply(tempest.ResponseMessageData{
-		Flags:      tempest.IS_COMPONENTS_V2_MESSAGE_FLAG,
-		Components: []tempest.MessageComponent{container},
+	return itx.SendReply(discord.ResponseMessageData{
+		Flags:      discord.IsComponentsV2MessageFlag,
+		Components: []discord.MessageComponent{container},
 	}, false, nil)
 }
 
@@ -91,37 +93,17 @@ func memorySection(m *runtime.MemStats) string {
 	)
 }
 
-// latencySection times one authenticated REST call and reads the shard heartbeats.
+// latencySection times one authenticated REST call.
 func (c *statsCommand) latencySection() string {
 	var restText string
 	start := time.Now()
-	if err := c.client.Rest.Request(http.MethodGet, "/gateway/bot", nil, nil); err != nil {
+	if err := c.client.Rest.Request(http.MethodGet, "/users/@me", nil, nil); err != nil {
 		restText = "unavailable: " + err.Error()
 	} else {
 		restText = time.Since(start).Round(time.Millisecond).String()
 	}
 
-	gatewayText := "HTTP mode, no gateway connection"
-	if c.gateway != nil {
-		states, pings := c.gateway.Gateway.AllShardDetails()
-
-		online := 0
-		worst := time.Duration(0)
-		for i, state := range states {
-			if state != tempest.ONLINE_SHARD_STATE {
-				continue
-			}
-
-			online++
-			if pings[i] > worst {
-				worst = pings[i]
-			}
-		}
-
-		gatewayText = fmt.Sprintf("%d/%d online, worst heartbeat %s", online, len(states), worst.Round(time.Millisecond))
-	}
-
-	return fmt.Sprintf("### Latency\nDiscord API (REST) **%s**\nGateway **%s**", restText, gatewayText)
+	return fmt.Sprintf("### Latency\nDiscord API (REST) **%s**", restText)
 }
 
 func formatDuration(d time.Duration) string {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -19,22 +20,24 @@ func newTagCommand() *tagCommand {
 }
 
 // Definition is the root /tag command. The admin group lives here; the flat
-// subcommands are registered separately because master's router handles one
+// subcommands are registered separately because the router handles one
 // subcommand level.
 func (c *tagCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:        "tag",
-		Description: "Save and recall short text snippets, per server.",
-		Options: []tempest.CommandOption{
-			{
-				Type:        tempest.SUB_COMMAND_GROUP_OPTION_TYPE,
-				Name:        "admin",
-				Description: "Manage server tags.",
-				Options: []tempest.CommandOption{
-					{
-						Type:        tempest.SUB_COMMAND_OPTION_TYPE,
-						Name:        "clear",
-						Description: "Clear all tags saved in this server.",
+		Command: discord.Command{
+			Name:        "tag",
+			Description: "Save and recall short text snippets, per server.",
+			Options: []discord.CommandOption{
+				{
+					Type:        discord.SubCommandGroupOptionType,
+					Name:        "admin",
+					Description: "Manage server tags.",
+					Options: []discord.CommandOption{
+						{
+							Type:        discord.SubCommandOptionType,
+							Name:        "clear",
+							Description: "Clear all tags saved in this server.",
+						},
 					},
 				},
 			},
@@ -43,7 +46,7 @@ func (c *tagCommand) Definition() tempest.Command {
 	}
 }
 
-// handleGroup routes the one subcommand group master does not strip for us.
+// handleGroup routes the one subcommand group the router does not strip for us.
 func (c *tagCommand) handleGroup(itx *tempest.CommandInteraction) error {
 	if len(itx.Data.Options) == 0 {
 		return itx.SendLinearReply("Pick a /tag subcommand.", true)
@@ -64,7 +67,7 @@ func (c *tagCommand) handleGroup(itx *tempest.CommandInteraction) error {
 
 // add saves a tag; the subcommand options arrive at the top level.
 func (c *tagCommand) add(itx *tempest.CommandInteraction) error {
-	if itx.GuildID == 0 {
+	if itx.GuildID.Snowflake == 0 {
 		return itx.SendLinearReply("Tags only work in servers.", true)
 	}
 
@@ -91,7 +94,7 @@ func (c *tagCommand) show(itx *tempest.CommandInteraction) error {
 	}
 
 	card := util.Embed(name, value)
-	return itx.SendReply(tempest.ResponseMessageData{Embeds: []tempest.Embed{card}}, false, nil)
+	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
 }
 
 func (c *tagCommand) remove(itx *tempest.CommandInteraction) error {
@@ -104,7 +107,7 @@ func (c *tagCommand) remove(itx *tempest.CommandInteraction) error {
 }
 
 func (c *tagCommand) list(itx *tempest.CommandInteraction) error {
-	if itx.GuildID == 0 {
+	if itx.GuildID.Snowflake == 0 {
 		return itx.SendLinearReply("Tags only work in servers.", true)
 	}
 
@@ -118,7 +121,7 @@ func (c *tagCommand) list(itx *tempest.CommandInteraction) error {
 
 // adminClear handles the "tag admin clear" subcommand group route.
 func (c *tagCommand) adminClear(itx *tempest.CommandInteraction) error {
-	if itx.GuildID == 0 {
+	if itx.GuildID.Snowflake == 0 {
 		return itx.SendLinearReply("Tags only work in servers.", true)
 	}
 
@@ -127,18 +130,18 @@ func (c *tagCommand) adminClear(itx *tempest.CommandInteraction) error {
 }
 
 // autocomplete suggests stored tag names for the focused name option.
-func (c *tagCommand) autocomplete(itx tempest.CommandInteraction) []tempest.CommandOptionChoice {
+func (c *tagCommand) autocomplete(itx tempest.CommandInteraction) []discord.CommandOptionChoice {
 	typed := focusedString(itx)
 	typed = strings.ToLower(typed)
 	names := c.store.names(itx.GuildID)
 
-	choices := make([]tempest.CommandOptionChoice, 0, min(len(names), 25))
+	choices := make([]discord.CommandOptionChoice, 0, min(len(names), 25))
 	for _, name := range names {
 		if !strings.HasPrefix(strings.ToLower(name), typed) {
 			continue
 		}
 
-		choices = append(choices, tempest.CommandOptionChoice{Name: name, Value: name})
+		choices = append(choices, discord.CommandOptionChoice{Name: name, Value: name})
 		if len(choices) == 25 {
 			break
 		}

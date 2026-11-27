@@ -19,6 +19,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/amatsagu/tempest/discord"
 )
 
 var (
@@ -60,8 +62,7 @@ type Rest struct {
 
 type RestOptions struct {
 	// Context is the lifecycle context used by context-free Rest methods
-	// (Request, DirectRequest, RequestWithFiles). Gateway clients replace it
-	// with the context passed to ShardManager.Start. HTTP clients should set
+	// (Request, DirectRequest, RequestWithFiles). HTTP clients should set
 	// this to their server/application context so shutdown also stops
 	// post-response REST work. If nil, a background fallback is used.
 	Context            context.Context
@@ -154,16 +155,6 @@ func NewRest(opt RestOptions) *Rest {
 		traceLogger:    traceLogger,
 		trace:          traceLogger.Writer() != io.Discard,
 	}
-}
-
-func (rest *Rest) setBaseContext(ctx context.Context) {
-	if ctx == nil {
-		return
-	}
-
-	rest.baseCtxMu.Lock()
-	rest.baseCtx = ctx
-	rest.baseCtxMu.Unlock()
 }
 
 func (rest *Rest) baseContext() context.Context {
@@ -581,7 +572,7 @@ func isIdempotentMethod(method string) bool {
 	}
 }
 
-func extractUserIDFromToken(token string) (Snowflake, error) {
+func extractUserIDFromToken(token string) (discord.Snowflake, error) {
 	token = strings.TrimPrefix(token, "Bot ")
 	dot := strings.IndexByte(token, '.')
 	if dot <= 0 {
@@ -602,7 +593,7 @@ func extractUserIDFromToken(token string) (Snowflake, error) {
 		return 0, err
 	}
 
-	id, err := StringToSnowflake(string(byteID))
+	id, err := discord.StringToSnowflake(string(byteID))
 	if err != nil {
 		return 0, err
 	}

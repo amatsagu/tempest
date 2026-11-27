@@ -7,7 +7,7 @@
 </p>
 
 <h4 align="center">
-    <a href="#features">Features</a> - <a href="#http-vs-gateway">HTTP vs Gateway</a> - <a href="#getting-started">Getting started</a> - <a href="#troubleshooting">Troubleshooting</a> - <a href="#contributing">Contributing</a>
+    <a href="#features">Features</a> - <a href="#getting-started">Getting started</a> - <a href="#troubleshooting">Troubleshooting</a> - <a href="#contributing">Contributing</a>
 </h4>
 
 <h4 align="center">
@@ -85,20 +85,8 @@ It was created as a better alternative to [discord-interactions-go](https://gith
       - [x] Checkbox (23)
 
     </details>
-- [x] REST client and all API structs exposed, allowing users to easily extend library capabilities if needed
+- [x] REST client and all API structs exposed in `discord` package, allowing users to easily extend library capabilities if needed
 - [x] **__Basic__** support for Discord Monetization API *(enough to get started)*
-- [x] **Optional** support for ws connection to gateway. Tempest focuses on HTTPS-based communication but it might be useful for large Discord Applications that require lower latency
-    - [x] Support for auto-sharding (enabled by default)
-    - [x] Support for zstd-stream compression (needs to be enabled in config)
-
-
-### HTTP vs Gateway
-**TL;DR**: you probably should be using libraries like [DiscordGo](https://github.com/bwmarrin/discordgo) unless you know why you're here.
-
-There are two ways for bots to receive events from Discord. Most API wrappers such as **DiscordGo** use a WebSocket connection called a "gateway" to receive events, but **Tempest** receives interaction events over HTTPS\*. Using http hooks lets you scale code more easily & reduce resource usage at the cost of limiting the number of Gateway events you can use. You can easily create bots for roles, minigames, custom messages or admin utils but it'll be very difficult / impossible to create music or moderation bots.
-
-> Since v1.4, Tempest supports handling interactions over Gateway by using `GatewayClient` instead of `HTTPClient`. The former supports most (if not all) the functionalities of the latter, so existing apps that want to switch can do so relatively easily.
-> This functionality mainly exists for large Discord applications that require more reliable connections and lower latency for its users.
 
 ### Getting started
 1. Install with: `go get -u github.com/amatsagu/tempest`

@@ -1,4 +1,4 @@
-// Package premium demonstrates the monetization data available through master's
+// Package premium demonstrates the monetization data available through Tempest's
 // REST surface: SKUs, entitlements, and subscriptions.
 package premium
 
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -31,12 +32,12 @@ const (
 
 // sku is the subset of Discord's SKU object this example displays.
 type sku struct {
-	Name          string            `json:"name"`
-	Slug          string            `json:"slug"`
-	ID            tempest.Snowflake `json:"id"`
-	ApplicationID tempest.Snowflake `json:"application_id"`
-	Flags         uint64            `json:"flags"`
-	Type          uint8             `json:"type"`
+	Name          string        `json:"name"`
+	Slug          string        `json:"slug"`
+	ID            discord.SkuID `json:"id"`
+	ApplicationID discord.AppID `json:"application_id"`
+	Flags         uint64        `json:"flags"`
+	Type          uint8         `json:"type"`
 }
 
 func (s sku) isSubscription() bool { return s.Type == skuSubscription }
@@ -54,12 +55,12 @@ const (
 
 // subscription is the subset of Discord's subscription object this example uses.
 type subscription struct {
-	CurrentPeriodEnd time.Time           `json:"current_period_end"`
-	CanceledAt       *time.Time          `json:"canceled_at"`
-	SkuIDs           []tempest.Snowflake `json:"sku_ids"`
-	ID               tempest.Snowflake   `json:"id"`
-	UserID           tempest.Snowflake   `json:"user_id"`
-	Status           uint8               `json:"status"`
+	CurrentPeriodEnd time.Time              `json:"current_period_end"`
+	CanceledAt       *time.Time             `json:"canceled_at"`
+	SkuIDs           []discord.SkuID        `json:"sku_ids"`
+	ID               discord.SubscriptionID `json:"id"`
+	UserID           discord.UserID         `json:"user_id"`
+	Status           uint8                  `json:"status"`
 }
 
 // premiumCommand answers /premium. It caches the SKU list because the status
@@ -76,8 +77,10 @@ func newPremiumCommand(client *tempest.BaseClient) *premiumCommand {
 
 func (c *premiumCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "premium",
-		Description:         "Look at this app's SKUs, your entitlements, and your subscriptions.",
+		Command: discord.Command{
+			Name:        "premium",
+			Description: "Look at this app's SKUs, your entitlements, and your subscriptions.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handleRoot),
 	}
 }
@@ -121,8 +124,8 @@ func (c *premiumCommand) status(itx *tempest.CommandInteraction) error {
 		return err
 	}
 
-	var guildEntitlements []tempest.Entitlement
-	if itx.GuildID != 0 {
+	var guildEntitlements []discord.Entitlement
+	if itx.GuildID.Snowflake != 0 {
 		guildEntitlements, err = c.client.FetchEntitlementsPage("guild_id=" + itx.GuildID.String() + "&exclude_ended=true")
 		if err != nil {
 			return err
@@ -206,7 +209,7 @@ func (c *premiumCommand) subscriptions(itx *tempest.CommandInteraction) error {
 }
 
 // autocomplete suggests the subscription SKUs by name.
-func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []tempest.CommandOptionChoice {
+func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []discord.CommandOptionChoice {
 	typed := focusedString(itx)
 
 	skus, err := c.fetchSKUs()
@@ -215,7 +218,7 @@ func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []tempest.
 		return nil
 	}
 
-	choices := make([]tempest.CommandOptionChoice, 0, len(skus))
+	choices := make([]discord.CommandOptionChoice, 0, len(skus))
 	for _, sku := range skus {
 		if !sku.isSubscription() {
 			continue
@@ -225,7 +228,7 @@ func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []tempest.
 			continue
 		}
 
-		choices = append(choices, tempest.CommandOptionChoice{Name: sku.Name, Value: sku.ID.String()})
+		choices = append(choices, discord.CommandOptionChoice{Name: sku.Name, Value: sku.ID.String()})
 		if len(choices) == 25 {
 			break
 		}
@@ -236,7 +239,7 @@ func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []tempest.
 
 // writeEntitlements appends one line per active entitlement; deleted, consumed,
 // and expired ones are skipped.
-func writeEntitlements(b *strings.Builder, entitlements []tempest.Entitlement, now time.Time) {
+func writeEntitlements(b *strings.Builder, entitlements []discord.Entitlement, now time.Time) {
 	active := 0
 
 	for _, entitlement := range entitlements {
@@ -257,7 +260,7 @@ func writeEntitlements(b *strings.Builder, entitlements []tempest.Entitlement, n
 	}
 }
 
-func entitlementActive(entitlement tempest.Entitlement, now time.Time) bool {
+func entitlementActive(entitlement discord.Entitlement, now time.Time) bool {
 	if entitlement.Deleted || entitlement.Consumed {
 		return false
 	}
@@ -289,23 +292,23 @@ func skuKind(sku sku) string {
 }
 
 // entitlementKind names an entitlement type for display.
-func entitlementKind(kind tempest.EntitlementType) string {
+func entitlementKind(kind discord.EntitlementType) string {
 	switch kind {
-	case tempest.PURCHASE_ENTITLEMENT_TYPE:
+	case discord.PurchaseEntitlementType:
 		return "purchase"
-	case tempest.APPLICATION_SUBSCRIPTION_ENTITLEMENT_TYPE:
+	case discord.ApplicationSubscriptionEntitlementType:
 		return "app subscription"
-	case tempest.DEVELOPER_GIFT_ENTITLEMENT_TYPE:
+	case discord.DeveloperGiftEntitlementType:
 		return "developer gift"
-	case tempest.USER_GIFT_ENTITLEMENT_TYPE:
+	case discord.UserGiftEntitlementType:
 		return "user gift"
-	case tempest.TEST_MODE_PURCHASE_ENTITLEMENT_TYPE:
+	case discord.TestModePurchaseEntitlementType:
 		return "test purchase"
-	case tempest.FREE_PURCHASE_ENTITLEMENT_TYPE:
+	case discord.FreePurchaseEntitlementType:
 		return "free purchase"
-	case tempest.PREMIUM_SUBSCRIPTION_ENTITLEMENT_TYPE:
+	case discord.PremiumSubscriptionEntitlementType:
 		return "Nitro"
-	case tempest.PREMIUM_PURCHASE_ENTITLEMENT_TYPE:
+	case discord.PremiumPurchaseEntitlementType:
 		return "Nitro claim"
 	default:
 		return "unknown"

@@ -4,6 +4,7 @@ package image
 
 import (
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -22,8 +23,10 @@ func newRotateCommand() *rotateCommand {
 
 func (c *rotateCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "rotate",
-		Description:         "Upload a PNG and get it back rotated 90 degrees clockwise.",
+		Command: discord.Command{
+			Name:        "rotate",
+			Description: "Upload a PNG and get it back rotated 90 degrees clockwise.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }
@@ -35,7 +38,7 @@ func (c *rotateCommand) handle(itx *tempest.CommandInteraction) error {
 
 // rotateModal builds the modal /rotate opens; extracted so a test can assert its
 // wire format.
-func rotateModal() tempest.ResponseModalData {
+func rotateModal() discord.ResponseModalData {
 	return util.ModalResponse(rotateModalID, "Rotate a PNG",
 		util.Label("PNG", util.FileUpload(rotateUploadID, ".png")),
 	)

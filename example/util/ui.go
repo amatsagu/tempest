@@ -1,19 +1,19 @@
 package util
 
-import "github.com/amatsagu/tempest"
+import "github.com/amatsagu/tempest/discord"
 
 // ActionRow groups interactive components in a message.
-func ActionRow(components ...tempest.ActionRowChildComponent) tempest.ActionRowComponent {
-	return tempest.ActionRowComponent{
-		Type:       tempest.ACTION_ROW_COMPONENT_TYPE,
+func ActionRow(components ...discord.ActionRowChildComponent) discord.ActionRowComponent {
+	return discord.ActionRowComponent{
+		Type:       discord.ActionRowComponentType,
 		Components: components,
 	}
 }
 
 // Button builds a custom-ID button.
-func Button(customID, label string, style tempest.ButtonStyle) tempest.ButtonComponent {
-	return tempest.ButtonComponent{
-		Type:     tempest.BUTTON_COMPONENT_TYPE,
+func Button(customID, label string, style discord.ButtonStyle) discord.ButtonComponent {
+	return discord.ButtonComponent{
+		Type:     discord.ButtonComponentType,
 		Style:    style,
 		Label:    label,
 		CustomID: customID,
@@ -21,19 +21,19 @@ func Button(customID, label string, style tempest.ButtonStyle) tempest.ButtonCom
 }
 
 // LinkButton builds a link button.
-func LinkButton(url, label string) tempest.ButtonComponent {
-	return tempest.ButtonComponent{
-		Type:  tempest.BUTTON_COMPONENT_TYPE,
-		Style: tempest.LINK_BUTTON_STYLE,
+func LinkButton(url, label string) discord.ButtonComponent {
+	return discord.ButtonComponent{
+		Type:  discord.ButtonComponentType,
+		Style: discord.LinkButtonStyle,
 		Label: label,
 		URL:   url,
 	}
 }
 
 // StringSelect builds a string select menu.
-func StringSelect(customID, placeholder string, options ...tempest.SelectMenuOption) tempest.StringSelectComponent {
-	return tempest.StringSelectComponent{
-		Type:        tempest.STRING_SELECT_COMPONENT_TYPE,
+func StringSelect(customID, placeholder string, options ...discord.SelectMenuOption) discord.StringSelectComponent {
+	return discord.StringSelectComponent{
+		Type:        discord.StringSelectComponentType,
 		CustomID:    customID,
 		Placeholder: placeholder,
 		Options:     options,
@@ -41,69 +41,69 @@ func StringSelect(customID, placeholder string, options ...tempest.SelectMenuOpt
 }
 
 // SelectOption builds one string select option.
-func SelectOption(label, value string) tempest.SelectMenuOption {
-	return tempest.SelectMenuOption{Label: label, Value: value}
+func SelectOption(label, value string) discord.SelectMenuOption {
+	return discord.SelectMenuOption{Label: label, Value: value}
 }
 
 // TextDisplay builds a Components V2 text display.
-func TextDisplay(content string) tempest.TextDisplayComponent {
-	return tempest.TextDisplayComponent{
-		Type:    tempest.TEXT_DISPLAY_COMPONENT_TYPE,
+func TextDisplay(content string) discord.TextDisplayComponent {
+	return discord.TextDisplayComponent{
+		Type:    discord.TextDisplayComponentType,
 		Content: content,
 	}
 }
 
 // Separator builds a Components V2 separator.
-func Separator(divider bool) tempest.SeparatorComponent {
-	return tempest.SeparatorComponent{
-		Type:    tempest.SEPARATOR_COMPONENT_TYPE,
+func Separator(divider bool) discord.SeparatorComponent {
+	return discord.SeparatorComponent{
+		Type:    discord.SeparatorComponentType,
 		Divider: divider,
 	}
 }
 
 // Thumbnail builds a Components V2 thumbnail.
-func Thumbnail(url, description string) tempest.ThumbnailComponent {
-	return tempest.ThumbnailComponent{
-		Type:        tempest.THUMBNAIL_COMPONENT_TYPE,
+func Thumbnail(url, description string) discord.ThumbnailComponent {
+	return discord.ThumbnailComponent{
+		Type:        discord.ThumbnailComponentType,
 		Description: description,
-		Media:       tempest.UnfurledMediaItem{URL: url},
+		Media:       discord.UnfurledMediaItem{URL: url},
 	}
 }
 
 // SectionWithThumbnail builds a section whose accessory is a thumbnail.
-func SectionWithThumbnail(thumbnail tempest.ThumbnailComponent, text ...tempest.TextDisplayComponent) tempest.SectionComponent {
-	return tempest.SectionComponent{
-		Type:       tempest.SECTION_COMPONENT_TYPE,
+func SectionWithThumbnail(thumbnail discord.ThumbnailComponent, text ...discord.TextDisplayComponent) discord.SectionComponent {
+	return discord.SectionComponent{
+		Type:       discord.SectionComponentType,
 		Components: text,
 		Accessory:  thumbnail,
 	}
 }
 
 // MediaGalleryItem builds one gallery item.
-func MediaGalleryItem(url string) tempest.MediaGalleryItem {
-	return tempest.MediaGalleryItem{Media: tempest.UnfurledMediaItem{URL: url}}
+func MediaGalleryItem(url string) discord.MediaGalleryItem {
+	return discord.MediaGalleryItem{Media: discord.UnfurledMediaItem{URL: url}}
 }
 
 // MediaGallery builds a Components V2 media gallery.
-func MediaGallery(items ...tempest.MediaGalleryItem) tempest.MediaGalleryComponent {
-	return tempest.MediaGalleryComponent{
-		Type:  tempest.MEDIA_GALLERY_COMPONENT_TYPE,
+func MediaGallery(items ...discord.MediaGalleryItem) discord.MediaGalleryComponent {
+	return discord.MediaGalleryComponent{
+		Type:  discord.MediaGalleryComponentType,
 		Items: items,
 	}
 }
 
 // Container builds a Components V2 container.
-func Container(accentColor uint32, components ...tempest.ContainerChildComponent) tempest.ContainerComponent {
-	return tempest.ContainerComponent{
-		Type:        tempest.CONTAINER_COMPONENT_TYPE,
+func Container(accentColor uint32, components ...discord.ContainerChildComponent) discord.ContainerComponent {
+	return discord.ContainerComponent{
+		Type:        discord.ContainerComponentType,
 		AccentColor: accentColor,
 		Components:  components,
 	}
 }
 
 // ModalResponse builds a modal response.
-func ModalResponse(customID, title string, components ...tempest.ModalComponent) tempest.ResponseModalData {
-	return tempest.ResponseModalData{
+func ModalResponse(customID, title string, components ...discord.ModalComponent) discord.ResponseModalData {
+	return discord.ResponseModalData{
 		CustomID:   customID,
 		Title:      title,
 		Components: components,
@@ -111,19 +111,19 @@ func ModalResponse(customID, title string, components ...tempest.ModalComponent)
 }
 
 // Label wraps a modal input with text.
-func Label(label string, component tempest.LabelChildComponent) tempest.LabelComponent {
-	return tempest.LabelComponent{
-		Type:      tempest.LABEL_COMPONENT_TYPE,
+func Label(label string, component discord.LabelChildComponent) discord.LabelComponent {
+	return discord.LabelComponent{
+		Type:      discord.LabelComponentType,
 		Label:     label,
 		Component: component,
 	}
 }
 
 // ShortTextInput builds a single-line text input.
-func ShortTextInput(customID, placeholder string) tempest.TextInputComponent {
-	return tempest.TextInputComponent{
-		Type:        tempest.TEXT_INPUT_COMPONENT_TYPE,
-		Style:       tempest.SHORT_TEXT_INPUT_STYLE,
+func ShortTextInput(customID, placeholder string) discord.TextInputComponent {
+	return discord.TextInputComponent{
+		Type:        discord.TextInputComponentType,
+		Style:       discord.ShortTextInputStyle,
 		CustomID:    customID,
 		Placeholder: placeholder,
 		Required:    true,
@@ -131,10 +131,10 @@ func ShortTextInput(customID, placeholder string) tempest.TextInputComponent {
 }
 
 // ParagraphTextInput builds a multi-line text input.
-func ParagraphTextInput(customID, placeholder string) tempest.TextInputComponent {
-	return tempest.TextInputComponent{
-		Type:        tempest.TEXT_INPUT_COMPONENT_TYPE,
-		Style:       tempest.PARAGRAPH_TEXT_INPUT_STYLE,
+func ParagraphTextInput(customID, placeholder string) discord.TextInputComponent {
+	return discord.TextInputComponent{
+		Type:        discord.TextInputComponentType,
+		Style:       discord.ParagraphTextInputStyle,
 		CustomID:    customID,
 		Placeholder: placeholder,
 		Required:    true,
@@ -142,9 +142,9 @@ func ParagraphTextInput(customID, placeholder string) tempest.TextInputComponent
 }
 
 // FileUpload builds a modal file upload field.
-func FileUpload(customID string, extensions ...string) tempest.FileUploadComponent {
-	return tempest.FileUploadComponent{
-		Type:      tempest.FILE_UPLOAD_COMPONENT_TYPE,
+func FileUpload(customID string, extensions ...string) discord.FileUploadComponent {
+	return discord.FileUploadComponent{
+		Type:      discord.FileUploadComponentType,
 		CustomID:  customID,
 		FileTypes: extensions,
 		Required:  true,

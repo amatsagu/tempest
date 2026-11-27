@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -39,8 +40,10 @@ func newCalcCommand() *calcCommand {
 
 func (c *calcCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "calc",
-		Description:         "An interactive calculator with buttons.",
+		Command: discord.Command{
+			Name:        "calc",
+			Description: "An interactive calculator with buttons.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }

@@ -25,9 +25,15 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
   Use `omitzero` on boolean fields that default to `false` in Discord (e.g. `Disabled`, `NSFW`, `CommandOption.Required`, `AutoComplete`, `Spoiler`).
   - When `false` (default): omitted completely from outgoing JSON, saving bytes and parsing time.
   - When `true`: serialized as `"field": true`.
-  - **Important**: Do NOT use `omitzero` on fields that default to `true` in Discord (e.g. `Required` on modal components like `SelectComponent`/`StringSelectComponent`/`TextInputComponent`/`FileUploadComponent`, or `Divider` on `SeparatorComponent`). If omitted, Discord will apply its `true` default, preventing developers from setting them to `false`.
+  - **Nullable zero vs unset (`*float64`, `*uint8`)**:
+  Use pointer primitives with `omitzero` on numeric fields where omitting the key means a non-zero Discord default or "unbounded", while `0` is a distinct valid value:
+  - `CommandOption.MinValue` / `MaxValue` (`*float64`): `nil` omits, `&0` emits `0`, `&1` emits `1`, etc.
+  - `MinValues` (`*uint8` on `StringSelectComponent`, `SelectComponent`, `FileUploadComponent`, `CheckboxGroupComponent`): Discord defaults omitted `min_values` to `1`, while `0` is needed for optional selection when `Required` is `false`.
+- **Important**: Do NOT use `omitzero` on fields that default to `true` in Discord (e.g. `Required` on modal components like `SelectComponent`/`StringSelectComponent`/`TextInputComponent`/`FileUploadComponent`/`RadioGroupComponent`/`CheckboxGroupComponent`, or `Divider` on `SeparatorComponent`). If omitted, Discord will apply its `true` default, preventing developers from setting them to `false`.
+- **Pointer/string tags (`omitzero` over `omitempty`)**:
+  Prefer `,omitzero` over `,omitempty` on optional `string` and pointer (`*T`) fields so `json/v2` checks Go zero/nil directly without encoding/probing the underlying value. Keep `,omitempty` only on `any` (`CommandInteractionOption.Value`).
 - **Snowflake fields**:
-  Use `omitzero` on optional snowflakes (e.g. `GuildID`, `ApplicationID`). `Snowflake(0)` is omitted automatically without requiring pointer wrapping.
+  Use `omitzero` on optional snowflakes (e.g. `GuildID`, `ApplicationID`). `Snowflake(0)` (and single-field wrappers like `GuildID{}`) is omitted natively by `json/v2` without pointer wrapping or implementing `IsZero() bool`. (Avoid defining `IsZero() bool` on `Snowflake`, as `json/v2` calls it via `reflect` interface boxing on every marshaled `omitzero` field, adding a heap allocation per field.)
 - **Slices and Maps (Discord Resource Clearing Semantics)**:
   `omitzero` naturally handles Discord's resource clearing semantics:
   - `nil` slice (`var embeds []Embed = nil`): zero value -> **omitted** from JSON (leaves existing embeds unchanged).
@@ -38,10 +44,19 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
    Do not implement custom `UnmarshalJSON` with alias structs on high-frequency structs (like `User`) merely to set defaults or fallback values (e.g. `GlobalName -> Username`). This forces `json/v2` to buffer and decode twice. Instead, provide zero-cost accessor methods like `user.DisplayName()`.
 2. **Stream REST Responses with `json.UnmarshalRead`**:
    Stream HTTP responses directly into target structs via `json.UnmarshalRead(res.Body, into)`. Do not read the entire body into memory with `io.ReadAll`. When `into == nil` (e.g. 204 No Content, DELETE, callbacks), discard the body with `io.Copy(io.Discard, res.Body)` without allocating buffers.
-3. **Zero-Allocation Token Probing (`jsontext.Decoder`)**:
-   For polymorphic payloads (message components, interaction callbacks), use pooled token scanners (`peekInteractionType`, `peekComponentType`) to read discriminator fields like `"type"` in a single forward pass without decoding intermediate map structures.
-4. **Implement `encoding.TextAppender` for Primitives**:
-   Implement `AppendText(b []byte) ([]byte, error)` and `UnmarshalText(b []byte) error` on custom primitive types like `Snowflake`. `json/v2` calls `AppendText` directly into its buffer, eliminating intermediate allocations.
+3. **Zero-Allocation Token Probing (`peekComponentType`, `peekInteractionType`)**:
+   For polymorphic payloads (message components, interaction callbacks), use direct top-level byte scanning (`peekComponentType`, safely rejecting non-numeric `"type"` tokens without panicking, and falling back to pooled `jsontext.Decoder` only on escaped keys `\"`).
+4. **Zero-Copy Streaming Union Decoding (`UnmarshalJSONFrom`)**:
+   For container structs holding union interfaces (`Message`, `ActionRowComponent`, `ContainerComponent`, `SectionComponent`, `LabelComponent`, `ModalInteractionData`), implement `UnmarshalJSONFrom(*jsontext.Decoder)` and decode slice items directly from `dec.ReadValue()` (`componentSlice[T]`) instead of materializing intermediate `[]jsontext.Value` copies or heap-escaping `type alias` wrappers (`Message`).
+   - Compare keys via `dec.ReadValue()` byte slices (`switch string(inner)`) rather than `tok.String()` so key comparisons remain 0-alloc.
+   - Keep **leaf component structs** (`ButtonComponent`, `StringSelectComponent`, etc.) on `json/v2`'s native struct decoder (`json.Unmarshal(raw, &cmp)`) instead of hand-decoding leaf string fields or wrapping `raw` in `bytes.NewReader`, so `json/v2` retains its direct `[]byte` fast path and internal 256-entry `stringCache`.
+   - Decode homogenous component slices (`SectionComponent.Components []TextDisplayComponent`) directly without boxing into `AnyComponent`.
+5. **Implement `TextAppender` & `MarshalJSONTo` / `UnmarshalJSONFrom` for Primitives**:
+   - Implement `AppendText` and `UnmarshalJSONFrom(*jsontext.Decoder)` on `Snowflake` and `UnmarshalJSONFrom` on `Nonce` so `json/v2` reads/writes directly against the decoder/encoder buffer.
+   - Implement `MarshalJSONTo(*jsontext.Encoder)` on `uint8`-backed enums used in slices (e.g. `ChannelType`) to write JSON integers directly without temporary `[]byte` / string allocations or `[]uint8` base64 handling.
+6. **Single-Allocation CDN URL Builders & Struct Alignment**:
+   - Build Discord CDN URLs with stack `[20]byte` digit formatting (`strconv.AppendUint`) and a pre-grown `strings.Builder` (`Grow`) rather than chaining `ID.String()` and `+` concatenations.
+   - Keep pointer-containing fields grouped first so `fieldalignment ./...` stays at `0` issues with minimal GC pointer scan prefixes.
 
 <br>
 
@@ -66,4 +81,4 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
 - Supports rich content such as **embeds**, **attachments**, and **interactive components**.
 
 ### Warning
-We'll try keeping all structs up to date but nobody can promise that. Be especially careful with `./permission.go` as discord commonly makes minor changes to permission names/positions.
+We'll try keeping all structs up to date but nobody can promise that. Be especially careful with `./discord/permission.go` as discord commonly makes minor changes to permission names/positions.

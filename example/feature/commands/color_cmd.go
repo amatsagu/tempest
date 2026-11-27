@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -29,15 +30,17 @@ func newColorCommand() *colorCommand {
 
 func (c *colorCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:        "color",
-		Description: "Show a color, with autocomplete on the name.",
-		Options: []tempest.CommandOption{
-			{
-				Type:         tempest.STRING_OPTION_TYPE,
-				Name:         "name",
-				Description:  "Which color to show.",
-				Required:     true,
-				AutoComplete: true,
+		Command: discord.Command{
+			Name:        "color",
+			Description: "Show a color, with autocomplete on the name.",
+			Options: []discord.CommandOption{
+				{
+					Type:         discord.StringOptionType,
+					Name:         "name",
+					Description:  "Which color to show.",
+					Required:     true,
+					AutoComplete: true,
+				},
 			},
 		},
 		AutoCompleteHandler: c.autocomplete,
@@ -45,14 +48,14 @@ func (c *colorCommand) Definition() tempest.Command {
 	}
 }
 
-func (c *colorCommand) autocomplete(itx tempest.CommandInteraction) []tempest.CommandOptionChoice {
+func (c *colorCommand) autocomplete(itx tempest.CommandInteraction) []discord.CommandOptionChoice {
 	typed := focusedString(itx)
 	typed = strings.ToLower(typed)
 
-	choices := make([]tempest.CommandOptionChoice, 0, len(c.names))
+	choices := make([]discord.CommandOptionChoice, 0, len(c.names))
 	for _, name := range c.names {
 		if strings.HasPrefix(name, typed) {
-			choices = append(choices, tempest.CommandOptionChoice{Name: name, Value: name})
+			choices = append(choices, discord.CommandOptionChoice{Name: name, Value: name})
 		}
 	}
 	return choices
@@ -66,7 +69,7 @@ func (c *colorCommand) handle(itx *tempest.CommandInteraction) error {
 		card.Color = value
 	}
 
-	return itx.SendReply(tempest.ResponseMessageData{Embeds: []tempest.Embed{card}}, false, nil)
+	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
 }
 
 // focusedString reads the focused autocomplete value without the panic in

@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -18,5 +19,5 @@ func (c *panelCommand) handleSubmitForm(itx *tempest.ModalInteraction) error {
 
 	card := util.Embed(title, details)
 
-	return itx.AcknowledgeWithMessage(tempest.ResponseMessageData{Embeds: []tempest.Embed{card}}, true)
+	return itx.AcknowledgeWithMessage(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true)
 }

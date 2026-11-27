@@ -1,10 +1,8 @@
-# Required for both gateway and HTTP modes.
+# Required.
 DISCORD_BOT_TOKEN=
-
-# Required only in HTTP mode.
 DISCORD_PUBLIC_KEY=
 
-# Set this to serve the HTTP interaction endpoint instead of using the gateway.
+# Address for the HTTP interaction endpoint (defaults to 127.0.0.1:8080).
 # APP_ADDRESS is accepted as a fallback for older checkouts.
 HTTP_ADDR=
 APP_ADDRESS=
@@ -14,4 +12,3 @@ DISCORD_TEST_SERVER_ID=
 
 # Optional runtime switches.
 DEBUG=
-GATEWAY_ZLIB=

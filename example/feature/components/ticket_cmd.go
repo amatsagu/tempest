@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
@@ -18,8 +19,10 @@ func newTicketCommand(client *tempest.BaseClient) *ticketCommand {
 
 func (c *ticketCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Name:                "ticket",
-		Description:         "Post a button whose handler exists only for that one button.",
+		Command: discord.Command{
+			Name:        "ticket",
+			Description: "Post a button whose handler exists only for that one button.",
+		},
 		SlashCommandHandler: util.CommandHandler(c.handle),
 	}
 }
@@ -28,11 +31,11 @@ func (c *ticketCommand) Definition() tempest.Command {
 // AwaitComponent removes it after the callback returns true.
 func (c *ticketCommand) handle(itx *tempest.CommandInteraction) error {
 	id := "ticket:" + itx.ID.String()
-	row := util.ActionRow(util.Button(id, "Create ticket", tempest.SUCCESS_BUTTON_STYLE))
+	row := util.ActionRow(util.Button(id, "Create ticket", discord.SuccessButtonStyle))
 
-	if err := itx.SendReply(tempest.ResponseMessageData{
+	if err := itx.SendReply(discord.ResponseMessageData{
 		Content:    "Press the button to run a one-shot handler.",
-		Components: []tempest.MessageComponent{row},
+		Components: []discord.MessageComponent{row},
 	}, false, nil); err != nil {
 		return err
 	}
@@ -47,11 +50,11 @@ func (c *ticketCommand) handle(itx *tempest.CommandInteraction) error {
 			}
 		}
 
-		if err := itx.EditReply(tempest.ResponseMessageData{Content: "Ticket created."}, false, nil); err != nil {
+		if err := itx.EditReply(discord.ResponseMessageData{Content: "Ticket created."}, false, nil); err != nil {
 			return true
 		}
 		return true
 	}, func() {
-		_ = itx.EditReply(tempest.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false, nil)
+		_ = itx.EditReply(discord.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false, nil)
 	})
 }
