@@ -18,7 +18,7 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			name: "SelectComponent with Required false",
 			input: discord.SelectComponent{
 				Type:     discord.RoleSelectComponentType,
-				Required: false,
+				Required: new(false),
 			},
 			expected: `"required":false`,
 		},
@@ -26,7 +26,7 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			name: "StringSelectComponent with Required false",
 			input: discord.StringSelectComponent{
 				Type:     discord.StringSelectComponentType,
-				Required: false,
+				Required: new(false),
 			},
 			expected: `"required":false`,
 		},
@@ -34,7 +34,7 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			name: "TextInputComponent with Required false",
 			input: discord.TextInputComponent{
 				Type:     discord.TextInputComponentType,
-				Required: false,
+				Required: new(false),
 			},
 			expected: `"required":false`,
 		},
@@ -42,7 +42,7 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			name: "SeparatorComponent with Divider false",
 			input: discord.SeparatorComponent{
 				Type:    discord.SeparatorComponentType,
-				Divider: false,
+				Divider: new(false),
 			},
 			expected: `"divider":false`,
 		},
@@ -51,7 +51,7 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			input: discord.CommandOption{
 				Type:     discord.NumberOptionType,
 				Name:     "amount",
-				MinValue: func() *float64 { v := 0.0; return &v }(),
+				MinValue: new(0.0),
 			},
 			expected: `"min_value":0`,
 		},
@@ -63,8 +63,35 @@ func TestComponentRequiredSerialization(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected marshal error: %v", err)
 			}
+
 			if !strings.Contains(string(raw), tt.expected) {
 				t.Errorf("expected JSON to contain %q, but got: %s", tt.expected, string(raw))
+			}
+		})
+	}
+
+	// Omitting default-true *bool fields must omit the JSON key (safe in messages, uses Discord true default in modals).
+	for _, tc := range []struct {
+		input any
+		name  string
+		key   string
+	}{
+		{name: "SelectComponent message omits required", input: discord.SelectComponent{Type: discord.UserSelectComponentType}, key: `"required"`},
+		{name: "StringSelectComponent message omits required", input: discord.StringSelectComponent{Type: discord.StringSelectComponentType}, key: `"required"`},
+		{name: "TextInputComponent omits required when nil", input: discord.TextInputComponent{Type: discord.TextInputComponentType}, key: `"required"`},
+		{name: "FileUploadComponent omits required when nil", input: discord.FileUploadComponent{Type: discord.FileUploadComponentType}, key: `"required"`},
+		{name: "RadioGroupComponent omits required when nil", input: discord.RadioGroupComponent{Type: discord.RadioGroupComponentType}, key: `"required"`},
+		{name: "CheckboxGroupComponent omits required when nil", input: discord.CheckboxGroupComponent{Type: discord.CheckboxGroupComponentType}, key: `"required"`},
+		{name: "SeparatorComponent omits divider when nil", input: discord.SeparatorComponent{Type: discord.SeparatorComponentType}, key: `"divider"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := json.Marshal(tc.input)
+			if err != nil {
+				t.Fatalf("unexpected marshal error: %v", err)
+			}
+
+			if strings.Contains(string(raw), tc.key) {
+				t.Errorf("expected JSON to omit %s, got: %s", tc.key, string(raw))
 			}
 		})
 	}

@@ -101,11 +101,11 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 				Value:       "Hello",
 				MinLength:   2,
 				MaxLength:   200,
-				Required:    true,
+				Required:    new(true),
 			},
 			assert: func(t *testing.T, got AnyComponent) {
 				ti, ok := got.(TextInputComponent)
-				if !ok || ti.CustomID != "txt_in" || ti.Value != "Hello" || !ti.Required {
+				if !ok || ti.CustomID != "txt_in" || ti.Value != "Hello" || ti.Required == nil || !*ti.Required {
 					t.Fatalf("unexpected text input: %#v", got)
 				}
 			},
@@ -261,12 +261,12 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 			component: SeparatorComponent{
 				Type:    SeparatorComponentType,
 				ID:      14,
-				Divider: true,
-				Spacing: 2,
+				Divider: new(true),
+				Spacing: LargeSeparatorSpacing,
 			},
 			assert: func(t *testing.T, got AnyComponent) {
 				sep, ok := got.(SeparatorComponent)
-				if !ok || !sep.Divider || sep.Spacing != 2 {
+				if !ok || sep.Divider == nil || !*sep.Divider || sep.Spacing != LargeSeparatorSpacing {
 					t.Fatalf("unexpected separator: %#v", got)
 				}
 			},
@@ -319,7 +319,7 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 				Values:    []AttachmentID{{Snowflake: 888}},
 				MinValues: new(uint8(1)),
 				MaxValues: 5,
-				Required:  true,
+				Required:  new(true),
 			},
 			assert: func(t *testing.T, got AnyComponent) {
 				fu, ok := got.(FileUploadComponent)
@@ -334,7 +334,7 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 				Type:     RadioGroupComponentType,
 				ID:       21,
 				CustomID: "radio",
-				Required: true,
+				Required: new(true),
 				Options: []RadioGroupOption{
 					{Label: "A", Value: "a", Description: "opt a", Default: true},
 					{Label: "B", Value: "b"},
@@ -355,7 +355,7 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 				CustomID:  "cbg",
 				MinValues: new(uint8(1)),
 				MaxValues: 2,
-				Required:  true,
+				Required:  new(true),
 				Values:    []string{"x"},
 				Options: []CheckboxGroupOption{
 					{Label: "X", Value: "x", Default: true},
@@ -393,6 +393,7 @@ func TestUnmarshalComponentAllTypes(t *testing.T) {
 			if err != nil {
 				t.Fatalf("UnmarshalComponent failed: %v\njson: %s", err, raw)
 			}
+
 			tc.assert(t, got)
 		})
 	}
@@ -449,7 +450,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 			AccentColor: 0xFF00AA,
 			Components: []ContainerChildComponent{
 				TextDisplayComponent{Type: TextDisplayComponentType, Content: "Header"},
-				SeparatorComponent{Type: SeparatorComponentType, Divider: false, Spacing: 1},
+				SeparatorComponent{Type: SeparatorComponentType, Divider: new(false), Spacing: SmallSeparatorSpacing},
 				SectionComponent{
 					Type: SectionComponentType,
 					Components: []TextDisplayComponent{
@@ -501,6 +502,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal(raw, &decoded); err != nil {
 			t.Fatalf("ContainerComponent unmarshal failed: %v", err)
 		}
+
 		if len(decoded.Components) != 8 {
 			t.Fatalf("expected 8 children, got %d", len(decoded.Components))
 		}
@@ -511,6 +513,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":9,"components":[{"type":10,"content":"hi"}]}`), &sec); err != nil {
 			t.Fatalf("section unmarshal failed: %v", err)
 		}
+
 		if sec.Accessory != nil || len(sec.Components) != 1 {
 			t.Fatalf("unexpected section: %#v", sec)
 		}
@@ -518,6 +521,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":9,"accessory":{"type":10,"content":"not accessory"}}`), &sec); err != nil {
 			t.Fatalf("section unmarshal failed when non-accessory: %v", err)
 		}
+
 		if sec.Accessory != nil {
 			t.Fatalf("expected non-accessory component to be ignored, got %#v", sec.Accessory)
 		}
@@ -532,6 +536,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":1,"components":[{"type":10,"content":"text_display"}]}`), &row); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		if len(row.Components) != 0 {
 			t.Fatalf("expected non-ActionRowChildComponent to be skipped, got %#v", row.Components)
 		}
@@ -540,6 +545,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":17,"components":[{"type":2,"style":1,"label":"btn","custom_id":"b"}]}`), &container); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		if len(container.Components) != 0 {
 			t.Fatalf("expected non-ContainerChildComponent to be skipped, got %#v", container.Components)
 		}
@@ -550,6 +556,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":18,"label":"Empty"}`), &lbl); err != nil {
 			t.Fatalf("unexpected error when label has no component: %v", err)
 		}
+
 		if lbl.Component != nil {
 			t.Fatalf("expected nil component, got %#v", lbl.Component)
 		}
@@ -557,6 +564,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":18,"label":"BadChild","component":{"type":10,"content":"hi"}}`), &lbl); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		if lbl.Component != nil {
 			t.Fatalf("expected non-LabelChildComponent to be ignored, got %#v", lbl.Component)
 		}
@@ -575,6 +583,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("escaped type key unmarshal failed: %v", err)
 		}
+
 		td, ok := got.(TextDisplayComponent)
 		if !ok || td.Content != "escaped" {
 			t.Fatalf("unexpected escaped component: %#v", got)
@@ -584,9 +593,11 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":18,"label":"L","component":null,"unknown_field":{"a":1}}`), &lbl); err != nil {
 			t.Fatalf("label with null component failed: %v", err)
 		}
+
 		if lbl.Component != nil || lbl.Label != "L" {
 			t.Fatalf("unexpected label: %#v", lbl)
 		}
+
 		if err := json.Unmarshal([]byte(`null`), &lbl); err != nil || lbl.Label != "" {
 			t.Fatalf("null label failed: %#v, err=%v", lbl, err)
 		}
@@ -595,6 +606,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":1,"id":null,"components":null,"extra":1}`), &row); err != nil || row.ID != 0 {
 			t.Fatalf("null action row fields failed: %#v, err=%v", row, err)
 		}
+
 		if err := json.Unmarshal([]byte(`null`), &row); err != nil {
 			t.Fatalf("null action row failed: %v", err)
 		}
@@ -603,6 +615,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":17,"spoiler":null,"components":null,"extra":[1,2]}`), &container); err != nil {
 			t.Fatalf("null container fields failed: %v", err)
 		}
+
 		if err := json.Unmarshal([]byte(`null`), &container); err != nil {
 			t.Fatalf("null container failed: %v", err)
 		}
@@ -611,6 +624,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{"type":9,"components":null,"accessory":null,"extra":true}`), &sec); err != nil {
 			t.Fatalf("null section fields failed: %v", err)
 		}
+
 		if err := json.Unmarshal([]byte(`null`), &sec); err != nil {
 			t.Fatalf("null section failed: %v", err)
 		}
@@ -634,13 +648,16 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 			{&container, `[]`},
 			{&sec, `[]`},
 		}
+
 		for _, tc := range invalidInputs {
 			if tc.raw == `{"type":17,"spoiler":null}` {
 				if err := json.Unmarshal([]byte(tc.raw), tc.dst); err != nil {
 					t.Fatalf("unexpected error for null bool: %v", err)
 				}
+
 				continue
 			}
+
 			if err := json.Unmarshal([]byte(tc.raw), tc.dst); err == nil {
 				t.Fatalf("expected error for %T input %s", tc.dst, tc.raw)
 			}
@@ -651,9 +668,11 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := directRow.UnmarshalJSON([]byte(`{"type":1,"id":7,"components":[{"type":2,"style":1,"label":"B","custom_id":"b"}]}`)); err != nil {
 			t.Fatalf("ActionRowComponent.UnmarshalJSON failed: %v", err)
 		}
+
 		if directRow.ID != 7 || len(directRow.Components) != 1 {
 			t.Fatalf("unexpected directRow: %#v", directRow)
 		}
+
 		if err := directRow.UnmarshalJSON([]byte(`{"type":1} trailing`)); err == nil {
 			t.Fatal("expected trailing token error")
 		}
@@ -662,6 +681,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 		if err := directLbl.UnmarshalJSON([]byte(`{"\u0074ype":18,"\u006cabel":"X\u0059","description":null,"component":{"type":23,"custom_id":"c"}}`)); err != nil {
 			t.Fatalf("LabelComponent.UnmarshalJSON failed: %v", err)
 		}
+
 		if directLbl.Label != "XY" || directLbl.Description != "" || directLbl.Component == nil {
 			t.Fatalf("unexpected directLbl: %#v", directLbl)
 		}
@@ -693,6 +713,7 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 			`{123:2}`,
 			`{"\u0061":1}`,
 		}
+
 		for i, payload := range malformed {
 			_, err := UnmarshalComponent([]byte(payload))
 			if i == 1 {
@@ -700,8 +721,10 @@ func TestNestedComponentUnmarshalAndSemantics(t *testing.T) {
 					// Extra check: valid skipped escapes/strings still decode if complete, wait payload 1 has {"a":..., "type":2} -> valid ButtonComponent!
 					continue
 				}
+
 				t.Fatalf("expected valid component with skipped escapes, got err=%v", err)
 			}
+
 			if err == nil {
 				t.Fatalf("expected error for malformed payload %s", payload)
 			}
@@ -779,6 +802,7 @@ func TestComponentUnionInterfaces(t *testing.T) {
 		separator, container, label, fileUpload, radioGroup,
 		checkboxGroup, checkbox,
 	}
+
 	for _, c := range all {
 		c._kind()
 	}
@@ -801,7 +825,7 @@ func TestMinValuesZeroOneUnsetSemantics(t *testing.T) {
 		},
 		{
 			name:      "string_select_zero",
-			component: StringSelectComponent{Type: StringSelectComponentType, CustomID: "s", MinValues: &zero, Required: false},
+			component: StringSelectComponent{Type: StringSelectComponentType, CustomID: "s", MinValues: &zero, Required: new(false)},
 			wantSub:   `"min_values":0`,
 		},
 		{
@@ -811,17 +835,17 @@ func TestMinValuesZeroOneUnsetSemantics(t *testing.T) {
 		},
 		{
 			name:      "entity_select_zero",
-			component: SelectComponent{Type: RoleSelectComponentType, CustomID: "r", MinValues: &zero, Required: false},
+			component: SelectComponent{Type: RoleSelectComponentType, CustomID: "r", MinValues: &zero, Required: new(false)},
 			wantSub:   `"min_values":0`,
 		},
 		{
 			name:      "file_upload_zero",
-			component: FileUploadComponent{Type: FileUploadComponentType, CustomID: "f", MinValues: &zero, Required: false},
+			component: FileUploadComponent{Type: FileUploadComponentType, CustomID: "f", MinValues: &zero, Required: new(false)},
 			wantSub:   `"min_values":0`,
 		},
 		{
 			name:      "checkbox_group_zero",
-			component: CheckboxGroupComponent{Type: CheckboxGroupComponentType, CustomID: "c", MinValues: &zero, Required: false},
+			component: CheckboxGroupComponent{Type: CheckboxGroupComponentType, CustomID: "c", MinValues: &zero, Required: new(false)},
 			wantSub:   `"min_values":0`,
 		},
 	}
@@ -833,15 +857,19 @@ func TestMinValuesZeroOneUnsetSemantics(t *testing.T) {
 				if strings.Contains(raw, `"min_values"`) {
 					t.Fatalf("expected min_values omitted when nil, got %s", raw)
 				}
+
 				return
 			}
+
 			if !strings.Contains(raw, tc.wantSub) {
 				t.Fatalf("expected %s in %s", tc.wantSub, raw)
 			}
+
 			decoded, err := UnmarshalComponent([]byte(raw))
 			if err != nil {
 				t.Fatalf("round-trip UnmarshalComponent failed: %v", err)
 			}
+
 			switch v := decoded.(type) {
 			case StringSelectComponent:
 				if v.MinValues == nil {
@@ -892,9 +920,11 @@ func TestEnumAndFlagValues(t *testing.T) {
 		uint8(CheckboxGroupComponentType) != 22 {
 		t.Fatal("unexpected component type constant value")
 	}
+
 	if uint8(PollResultMessageType) != 46 || uint8(PurchaseNotificationMessageType) != 44 {
 		t.Fatal("unexpected message type constant value")
 	}
+
 	if uint8(GuildForumChannelType) != 15 || uint8(GuildMediaChannelType) != 16 {
 		t.Fatal("unexpected channel type constant value")
 	}
@@ -907,7 +937,7 @@ func benchmarkSampleContainer() ContainerComponent {
 		AccentColor: 0x5865F2,
 		Components: []ContainerChildComponent{
 			TextDisplayComponent{Type: TextDisplayComponentType, ID: 2, Content: "# Release Notes\nEverything is fast and clean."},
-			SeparatorComponent{Type: SeparatorComponentType, ID: 3, Divider: true, Spacing: 1},
+			SeparatorComponent{Type: SeparatorComponentType, ID: 3, Divider: new(true), Spacing: SmallSeparatorSpacing},
 			SectionComponent{
 				Type: SectionComponentType,
 				ID:   4,
@@ -992,6 +1022,7 @@ func BenchmarkActionRowComponent_UnmarshalJSON(b *testing.B) {
 			ButtonComponent{Type: ButtonComponentType, Style: SuccessButtonStyle, Label: "Three", CustomID: "3"},
 		},
 	}
+
 	raw, err := json.Marshal(&row)
 	if err != nil {
 		b.Fatal(err)
@@ -1020,6 +1051,7 @@ func BenchmarkSectionComponent_UnmarshalJSON(b *testing.B) {
 			Media:       UnfurledMediaItem{URL: "https://example.com/preview.png", Width: 512, Height: 512},
 		},
 	}
+
 	raw, err := json.Marshal(&sec)
 	if err != nil {
 		b.Fatal(err)
@@ -1045,9 +1077,10 @@ func BenchmarkLabelComponent_UnmarshalJSON(b *testing.B) {
 			CustomID:    "username",
 			Style:       ShortTextInputStyle,
 			Placeholder: "@user",
-			Required:    true,
+			Required:    new(true),
 		},
 	}
+
 	raw, err := json.Marshal(&lbl)
 	if err != nil {
 		b.Fatal(err)

@@ -34,15 +34,19 @@ func TestInteractionEdgeCases(t *testing.T) {
 		if nilResolved.ResolveUser(UserID{Snowflake: 1}).ID.Snowflake != 0 {
 			t.Fatal("expected empty User from nil resolved")
 		}
+
 		if len(nilResolved.ResolveMember(UserID{Snowflake: 1}).Nickname) != 0 {
 			t.Fatal("expected empty Member from nil resolved")
 		}
+
 		if nilResolved.ResolveChannel(ChannelID{Snowflake: 1}).ID.Snowflake != 0 {
 			t.Fatal("expected empty PartialChannel from nil resolved")
 		}
+
 		if nilResolved.ResolveMessage(MessageID{Snowflake: 1}).ID.Snowflake != 0 {
 			t.Fatal("expected empty Message from nil resolved")
 		}
+
 		if nilResolved.ResolveAttachment(AttachmentID{Snowflake: 1}).ID.Snowflake != 0 {
 			t.Fatal("expected empty Attachment from nil resolved")
 		}
@@ -55,19 +59,24 @@ func TestInteractionEdgeCases(t *testing.T) {
 			Messages:    map[MessageID]Message{},
 			Attachments: map[AttachmentID]Attachment{},
 		}
+
 		member := resolved.ResolveMember(UserID{Snowflake: 1})
 		if member.Nickname != "solo" || member.User != nil {
 			t.Fatalf("unexpected member without matching user: %+v", member)
 		}
+
 		if resolved.ResolveUser(UserID{Snowflake: 99}).ID.Snowflake != 0 {
 			t.Fatal("expected missing user")
 		}
+
 		if resolved.ResolveChannel(ChannelID{Snowflake: 99}).ID.Snowflake != 0 {
 			t.Fatal("expected missing channel")
 		}
+
 		if resolved.ResolveMessage(MessageID{Snowflake: 99}).ID.Snowflake != 0 {
 			t.Fatal("expected missing message")
 		}
+
 		if resolved.ResolveAttachment(AttachmentID{Snowflake: 99}).ID.Snowflake != 0 {
 			t.Fatal("expected missing attachment")
 		}
@@ -94,24 +103,31 @@ func TestInteractionEdgeCases(t *testing.T) {
 		if modal.GetInputValue("x") != "" {
 			t.Fatal("expected empty input value")
 		}
+
 		if modal.GetFileUploadValues("x") != nil {
 			t.Fatal("expected nil file upload values")
 		}
+
 		if got := modal.GetFileUploadAttachments("files"); len(got) != 0 {
 			t.Fatalf("expected empty file upload attachments when unresolved, got %#v", got)
 		}
+
 		if v, ok := modal.GetRadioGroupValue("x"); ok || v != "" {
 			t.Fatalf("expected empty radio group value, got %q, %v", v, ok)
 		}
+
 		if modal.GetCheckboxGroupValues("x") != nil {
 			t.Fatal("expected nil checkbox group values")
 		}
+
 		if v, ok := modal.GetCheckboxValue("x"); ok || v {
 			t.Fatalf("expected false, false checkbox value, got %v, %v", v, ok)
 		}
+
 		if modal.GetStringSelectValues("x") != nil {
 			t.Fatal("expected nil string select values")
 		}
+
 		if modal.GetSelectValues("x") != nil {
 			t.Fatal("expected nil select values")
 		}
@@ -120,9 +136,11 @@ func TestInteractionEdgeCases(t *testing.T) {
 		if err := direct.UnmarshalJSON([]byte(`null`)); err != nil || direct.CustomID != "" {
 			t.Fatalf("null ModalInteractionData failed: %+v, err=%v", direct, err)
 		}
+
 		if err := direct.UnmarshalJSON([]byte(`{"custom_id":"ok","resolved":null,"extra":123}`)); err != nil || direct.CustomID != "ok" {
 			t.Fatalf("ModalInteractionData with null resolved failed: %+v, err=%v", direct, err)
 		}
+
 		if err := direct.UnmarshalJSON([]byte(`{"resolved":"bad"}`)); err == nil {
 			t.Fatal("expected error for invalid resolved object")
 		}
@@ -131,12 +149,15 @@ func TestInteractionEdgeCases(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{`), &bad); err == nil {
 			t.Fatal("expected error for malformed JSON")
 		}
+
 		if err := json.Unmarshal([]byte(`{"components":[{"type":99}]}`), &bad); err == nil {
 			t.Fatal("expected error for unknown modal component")
 		}
+
 		if err := json.Unmarshal([]byte(`{"components":[{"type":14,"divider":true}]}`), &bad); err != nil {
 			t.Fatalf("unexpected error when non-ModalComponent present: %v", err)
 		}
+
 		if len(bad.Components) != 0 {
 			t.Fatalf("expected non-ModalComponent to be skipped, got %#v", bad.Components)
 		}

@@ -194,9 +194,11 @@ func TestSnowflakeTextAndStructRoundTrip(t *testing.T) {
 	if err := decoded.UnmarshalText(nil); err != nil {
 		t.Fatalf("UnmarshalText(nil) returned error: %v", err)
 	}
+
 	if decoded != 0 {
 		t.Fatalf("expected 0, got %d", decoded)
 	}
+
 	if err := decoded.UnmarshalText([]byte("abc")); !errors.Is(err, ErrInvalidSnowflake) {
 		t.Fatalf("UnmarshalText(abc) = %v, want ErrInvalidSnowflake", err)
 	}
@@ -226,6 +228,7 @@ func TestSnowflakeTextAndStructRoundTrip(t *testing.T) {
 	if encoded["id"] != "1159846879854792704" || encoded["channel_id"] != "123456789" {
 		t.Errorf("Marshal output mismatch: got %s", data)
 	}
+
 	if _, exists := encoded["omitted_id"]; exists {
 		t.Errorf("expected zero GuildID with omitzero to be omitted, got %s", data)
 	}
@@ -292,18 +295,23 @@ func TestStrictSnowflakesAndMentions(t *testing.T) {
 	if got := (UserID{42}).Mention(); got != "<@42>" {
 		t.Fatalf("UserID.Mention() = %q, want <@42>", got)
 	}
+
 	if got := (UserID{}).Mention(); got != "" {
 		t.Fatalf("zero UserID.Mention() = %q, want empty", got)
 	}
+
 	if got := (ChannelID{42}).Mention(); got != "<#42>" {
 		t.Fatalf("ChannelID.Mention() = %q, want <#42>", got)
 	}
+
 	if got := (RoleID{42}).Mention(); got != "<@&42>" {
 		t.Fatalf("RoleID.Mention() = %q, want <@&42>", got)
 	}
+
 	if got := (EmojiID{42}).Mention("wave", true); got != "<a:wave:42>" {
 		t.Fatalf("EmojiID.Mention() = %q, want <a:wave:42>", got)
 	}
+
 	if got := (CommandID{42}).Mention("ping"); got != "</ping:42>" {
 		t.Fatalf("CommandID.Mention() = %q, want </ping:42>", got)
 	}

@@ -35,16 +35,20 @@ func TestGuildURLs(t *testing.T) {
 		DiscoverySplashHash: "dsplashhash",
 		BannerHash:          "bannerhash",
 	}
+
 	base := DiscordCDNBaseURL()
 	if got, want := static.IconURL(), base+"/icons/12345/iconhash"; got != want {
 		t.Fatalf("IconURL = %q, want %q", got, want)
 	}
+
 	if got, want := static.SplashURL(), base+"/splashes/12345/splashhash"; got != want {
 		t.Fatalf("SplashURL = %q, want %q", got, want)
 	}
+
 	if got, want := static.DiscoverySplashURL(), base+"/discovery-splashes/12345/dsplashhash"; got != want {
 		t.Fatalf("DiscoverySplashURL = %q, want %q", got, want)
 	}
+
 	if got, want := static.BannerURL(), base+"/banners/12345/bannerhash"; got != want {
 		t.Fatalf("BannerURL = %q, want %q", got, want)
 	}
@@ -54,9 +58,11 @@ func TestGuildURLs(t *testing.T) {
 		IconHash:   "a_icon",
 		BannerHash: "a_banner",
 	}
+
 	if got, want := animated.IconURL(), base+"/icons/12345/a_icon.webp?animated=true"; got != want {
 		t.Fatalf("animated IconURL = %q, want %q", got, want)
 	}
+
 	if got, want := animated.BannerURL(), base+"/banners/12345/a_banner.webp?animated=true"; got != want {
 		t.Fatalf("animated BannerURL = %q, want %q", got, want)
 	}
@@ -87,12 +93,15 @@ func TestMentionableHelpers(t *testing.T) {
 			ID:       UserID{Snowflake: 1159846879854792704},
 			Username: "amatsagu",
 		}
+
 		if got := defaultUser.Mention(); got != "<@1159846879854792704>" {
 			t.Fatalf("Mention = %q", got)
 		}
+
 		if got := defaultUser.BannerURL(); got != "" {
 			t.Fatalf("empty BannerURL = %q, want empty", got)
 		}
+
 		if got := defaultUser.AvatarURL(); got == "" || got[:len(base)] != base {
 			t.Fatalf("unexpected default AvatarURL = %q", got)
 		}
@@ -104,9 +113,11 @@ func TestMentionableHelpers(t *testing.T) {
 			AvatarHash: "avhash",
 			BannerHash: "bnhash",
 		}
+
 		if got, want := staticUser.AvatarURL(), base+"/avatars/1001/avhash"; got != want {
 			t.Fatalf("static AvatarURL = %q, want %q", got, want)
 		}
+
 		if got, want := staticUser.BannerURL(), base+"/banners/1001/bnhash"; got != want {
 			t.Fatalf("static BannerURL = %q, want %q", got, want)
 		}
@@ -116,9 +127,11 @@ func TestMentionableHelpers(t *testing.T) {
 			AvatarHash: "a_av",
 			BannerHash: "a_bn",
 		}
+
 		if got, want := animUser.AvatarURL(), base+"/avatars/1001/a_av.webp?animated=true"; got != want {
 			t.Fatalf("animated AvatarURL = %q, want %q", got, want)
 		}
+
 		if got, want := animUser.BannerURL(), base+"/banners/1001/a_bn.webp?animated=true"; got != want {
 			t.Fatalf("animated BannerURL = %q, want %q", got, want)
 		}
@@ -145,9 +158,11 @@ func TestMentionableHelpers(t *testing.T) {
 			GuildAvatarHash: "gav",
 			GuildBannerHash: "gbn",
 		}
+
 		if got, want := member.GuildAvatarURL(), base+"/guilds/777/users/1001/avatars/gav"; got != want {
 			t.Fatalf("GuildAvatarURL = %q, want %q", got, want)
 		}
+
 		if got, want := member.GuildBannerURL(), base+"/guilds/777/users/1001/banners/gbn"; got != want {
 			t.Fatalf("GuildBannerURL = %q, want %q", got, want)
 		}
@@ -158,9 +173,11 @@ func TestMentionableHelpers(t *testing.T) {
 			GuildAvatarHash: "a_gav",
 			GuildBannerHash: "a_gbn",
 		}
+
 		if got, want := animMember.GuildAvatarURL(), base+"/guilds/777/users/1001/avatars/a_gav.webp?animated=true"; got != want {
 			t.Fatalf("animated GuildAvatarURL = %q, want %q", got, want)
 		}
+
 		if got, want := animMember.GuildBannerURL(), base+"/guilds/777/users/1001/banners/a_gbn.webp?animated=true"; got != want {
 			t.Fatalf("animated GuildBannerURL = %q, want %q", got, want)
 		}
@@ -171,6 +188,7 @@ func TestMentionableHelpers(t *testing.T) {
 		if got := role.Mention(); got != "<@&555>" {
 			t.Fatalf("Role.Mention = %q, want <@&555>", got)
 		}
+
 		if got := role.IconURL(); got != "" {
 			t.Fatalf("empty Role.IconURL = %q, want empty", got)
 		}
@@ -206,6 +224,7 @@ func BenchmarkUser_JSON(b *testing.B) {
 		Locale:     "en-US",
 		Bot:        true,
 	}
+
 	data, err := json.Marshal(&u)
 	if err != nil {
 		b.Fatal(err)
@@ -217,6 +236,7 @@ func BenchmarkUser_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&u); err != nil {
 			b.Fatal(err)
 		}
@@ -236,6 +256,7 @@ func BenchmarkMember_JSON(b *testing.B) {
 			Username: "gopher",
 		},
 	}
+
 	data, err := json.Marshal(&m)
 	if err != nil {
 		b.Fatal(err)
@@ -247,6 +268,7 @@ func BenchmarkMember_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&m); err != nil {
 			b.Fatal(err)
 		}
@@ -274,6 +296,7 @@ func BenchmarkGuild_JSON(b *testing.B) {
 		PublicUpdatesChannelID:    ChannelID{Snowflake: 444},
 		PremiumProgressBarEnabled: true,
 	}
+
 	data, err := json.Marshal(&g)
 	if err != nil {
 		b.Fatal(err)
@@ -285,6 +308,7 @@ func BenchmarkGuild_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&g); err != nil {
 			b.Fatal(err)
 		}
@@ -303,6 +327,7 @@ func BenchmarkRole_JSON(b *testing.B) {
 		Mentionable:     true,
 		Tags:            &RoleTag{BotID: UserID{Snowflake: 1001}},
 	}
+
 	data, err := json.Marshal(&r)
 	if err != nil {
 		b.Fatal(err)
@@ -314,6 +339,7 @@ func BenchmarkRole_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&r); err != nil {
 			b.Fatal(err)
 		}

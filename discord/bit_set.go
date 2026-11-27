@@ -14,7 +14,7 @@ func (f BitSet) Add(bits ...BitSet) BitSet {
 	return f
 }
 
-// Remove allows you to subtract multiple bits from the first bit set, producing a new bit set.
+// Subtracts multiple bits from the first bit set, producing a new bit set.
 func (f BitSet) Remove(bits ...BitSet) BitSet {
 	for _, bit := range bits {
 		f &^= bit

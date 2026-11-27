@@ -53,11 +53,15 @@ func TextDisplay(content string) discord.TextDisplayComponent {
 	}
 }
 
-// Separator builds a Components V2 separator.
+// Separator builds a Components V2 separator. Passing false hides the divider line.
 func Separator(divider bool) discord.SeparatorComponent {
+	var d *bool
+	if !divider {
+		d = new(false)
+	}
 	return discord.SeparatorComponent{
 		Type:    discord.SeparatorComponentType,
-		Divider: divider,
+		Divider: d,
 	}
 }
 
@@ -119,34 +123,31 @@ func Label(label string, component discord.LabelChildComponent) discord.LabelCom
 	}
 }
 
-// ShortTextInput builds a single-line text input.
+// ShortTextInput builds a single-line text input (required by default on Discord).
 func ShortTextInput(customID, placeholder string) discord.TextInputComponent {
 	return discord.TextInputComponent{
 		Type:        discord.TextInputComponentType,
 		Style:       discord.ShortTextInputStyle,
 		CustomID:    customID,
 		Placeholder: placeholder,
-		Required:    true,
 	}
 }
 
-// ParagraphTextInput builds a multi-line text input.
+// ParagraphTextInput builds a multi-line text input (required by default on Discord).
 func ParagraphTextInput(customID, placeholder string) discord.TextInputComponent {
 	return discord.TextInputComponent{
 		Type:        discord.TextInputComponentType,
 		Style:       discord.ParagraphTextInputStyle,
 		CustomID:    customID,
 		Placeholder: placeholder,
-		Required:    true,
 	}
 }
 
-// FileUpload builds a modal file upload field.
+// FileUpload builds a modal file upload field (required by default on Discord).
 func FileUpload(customID string, extensions ...string) discord.FileUploadComponent {
 	return discord.FileUploadComponent{
 		Type:      discord.FileUploadComponentType,
 		CustomID:  customID,
 		FileTypes: extensions,
-		Required:  true,
 	}
 }

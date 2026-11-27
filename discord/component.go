@@ -58,6 +58,14 @@ const (
 	ChannelDefaultValue DefaultValueType = "channel"
 )
 
+// https://docs.discord.com/developers/components/reference#separator-separator-structure
+type SeparatorSpacing uint8
+
+const (
+	SmallSeparatorSpacing SeparatorSpacing = iota + 1 // Small vertical padding (default).
+	LargeSeparatorSpacing                             // Large vertical padding.
+)
+
 // An ActionRowComponent groups other related components within a message or modal.
 //
 // https://docs.discord.com/developers/components/reference#action-row-action-row-structure
@@ -106,6 +114,7 @@ type StringSelectComponent struct {
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	MinValues     *uint8             `json:"min_values,omitzero"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 25. Can only be 0 if required is set to false.
+	Required      *bool              `json:"required,omitzero"`   // Whether a selection is required to submit the modal (defaults to true when nil/omitted). Only valid inside modals; leave nil in messages!
 	CustomID      string             `json:"custom_id,omitzero"`
 	Placeholder   string             `json:"placeholder,omitzero"`
 	Options       []SelectMenuOption `json:"options,omitzero"`
@@ -115,7 +124,6 @@ type StringSelectComponent struct {
 	ComponentType ComponentType      `json:"component_type,omitzero"` // Always = [StringSelectComponentType] (3). Omitted in anything BUT interaction responses from messages.
 	MaxValues     uint8              `json:"max_values,omitzero"`     // The maximum number of options that can be chosen; defaults to 1 and must be between 1 and 25.
 	Disabled      bool               `json:"disabled,omitzero"`       // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
-	Required      bool               `json:"required"`                // Whether a selection is required to submit the modal; defaults to true. Will result in an error if used inside a message!
 }
 
 // A SelectMenuOption represents a single option within a [StringSelectComponent].
@@ -138,6 +146,7 @@ type TextInputComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	Required    *bool          `json:"required,omitzero"` // Whether this component is required to be filled (defaults to true when nil/omitted).
 	CustomID    string         `json:"custom_id,omitzero"`
 	Label       string         `json:"label,omitzero"`       // Deprecated: use `label` and `description` on a Label component instead
 	Value       string         `json:"value,omitzero"`       // Pre-filled value for this component; max 4000 characters. Once the user submits the modal, this will be populated with their input.
@@ -147,7 +156,6 @@ type TextInputComponent struct {
 	MaxLength   uint16         `json:"max_length,omitzero"` // min: 1, max: 4000 characters
 	Type        ComponentType  `json:"type"`                // Always = [TextInputComponentType] (4)
 	Style       TextInputStyle `json:"style"`
-	Required    bool           `json:"required"` // Whether this component is required to be filled, defaults to true
 }
 
 // A SelectComponent displays a drop-down menu for a user to select either Users, Roles, Mentionables or Channels.
@@ -165,6 +173,7 @@ type SelectComponent struct {
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
 	MinValues     *uint8               `json:"min_values,omitzero"` // The minimum number of items that must be chosen; defaults to 1 and must be between 0 and 25.
+	Required      *bool                `json:"required,omitzero"`   // Whether a selection is required to submit the modal (defaults to true when nil/omitted). Only valid inside modals; leave nil in messages!
 	CustomID      string               `json:"custom_id,omitzero"`
 	Placeholder   string               `json:"placeholder,omitzero"`    // Placeholder text if nothing is selected, max: 150 characters.
 	ChannelTypes  []ChannelType        `json:"channel_types,omitzero"`  // List of channel types to include in the channel select component; should be omitted for all other select types.
@@ -173,7 +182,6 @@ type SelectComponent struct {
 	ID            uint32               `json:"id,omitzero"`
 	MaxValues     uint8                `json:"max_values,omitzero"` // The maximum number of items that can be chosen; defaults to 1 and must be between 0 and 25.
 	Type          ComponentType        `json:"type"`                // Either [UserSelectComponentType], [RoleSelectComponentType], [MentionableSelectComponentType] or [ChannelSelectComponentType]
-	Required      bool                 `json:"required"`            // Whether a selection is required to submit the modal (defaults to true).
 	Disabled      bool                 `json:"disabled,omitzero"`   // Whether the select menu is disabled inside a message; default false. Will result in an error if used inside a modal!
 }
 
@@ -266,10 +274,10 @@ type FileComponent struct {
 
 // https://docs.discord.com/developers/components/reference#separator-separator-structure
 type SeparatorComponent struct {
-	ID      uint32        `json:"id,omitzero"`
-	Type    ComponentType `json:"type"`             // Always = [SeparatorComponentType] (14)
-	Divider bool          `json:"divider"`          // Whether a visual divider should be displayed in the component (defaults to true).
-	Spacing uint8         `json:"spacing,omitzero"` // Size of separator padding—1 for small padding, 2 for large padding (defaults to 1).
+	Divider *bool            `json:"divider,omitzero"` // Whether a visual divider should be displayed in the component (defaults to true when nil/omitted).
+	ID      uint32           `json:"id,omitzero"`
+	Type    ComponentType    `json:"type"`             // Always = [SeparatorComponentType] (14)
+	Spacing SeparatorSpacing `json:"spacing,omitzero"` // Size of separator padding—[SmallSeparatorSpacing] (1) or [LargeSeparatorSpacing] (2); defaults to 1.
 }
 
 // A ContainerComponent visually encapsulates one or more components inside a message,
@@ -309,7 +317,8 @@ type FileUploadComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
-	MinValues *uint8 `json:"min_values,omitzero"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MinValues *uint8 `json:"min_values,omitzero"` // The minimum number of files that must be uploaded; defaults to 1 and must be between 0 and 10. Can only be 0 if required is false.
+	Required  *bool  `json:"required,omitzero"`   // Whether a file upload is required to submit the modal (defaults to true when nil/omitted).
 	CustomID  string `json:"custom_id,omitzero"`
 	// A list of max 10 (discord supported) file type extensions that you want this component to accept.
 	//
@@ -333,7 +342,6 @@ type FileUploadComponent struct {
 	ID        uint32         `json:"id,omitzero"`         // Optional identifier for component
 	Type      ComponentType  `json:"type"`                // Always = [FileUploadComponentType] (19)
 	MaxValues uint8          `json:"max_values,omitzero"` // The maximum number of files that can be uploaded; defaults to 1 and must be between 1 and 10.
-	Required  bool           `json:"required"`            // Whether a file upload is required to submit the modal.
 }
 
 // A RadioGroupComponent allows selecting exactly one option from a defined list of choices.
@@ -345,12 +353,12 @@ type RadioGroupComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
+	Value    *string            `json:"value,omitzero"`    // The value of the selected option, or null if no option is selected. Populated on modal submission.
+	Required *bool              `json:"required,omitzero"` // Whether a selection is required to submit the modal (defaults to true when nil/omitted).
 	CustomID string             `json:"custom_id,omitzero"`
-	Value    *string            `json:"value,omitzero"`   // The value of the selected option, or null if no option is selected. Populated on modal submission.
 	Options  []RadioGroupOption `json:"options,omitzero"` // List of options to show; min 2, max 10
 	ID       uint32             `json:"id,omitzero"`      // Optional identifier for component
 	Type     ComponentType      `json:"type"`             // Always = [RadioGroupComponentType] (21)
-	Required bool               `json:"required"`         // Whether a selection is required to submit the modal (defaults to true)
 }
 
 // https://docs.discord.com/developers/components/reference#radio-group-option-structure
@@ -370,14 +378,14 @@ type CheckboxGroupComponent struct {
 	// A unique, developer-defined identifier for this Component; must be between 1 and 100 characters long.
 	//
 	// Will be returned verbatim inside the response payload, and be used to maintain application state or store data as needed.
-	MinValues *uint8                `json:"min_values,omitzero"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is set to false.
+	MinValues *uint8                `json:"min_values,omitzero"` // The minimum number of options that must be chosen; defaults to 1 and must be between 0 and 10. Can only be 0 if required is false.
+	Required  *bool                 `json:"required,omitzero"`   // Whether a selection is required to submit the modal (defaults to true when nil/omitted).
 	CustomID  string                `json:"custom_id,omitzero"`
 	Options   []CheckboxGroupOption `json:"options,omitzero"`    // The options to show in this checkbox group; must be between 1 and 10 options.
 	Values    []string              `json:"values,omitzero"`     // The values of the selected options. Populated on modal submission.
 	ID        uint32                `json:"id,omitzero"`         // Optional identifier for component
 	Type      ComponentType         `json:"type"`                // Always = [CheckboxGroupComponentType] (22)
 	MaxValues uint8                 `json:"max_values,omitzero"` // The maximum number of options that can be chosen; must be between 1 and 10.
-	Required  bool                  `json:"required"`            // Whether a selection is required to submit the modal (defaults to true).
 }
 
 // https://docs.discord.com/developers/components/reference#checkbox-group-option-structure

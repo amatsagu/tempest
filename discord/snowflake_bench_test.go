@@ -23,6 +23,7 @@ func TestEnvToSnowflake(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnvToSnowflake failed: %v", err)
 	}
+
 	if sf != 1159846879854792704 {
 		t.Fatalf("got %d, want 1159846879854792704", sf)
 	}
@@ -40,12 +41,15 @@ func TestSnowflakeBitFieldsAndErrors(t *testing.T) {
 	if sf.Worker() != worker {
 		t.Fatalf("Worker = %d, want %d", sf.Worker(), worker)
 	}
+
 	if sf.PID() != pid {
 		t.Fatalf("PID = %d, want %d", sf.PID(), pid)
 	}
+
 	if sf.Increment() != increment {
 		t.Fatalf("Increment = %d, want %d", sf.Increment(), increment)
 	}
+
 	if got := sf.CreationTimestamp().UnixMilli(); got != DiscordEpoch+int64(msOffset) {
 		t.Fatalf("CreationTimestamp ms = %d, want %d", got, DiscordEpoch+int64(msOffset))
 	}
@@ -60,6 +64,7 @@ func TestTypedSnowflakesAllMentionsAndRoundTrip(t *testing.T) {
 	if (GuildID{}).Snowflake != 0 || (GuildID{Snowflake: 1}).Snowflake == 0 {
 		t.Fatal("unexpected zero state on GuildID")
 	}
+
 	if (ChannelID{}).Mention() != "" || (RoleID{}).Mention() != "" || (CommandID{}).Mention("a") != "" || (EmojiID{}).Mention("a", true) != "" {
 		t.Fatal("expected empty mention string for zero snowflake IDs")
 	}
@@ -67,18 +72,23 @@ func TestTypedSnowflakesAllMentionsAndRoundTrip(t *testing.T) {
 	if got := (UserID{Snowflake: 1}).Mention(); got != "<@1>" {
 		t.Fatalf("UserID.Mention = %q", got)
 	}
+
 	if got := (ChannelID{Snowflake: 2}).Mention(); got != "<#2>" {
 		t.Fatalf("ChannelID.Mention = %q", got)
 	}
+
 	if got := (RoleID{Snowflake: 3}).Mention(); got != "<@&3>" {
 		t.Fatalf("RoleID.Mention = %q", got)
 	}
+
 	if got := (CommandID{Snowflake: 4}).Mention("ping"); got != "</ping:4>" {
 		t.Fatalf("CommandID.Mention = %q", got)
 	}
+
 	if got := (EmojiID{Snowflake: 5}).Mention("ok", false); got != "<:ok:5>" {
 		t.Fatalf("EmojiID static Mention = %q", got)
 	}
+
 	if got := (EmojiID{Snowflake: 5}).Mention("ok", true); got != "<a:ok:5>" {
 		t.Fatalf("EmojiID animated Mention = %q", got)
 	}
@@ -119,10 +129,12 @@ func TestTypedSnowflakesAllMentionsAndRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal allIDs failed: %v", err)
 	}
+
 	var out allIDs
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal allIDs failed: %v", err)
 	}
+
 	if out != in {
 		t.Fatalf("got %+v, want %+v", out, in)
 	}
@@ -130,10 +142,12 @@ func TestTypedSnowflakesAllMentionsAndRoundTrip(t *testing.T) {
 	type singleSF struct {
 		ID Snowflake `json:"id"`
 	}
+
 	var esc singleSF
 	if err := json.Unmarshal([]byte(`{"id":"\u0031\u0032"}`), &esc); err == nil {
 		t.Fatalf("expected error for escaped snowflake string, got %+v", esc)
 	}
+
 	var nullSF singleSF
 	if err := json.Unmarshal([]byte(`{"id":null}`), &nullSF); err != nil || nullSF.ID != 0 {
 		t.Fatalf("expected 0 for null snowflake, got %+v, err=%v", nullSF, err)
@@ -186,6 +200,7 @@ func BenchmarkSnowflake_JSONSlice(b *testing.B) {
 		{Snowflake: 1159846879854792707},
 		{Snowflake: 1159846879854792708},
 	}
+
 	raw, err := json.Marshal(ids)
 	if err != nil {
 		b.Fatal(err)
@@ -197,6 +212,7 @@ func BenchmarkSnowflake_JSONSlice(b *testing.B) {
 		if err := json.Unmarshal(raw, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(ids); err != nil {
 			b.Fatal(err)
 		}

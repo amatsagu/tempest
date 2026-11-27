@@ -85,7 +85,7 @@ func (s Snowflake) Increment() uint16 {
 	return uint16(s & 0xFFF)
 }
 
-// AppendText lets json/v2 emit the snowflake as a quoted string without a temp []byte.
+// Appends the decimal snowflake string so json/v2 emits quoted IDs without a temporary []byte.
 func (s Snowflake) AppendText(b []byte) ([]byte, error) {
 	return strconv.AppendUint(b, uint64(s), 10), nil
 }

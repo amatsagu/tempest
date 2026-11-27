@@ -22,14 +22,16 @@ Tempest uses modern `encoding/json/v2` and `encoding/json/jsontext`. Follow thes
 - **Numbers and Flags**:
   Always use `omitzero` rather than `omitempty` on primitive numbers (`uint*`, `int*`, `float*`) and bitset flags. In `json/v2`, `omitempty` does not omit `0`, which causes Discord API rejection (e.g. `max_values: 0`, `duration: 0`).
 - **Boolean fields**:
-  Use `omitzero` on boolean fields that default to `false` in Discord (e.g. `Disabled`, `NSFW`, `CommandOption.Required`, `AutoComplete`, `Spoiler`).
-  - When `false` (default): omitted completely from outgoing JSON, saving bytes and parsing time.
-  - When `true`: serialized as `"field": true`.
-  - **Nullable zero vs unset (`*float64`, `*uint8`)**:
+  - Use plain `bool` with `omitzero` on boolean fields whose Discord default is `false` (e.g. `Disabled`, `NSFW`, `CommandOption.Required`, `AutoComplete`, `Spoiler`, `RepliedUser`, `Inline`, `Multiselect`).
+    - When `false` (default): omitted completely from outgoing JSON, saving bytes and parsing time.
+    - When `true`: serialized as `"field": true`.
+  - Use `*bool` with `omitzero` on optional boolean fields whose Discord default is `true` (e.g. `Required` on `StringSelectComponent`, `SelectComponent`, `TextInputComponent`, `FileUploadComponent`, `RadioGroupComponent`, `CheckboxGroupComponent`; `Divider` on `SeparatorComponent`; `FailIfNotExists` on `MessageReference`).
+    - When `nil` (default): omitted completely from JSON so Discord applies its `true` default cleanly (and shared select components used in messages never emit invalid `"required"` keys).
+    - When `new(false)` or `new(true)` (Go 1.27): explicitly serialized as `"field": false` or `"field": true`.
+- **Nullable zero vs unset (`*float64`, `*uint8`)**:
   Use pointer primitives with `omitzero` on numeric fields where omitting the key means a non-zero Discord default or "unbounded", while `0` is a distinct valid value:
-  - `CommandOption.MinValue` / `MaxValue` (`*float64`): `nil` omits, `&0` emits `0`, `&1` emits `1`, etc.
-  - `MinValues` (`*uint8` on `StringSelectComponent`, `SelectComponent`, `FileUploadComponent`, `CheckboxGroupComponent`): Discord defaults omitted `min_values` to `1`, while `0` is needed for optional selection when `Required` is `false`.
-- **Important**: Do NOT use `omitzero` on fields that default to `true` in Discord (e.g. `Required` on modal components like `SelectComponent`/`StringSelectComponent`/`TextInputComponent`/`FileUploadComponent`/`RadioGroupComponent`/`CheckboxGroupComponent`, or `Divider` on `SeparatorComponent`). If omitted, Discord will apply its `true` default, preventing developers from setting them to `false`.
+  - `CommandOption.MinValue` / `MaxValue` (`*float64`): `nil` omits, `new(0.0)` emits `0`, `new(1.0)` emits `1`, etc.
+  - `MinValues` (`*uint8` on `StringSelectComponent`, `SelectComponent`, `FileUploadComponent`, `CheckboxGroupComponent`): Discord defaults omitted `min_values` to `1`, while `0` is needed for optional selection when `Required` is `new(false)`.
 - **Pointer/string tags (`omitzero` over `omitempty`)**:
   Prefer `,omitzero` over `,omitempty` on optional `string` and pointer (`*T`) fields so `json/v2` checks Go zero/nil directly without encoding/probing the underlying value. Keep `,omitempty` only on `any` (`CommandInteractionOption.Value`).
 - **Snowflake fields**:

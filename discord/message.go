@@ -342,11 +342,11 @@ type Message struct {
 
 // https://docs.discord.com/developers/resources/message#message-reference-structure
 type MessageReference struct {
+	FailIfNotExists *bool                `json:"fail_if_not_exists,omitzero"` // Whether to error if the referenced message does not exist (defaults to true when nil/omitted).
 	MessageID       MessageID            `json:"message_id,omitzero"`
 	ChannelID       ChannelID            `json:"channel_id,omitzero"`
 	GuildID         GuildID              `json:"guild_id,omitzero"`
 	Type            MessageReferenceType `json:"type,omitzero"`
-	FailIfNotExists bool                 `json:"fail_if_not_exists"`
 }
 
 // https://docs.discord.com/developers/resources/message#message-reference-types

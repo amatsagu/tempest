@@ -72,6 +72,7 @@ func TestNonceUnmarshalJSON(t *testing.T) {
 				if err := json.Unmarshal([]byte(tc.json), &msg); err != nil {
 					t.Fatalf("unmarshal %s failed: %v", tc.json, err)
 				}
+
 				if msg.Nonce != tc.want {
 					t.Fatalf("got %q, want %q", msg.Nonce, tc.want)
 				}
@@ -186,6 +187,7 @@ func TestMessageUnmarshalAndSerialization(t *testing.T) {
 	if parsed.ID != msg.ID || parsed.ChannelID != msg.ChannelID || parsed.Nonce != "req-1" {
 		t.Fatalf("unexpected decoded scalar fields: %+v", parsed)
 	}
+
 	if len(parsed.Components) != 2 || len(parsed.Embeds) != 1 || len(parsed.Attachments) != 1 || parsed.Poll == nil {
 		t.Fatalf("missing nested slices/structs in decoded message: %#v", parsed)
 	}
@@ -209,9 +211,11 @@ func TestMessageUnmarshalAndSerialization(t *testing.T) {
 		if err := json.Unmarshal([]byte(`null`), &msg); err != nil {
 			t.Fatalf("unmarshal null message failed: %v", err)
 		}
+
 		if err := json.Unmarshal([]byte(`{"unknown_prop":{"nested":1},"flags":0,"position":1,"type":0,"mention_everyone":true,"tts":true,"pinned":true}`), &msg); err != nil {
 			t.Fatalf("unmarshal unknown prop failed: %v", err)
 		}
+
 		if !msg.MentionEveryone || !msg.TTS || !msg.Pinned || msg.Position != 1 {
 			t.Fatalf("unexpected decoded scalar flags: %+v", msg)
 		}
@@ -227,7 +231,7 @@ func TestMessageUnmarshalAndSerialization(t *testing.T) {
 			Author:              &User{ID: UserID{Snowflake: 6}, Username: "a"},
 			Member:              &Member{JoinedAt: now, Nickname: "n"},
 			Resolved:            &InteractionDataResolved{Users: map[UserID]User{{Snowflake: 6}: {Username: "a"}}},
-			MessageReference:    &MessageReference{MessageID: MessageID{Snowflake: 7}, FailIfNotExists: true},
+			MessageReference:    &MessageReference{MessageID: MessageID{Snowflake: 7}, FailIfNotExists: new(true)},
 			InteractionMetadata: &MessageInteractionMetadata{ID: 8, Type: ApplicationCommandInteractionType, User: User{Username: "u"}},
 			ReferencedMessage:   &Message{ID: MessageID{Snowflake: 9}, Content: "ref"},
 			Mentions:            []User{{ID: UserID{Snowflake: 10}, Username: "m"}},
@@ -237,11 +241,13 @@ func TestMessageUnmarshalAndSerialization(t *testing.T) {
 			Reactions:           []Reaction{{Emoji: Emoji{Name: "👍"}, Count: 2, Me: true}},
 			Content:             "full message",
 		}
+
 		fullRaw := mustMarshalJSON(t, &full)
 		var decodedFull Message
 		if err := decodedFull.UnmarshalJSON(fullRaw); err != nil {
 			t.Fatalf("Message.UnmarshalJSON(full) failed: %v", err)
 		}
+
 		if decodedFull.WebhookID != 5 || decodedFull.ReferencedMessage == nil || len(decodedFull.Reactions) != 1 || len(decodedFull.StickerItems) != 1 {
 			t.Fatalf("missing full message fields: %+v", decodedFull)
 		}
@@ -257,12 +263,15 @@ func TestMessageUnmarshalAndSerialization(t *testing.T) {
 		if err := json.Unmarshal([]byte(`{`), &bad); err == nil {
 			t.Fatal("expected JSON syntax error")
 		}
+
 		if err := json.Unmarshal([]byte(`{"components":[{"type":99}]}`), &bad); err == nil {
 			t.Fatal("expected component decode error")
 		}
+
 		if err := json.Unmarshal([]byte(`{"components":[{"type":18,"label":"ModalOnly","component":{"type":23,"custom_id":"c"}}]}`), &bad); err != nil {
 			t.Fatalf("unexpected error when non-MessageComponent present: %v", err)
 		}
+
 		if len(bad.Components) != 0 {
 			t.Fatalf("expected non-MessageComponent to be skipped, got %#v", bad.Components)
 		}
@@ -298,10 +307,12 @@ func TestCommandEntitlementAndResponseJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal Command failed: %v", err)
 	}
+
 	var cmdOut Command
 	if err := json.Unmarshal(cmdRaw, &cmdOut); err != nil {
 		t.Fatalf("unmarshal Command failed: %v", err)
 	}
+
 	if cmdOut.Name != "deploy" || cmdOut.RequiredPermissions != cmd.RequiredPermissions || len(cmdOut.Contexts) != 2 {
 		t.Fatalf("unexpected decoded command: %+v", cmdOut)
 	}
@@ -316,14 +327,17 @@ func TestCommandEntitlementAndResponseJSON(t *testing.T) {
 		StartsAt:      &now,
 		EndsAt:        &now,
 	}
+
 	entRaw, err := json.Marshal(&ent)
 	if err != nil {
 		t.Fatalf("marshal Entitlement failed: %v", err)
 	}
+
 	var entOut Entitlement
 	if err := json.Unmarshal(entRaw, &entOut); err != nil {
 		t.Fatalf("unmarshal Entitlement failed: %v", err)
 	}
+
 	if entOut.ID != ent.ID || entOut.Type != ApplicationSubscriptionEntitlementType {
 		t.Fatalf("unexpected entitlement: %+v", entOut)
 	}
@@ -339,10 +353,12 @@ func TestCommandEntitlementAndResponseJSON(t *testing.T) {
 			Flags: EphemeralMessageFlag,
 		},
 	}
+
 	respRaw, err := json.Marshal(&resp)
 	if err != nil {
 		t.Fatalf("marshal ResponseMessage failed: %v", err)
 	}
+
 	if !strings.Contains(string(respRaw), `"content":"ok"`) {
 		t.Fatalf("unexpected response payload: %s", respRaw)
 	}
@@ -374,13 +390,16 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 					Type:        IntegerOptionType,
 					MinValue:    tc.minValue,
 				}
+
 				raw := string(mustMarshalJSON(t, opt))
 				if tc.wantOmit {
 					if strings.Contains(raw, `"min_value"`) {
 						t.Fatalf("expected min_value omitted when nil, got %s", raw)
 					}
+
 					return
 				}
+
 				if !strings.Contains(raw, tc.wantSub) {
 					t.Fatalf("expected %s in %s", tc.wantSub, raw)
 				}
@@ -389,6 +408,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 				if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
 					t.Fatalf("unmarshal CommandOption failed: %v", err)
 				}
+
 				if decoded.MinValue == nil || *decoded.MinValue != *tc.minValue {
 					t.Fatalf("decoded MinValue = %v, want %v", decoded.MinValue, *tc.minValue)
 				}
@@ -405,6 +425,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 				Embeds:  []Embed{{Title: "Report", Description: "Details"}},
 			},
 		}
+
 		rawWithEmbed := string(mustMarshalJSON(t, &withEmbed))
 		if !strings.Contains(rawWithEmbed, `"embeds":[{`) {
 			t.Fatalf("expected embeds array with embed object, got %s", rawWithEmbed)
@@ -417,6 +438,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 				Content: "Text only",
 			},
 		}
+
 		rawNoEmbeds := string(mustMarshalJSON(t, &noEmbeds))
 		if strings.Contains(rawNoEmbeds, `"embeds"`) {
 			t.Fatalf("expected embeds key to vanish when nil, got %s", rawNoEmbeds)
@@ -430,6 +452,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 				Embeds:  []Embed{},
 			},
 		}
+
 		rawCleared := string(mustMarshalJSON(t, &clearedEmbeds))
 		if !strings.Contains(rawCleared, `"embeds":[]`) {
 			t.Fatalf("expected explicit empty array \"embeds\":[], got %s", rawCleared)
@@ -440,10 +463,12 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 		if !strings.Contains(msgWithEmbed, `"embeds":[{`) {
 			t.Fatalf("expected embed on Message, got %s", msgWithEmbed)
 		}
+
 		msgVanish := string(mustMarshalJSON(t, &Message{Content: "plain"}))
 		if strings.Contains(msgVanish, `"embeds"`) || strings.Contains(msgVanish, `"channel_id"`) || strings.Contains(msgVanish, `"id"`) {
 			t.Fatalf("expected nil/zero fields to vanish on plain Message, got %s", msgVanish)
 		}
+
 		msgClear := string(mustMarshalJSON(t, &Message{Content: "plain", Embeds: []Embed{}}))
 		if !strings.Contains(msgClear, `"embeds":[]`) {
 			t.Fatalf("expected \"embeds\":[] on cleared Message, got %s", msgClear)
@@ -454,6 +479,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 			Parse: []AllowedMentionsType{},
 			Roles: []RoleID{},
 		}
+
 		rawAM := string(mustMarshalJSON(t, am))
 		if !strings.Contains(rawAM, `"parse":[]`) || !strings.Contains(rawAM, `"roles":[]`) {
 			t.Fatalf("expected empty parse and roles arrays, got %s", rawAM)
@@ -464,6 +490,7 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 		if strings.Contains(ctxCmdRaw, `"description"`) {
 			t.Fatalf("expected context menu command to omit empty description, got %s", ctxCmdRaw)
 		}
+
 		btnEmojiRaw := string(mustMarshalJSON(t, ButtonComponent{
 			Type:     ButtonComponentType,
 			Style:    SecondaryButtonStyle,
@@ -475,9 +502,20 @@ func TestCommandOptionMinValuesAndEmbedReplySemantics(t *testing.T) {
 				t.Fatalf("expected partial button emoji to omit %s, got %s", unexpected, btnEmojiRaw)
 			}
 		}
+
 		entRaw := string(mustMarshalJSON(t, Entitlement{ID: EntitlementID{Snowflake: 1}, SkuID: SkuID{Snowflake: 2}, ApplicationID: AppID{Snowflake: 3}, Type: PurchaseEntitlementType}))
 		if strings.Contains(entRaw, `"starts_at"`) || strings.Contains(entRaw, `"ends_at"`) {
 			t.Fatalf("expected nil entitlement timestamps to be omitted, got %s", entRaw)
+		}
+
+		refOmit := string(mustMarshalJSON(t, MessageReference{MessageID: MessageID{Snowflake: 7}}))
+		if strings.Contains(refOmit, `"fail_if_not_exists"`) {
+			t.Fatalf("expected nil FailIfNotExists to be omitted, got %s", refOmit)
+		}
+
+		refFalse := string(mustMarshalJSON(t, MessageReference{MessageID: MessageID{Snowflake: 7}, FailIfNotExists: new(false)}))
+		if !strings.Contains(refFalse, `"fail_if_not_exists":false`) {
+			t.Fatalf("expected fail_if_not_exists:false when explicitly false, got %s", refFalse)
 		}
 	})
 }
@@ -497,6 +535,7 @@ func BenchmarkMessage_JSON(b *testing.B) {
 		Type:      DefaultMessageType,
 		Flags:     EphemeralMessageFlag,
 	}
+
 	data, err := json.Marshal(&msg)
 	if err != nil {
 		b.Fatal(err)
@@ -508,6 +547,7 @@ func BenchmarkMessage_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&msg); err != nil {
 			b.Fatal(err)
 		}
@@ -538,6 +578,7 @@ func BenchmarkMessageWithComponents_JSON(b *testing.B) {
 			benchmarkSampleContainer(),
 		},
 	}
+
 	data, err := json.Marshal(&msg)
 	if err != nil {
 		b.Fatal(err)
@@ -549,6 +590,7 @@ func BenchmarkMessageWithComponents_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&msg); err != nil {
 			b.Fatal(err)
 		}
@@ -608,6 +650,7 @@ func BenchmarkCommand_JSON(b *testing.B) {
 			{Name: "reason", Description: "Reason", Type: StringOptionType},
 		},
 	}
+
 	data, err := json.Marshal(&cmd)
 	if err != nil {
 		b.Fatal(err)
@@ -619,6 +662,7 @@ func BenchmarkCommand_JSON(b *testing.B) {
 		if err := json.Unmarshal(data, &parsed); err != nil {
 			b.Fatal(err)
 		}
+
 		if _, err := json.Marshal(&cmd); err != nil {
 			b.Fatal(err)
 		}
