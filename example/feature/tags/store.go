@@ -8,10 +8,7 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// tagStore keeps each server's tags in memory, shared by every invocation.
-//
-// This is intentionally never persisted or pruned; a real bot would back it with
-// a database and cap the tags per server.
+// In-memory guild tag store, reset on restart.
 type tagStore struct {
 	servers map[discord.GuildID]map[string]string
 	mu      sync.RWMutex
@@ -53,7 +50,6 @@ func (s *tagStore) remove(guild discord.GuildID, name string) bool {
 	return true
 }
 
-// names returns a guild's tag names in a stable order.
 func (s *tagStore) names(guild discord.GuildID) []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

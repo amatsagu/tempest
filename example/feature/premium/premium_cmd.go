@@ -17,21 +17,16 @@ import (
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// Discord SKU types.
 const (
 	skuDurable           uint8 = 2
 	skuConsumable        uint8 = 3
 	skuSubscription      uint8 = 5
 	skuSubscriptionGroup uint8 = 6
-)
 
-// Discord SKU flags.
-const (
 	skuFlagAvailable         uint64 = 1 << 2
 	skuFlagGuildSubscription uint64 = 1 << 7
 )
 
-// sku is the subset of Discord's SKU object this example displays.
 type sku struct {
 	Name          string        `json:"name"`
 	Slug          string        `json:"slug"`
@@ -47,14 +42,12 @@ func (s sku) guildSubscription() bool {
 	return s.Flags&skuFlagGuildSubscription != 0
 }
 
-// Subscription statuses.
 const (
 	subscriptionActive   uint8 = 0
 	subscriptionInactive uint8 = 1
 	subscriptionEnding   uint8 = 2
 )
 
-// subscription is the subset of Discord's subscription object this example uses.
 type subscription struct {
 	CurrentPeriodEnd time.Time              `json:"current_period_end"`
 	CanceledAt       *time.Time             `json:"canceled_at"`
@@ -64,8 +57,7 @@ type subscription struct {
 	Status           uint8                  `json:"status"`
 }
 
-// premiumCommand answers /premium. It caches the SKU list because the status
-// command, the subscription command, and autocomplete all need it.
+// Shared across subcommands and autocomplete via the SKU cache.
 type premiumCommand struct {
 	client   *tempest.Client
 	skuCache []sku
@@ -78,10 +70,8 @@ func newPremiumCommand(client *tempest.Client) *premiumCommand {
 
 func (c *premiumCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "premium",
-			Description: "Look at this app's SKUs, your entitlements, and your subscriptions.",
-		},
+		Name:                "premium",
+		Description:         "Look at this app's SKUs, your entitlements, and your subscriptions.",
 		SlashCommandHandler: c.handleRoot,
 	}
 }
@@ -90,7 +80,6 @@ func (c *premiumCommand) handleRoot(ctx context.Context, itx *tempest.CommandInt
 	return itx.SendLinearReply(ctx, "Pick a /premium subcommand.", true)
 }
 
-// fetchSKUs returns the cached SKU list, loading it on first use.
 func (c *premiumCommand) fetchSKUs(ctx context.Context) ([]sku, error) {
 	c.mu.Lock()
 	cached := c.skuCache
@@ -113,7 +102,6 @@ func (c *premiumCommand) fetchSKUs(ctx context.Context) ([]sku, error) {
 	return skus, nil
 }
 
-// status lists the active entitlements of the invoking user and of the server.
 func (c *premiumCommand) status(ctx context.Context, itx *tempest.CommandInteraction) error {
 	user := itx.BaseUser()
 	if user == nil {
@@ -144,7 +132,6 @@ func (c *premiumCommand) status(ctx context.Context, itx *tempest.CommandInterac
 	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
-// skus lists every SKU the app offers, marking the ones that can be bought.
 func (c *premiumCommand) skus(ctx context.Context, itx *tempest.CommandInteraction) error {
 	skus, err := c.fetchSKUs(ctx)
 	if err != nil {
@@ -173,7 +160,6 @@ func (c *premiumCommand) skus(ctx context.Context, itx *tempest.CommandInteracti
 	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
-// subscriptions lists the invoking user's subscriptions for the chosen SKU.
 func (c *premiumCommand) subscriptions(ctx context.Context, itx *tempest.CommandInteraction) error {
 	user := itx.BaseUser()
 	if user == nil {
@@ -209,9 +195,8 @@ func (c *premiumCommand) subscriptions(ctx context.Context, itx *tempest.Command
 	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
-// autocomplete suggests the subscription SKUs by name.
 func (c *premiumCommand) autocomplete(ctx context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
-	typed := focusedString(itx)
+	typed := strings.ToLower(util.FocusedString(itx))
 
 	skus, err := c.fetchSKUs(ctx)
 	if err != nil {
@@ -237,8 +222,6 @@ func (c *premiumCommand) autocomplete(ctx context.Context, itx *tempest.CommandI
 	return choices, nil
 }
 
-// writeEntitlements appends one line per active entitlement; deleted, consumed,
-// and expired ones are skipped.
 func writeEntitlements(b *strings.Builder, entitlements []discord.Entitlement, now time.Time) {
 	active := 0
 
@@ -272,7 +255,6 @@ func entitlementActive(entitlement discord.Entitlement, now time.Time) bool {
 	return entitlement.EndsAt == nil || now.Before(*entitlement.EndsAt)
 }
 
-// skuKind names a SKU type for display.
 func skuKind(sku sku) string {
 	switch sku.Type {
 	case skuDurable:
@@ -291,7 +273,6 @@ func skuKind(sku sku) string {
 	}
 }
 
-// entitlementKind names an entitlement type for display.
 func entitlementKind(kind discord.EntitlementType) string {
 	switch kind {
 	case discord.PurchaseEntitlementType:
@@ -315,7 +296,6 @@ func entitlementKind(kind discord.EntitlementType) string {
 	}
 }
 
-// subscriptionStatus names a subscription status for display.
 func subscriptionStatus(status uint8) string {
 	switch status {
 	case subscriptionActive:
@@ -327,16 +307,4 @@ func subscriptionStatus(status uint8) string {
 	default:
 		return "unknown"
 	}
-}
-
-func focusedString(itx *tempest.CommandInteraction) string {
-	for _, option := range itx.Data.Options {
-		if !option.Focused {
-			continue
-		}
-
-		value, _ := option.Value.(string)
-		return strings.ToLower(value)
-	}
-	return ""
 }

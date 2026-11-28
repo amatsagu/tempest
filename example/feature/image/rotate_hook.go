@@ -15,10 +15,8 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// maxImageBytes caps the download so an oversized upload cannot exhaust memory.
 const maxImageBytes = 8 << 20 // 8 MiB
 
-// handleSubmit downloads the uploaded PNG, rotates it, and posts it back.
 func (c *rotateCommand) handleSubmit(ctx context.Context, itx *tempest.ModalInteraction) error {
 	attachments := itx.GetFileUploadAttachments(rotateUploadID)
 	if len(attachments) == 0 {
@@ -86,14 +84,13 @@ func downloadImage(ctx context.Context, url string) ([]byte, error) {
 	return data, nil
 }
 
-// rotate90CW rotates src 90 degrees clockwise, swapping width and height.
 func rotate90CW(src image.Image) *image.RGBA {
 	bounds := src.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
 
 	dst := image.NewRGBA(image.Rect(0, 0, height, width))
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			// Clockwise: the source top-left becomes the destination top-right.
 			dst.Set(height-1-y, x, src.At(bounds.Min.X+x, bounds.Min.Y+y))
 		}

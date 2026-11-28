@@ -8,7 +8,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires the slash command handlers and returns their definitions.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	ping := newPingCommand()
 	echo := newEchoCommand()

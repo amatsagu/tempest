@@ -7,8 +7,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires the static component and modal handlers plus the commands that
-// show them.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	panel := newPanelCommand()
 	ticket := newTicketCommand(client)

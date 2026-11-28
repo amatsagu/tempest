@@ -234,6 +234,7 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch itxType {
 	case discord.PingInteractionType:
 		c.writeJSON(w, bodyPingResponse)
+
 	case discord.ApplicationCommandInteractionType:
 		itx := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
@@ -241,10 +242,12 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
+
 		itx.Client = c
 		c.serveAsyncHTTP(w, r, &itx.interactionContext, func(ctx context.Context) {
 			_ = c.dispatchCommand(ctx, itx)
 		})
+
 	case discord.MessageComponentInteractionType:
 		itx := new(ComponentInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
@@ -252,10 +255,12 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
+
 		itx.Client = c
 		c.serveAsyncHTTP(w, r, &itx.interactionContext, func(ctx context.Context) {
 			_ = c.dispatchComponent(ctx, itx)
 		})
+
 	case discord.ApplicationCommandAutoCompleteInteractionType:
 		itx := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
@@ -263,8 +268,10 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
+
 		itx.Client = c
 		c.serveAutocompleteHTTP(w, r.Context(), itx)
+
 	case discord.ModalSubmitInteractionType:
 		itx := new(ModalInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
@@ -272,10 +279,12 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "bad request - invalid body json payload", http.StatusBadRequest)
 			return
 		}
+
 		itx.Client = c
 		c.serveAsyncHTTP(w, r, &itx.interactionContext, func(ctx context.Context) {
 			_ = c.dispatchModal(ctx, itx)
 		})
+
 	default:
 		http.Error(w, "bad request - unsupported interaction type", http.StatusBadRequest)
 	}
@@ -300,66 +309,81 @@ func (c *Client) HandleInteraction(ctx context.Context, rawData []byte) error {
 	switch itxType {
 	case discord.PingInteractionType:
 		return nil
+
 	case discord.ApplicationCommandInteractionType:
 		itx := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
 			return fmt.Errorf("failed to unmarshal command interaction: %w", err)
 		}
+
 		itx.Client = c
 		if err := c.acquireSlot(ctx); err != nil {
 			return err
 		}
+
 		c.wg.Add(1)
 		defer c.wg.Done()
 		defer c.releaseSlot()
 		return c.dispatchCommand(ctx, itx)
+
 	case discord.MessageComponentInteractionType:
 		itx := new(ComponentInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
 			return fmt.Errorf("failed to unmarshal component interaction: %w", err)
 		}
+
 		itx.Client = c
 		if err := c.acquireSlot(ctx); err != nil {
 			return err
 		}
+
 		c.wg.Add(1)
 		defer c.wg.Done()
 		defer c.releaseSlot()
 		return c.dispatchComponent(ctx, itx)
+
 	case discord.ApplicationCommandAutoCompleteInteractionType:
 		itx := new(CommandInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
 			return fmt.Errorf("failed to unmarshal autocomplete interaction: %w", err)
 		}
+
 		itx.Client = c
 		if err := c.acquireSlot(ctx); err != nil {
 			return err
 		}
+
 		c.wg.Add(1)
 		defer c.wg.Done()
 		defer c.releaseSlot()
+
 		choices, err := c.runAutoComplete(ctx, itx)
 		if err != nil {
 			return err
 		}
+
 		res := discord.ResponseAutoComplete{
 			Type: discord.AutocompleteResponseType,
 			Data: &discord.ResponseAutoCompleteData{Choices: choices},
 		}
 		return c.Rest.Request(ctx, http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", &res, nil)
+
 	case discord.ModalSubmitInteractionType:
 		itx := new(ModalInteraction)
 		if err := json.Unmarshal(rawData, itx); err != nil {
 			return fmt.Errorf("failed to unmarshal modal interaction: %w", err)
 		}
+
 		itx.Client = c
 		if err := c.acquireSlot(ctx); err != nil {
 			return err
 		}
+
 		c.wg.Add(1)
 		defer c.wg.Done()
 		defer c.releaseSlot()
 		return c.dispatchModal(ctx, itx)
+
 	default:
 		return fmt.Errorf("unsupported interaction type %d", itxType)
 	}
@@ -429,6 +453,18 @@ func (c *Client) serveAutocompleteHTTP(w http.ResponseWriter, reqCtx context.Con
 	c.writeJSON(w, buf.Bytes())
 }
 
+func (c *Client) writeSessionPayload(w http.ResponseWriter, payload responsePayload) {
+	if len(payload.data) > 0 {
+		c.writeJSON(w, payload.data)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+
+	if payload.buf != nil {
+		c.releaseBuffer(payload.buf)
+	}
+}
+
 func (c *Client) awaitResponse(reqCtx context.Context, w http.ResponseWriter, session *httpSession) {
 	defer session.releaseRef()
 
@@ -442,42 +478,21 @@ func (c *Client) awaitResponse(reqCtx context.Context, w http.ResponseWriter, se
 
 	select {
 	case payload := <-session.responseCh:
-		if len(payload.data) > 0 {
-			c.writeJSON(w, payload.data)
-		} else {
-			w.WriteHeader(http.StatusNoContent)
-		}
-		if payload.buf != nil {
-			c.releaseBuffer(payload.buf)
-		}
+		c.writeSessionPayload(w, payload)
+
 	case <-timer.C:
 		if session.state.CompareAndSwap(sessionPending, sessionTimedOut) {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		payload := <-session.responseCh
-		if len(payload.data) > 0 {
-			c.writeJSON(w, payload.data)
-		} else {
-			w.WriteHeader(http.StatusNoContent)
-		}
-		if payload.buf != nil {
-			c.releaseBuffer(payload.buf)
-		}
+		c.writeSessionPayload(w, <-session.responseCh)
+
 	case <-done:
 		if session.state.CompareAndSwap(sessionPending, sessionTimedOut) {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		payload := <-session.responseCh
-		if len(payload.data) > 0 {
-			c.writeJSON(w, payload.data)
-		} else {
-			w.WriteHeader(http.StatusNoContent)
-		}
-		if payload.buf != nil {
-			c.releaseBuffer(payload.buf)
-		}
+		c.writeSessionPayload(w, <-session.responseCh)
 	}
 }
 

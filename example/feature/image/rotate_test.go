@@ -8,11 +8,10 @@ import (
 	"testing"
 )
 
-// TestRotate90CW rotates a known 3x2 image and checks dimensions and pixels.
 func TestRotate90CW(t *testing.T) {
 	src := image.NewRGBA(image.Rect(0, 0, 3, 2))
-	for y := 0; y < 2; y++ {
-		for x := 0; x < 3; x++ {
+	for y := range 2 {
+		for x := range 3 {
 			src.Set(x, y, color.RGBA{R: uint8(x + 1), G: uint8(y + 1), B: 9, A: 255})
 		}
 	}
@@ -40,8 +39,7 @@ func TestRotate90CW(t *testing.T) {
 	}
 }
 
-// TestRotateModalFileTypes pins the file_types wire format: a dot-prefixed
-// extension, never a MIME type like "image/png".
+// Discord requires dot-prefixed extensions, never MIME types like "image/png".
 func TestRotateModalFileTypes(t *testing.T) {
 	data, err := json.Marshal(rotateModal())
 	if err != nil {

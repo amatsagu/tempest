@@ -6,7 +6,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires /stats, sharing the Stats created in main with the command hook.
 func Register(client *tempest.Client, stats *Stats) ([]tempest.Command, error) {
 	cmd := newStatsCommand(client, stats)
 

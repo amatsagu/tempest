@@ -10,10 +10,9 @@ import (
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// colorCommand holds the known colors; names is a slice so autocomplete stays ordered.
 type colorCommand struct {
 	values map[string]uint32
-	names  []string
+	names  []string // ordered for deterministic autocomplete
 }
 
 func newColorCommand() *colorCommand {
@@ -31,17 +30,15 @@ func newColorCommand() *colorCommand {
 
 func (c *colorCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "color",
-			Description: "Show a color, with autocomplete on the name.",
-			Options: []discord.CommandOption{
-				{
-					Type:         discord.StringOptionType,
-					Name:         "name",
-					Description:  "Which color to show.",
-					Required:     true,
-					AutoComplete: true,
-				},
+		Name:        "color",
+		Description: "Show a color, with autocomplete on the name.",
+		Options: []discord.CommandOption{
+			{
+				Type:         discord.StringOptionType,
+				Name:         "name",
+				Description:  "Which color to show.",
+				Required:     true,
+				AutoComplete: true,
 			},
 		},
 		AutoCompleteHandler: c.autocomplete,
@@ -50,8 +47,7 @@ func (c *colorCommand) Definition() tempest.Command {
 }
 
 func (c *colorCommand) autocomplete(_ context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
-	typed := focusedString(itx)
-	typed = strings.ToLower(typed)
+	typed := strings.ToLower(util.FocusedString(itx))
 
 	choices := make([]discord.CommandOptionChoice, 0, len(c.names))
 	for _, name := range c.names {
@@ -71,18 +67,4 @@ func (c *colorCommand) handle(ctx context.Context, itx *tempest.CommandInteracti
 	}
 
 	return itx.SendReply(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
-}
-
-// focusedString reads the focused autocomplete value without the panic in
-// GetFocusedValue for malformed payloads.
-func focusedString(itx *tempest.CommandInteraction) string {
-	for _, option := range itx.Data.Options {
-		if !option.Focused {
-			continue
-		}
-
-		value, _ := option.Value.(string)
-		return value
-	}
-	return ""
 }

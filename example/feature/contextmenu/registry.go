@@ -7,8 +7,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires the context menu handlers; the target arrives as Data.TargetID
-// and Data.Resolved.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	userInfo := newUserInfoCommand()
 	quote := newQuoteCommand()

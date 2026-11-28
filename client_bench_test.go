@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/amatsagu/tempest/discord"
 	"github.com/amatsagu/tempest/rest"
 )
 
@@ -350,9 +349,9 @@ func newBenchClient(b *testing.B, hooks ClientHooks) (*Client, ed25519.PrivateKe
 		_ = client.Shutdown(context.Background())
 	})
 
-	_ = client.RegisterCommand(Command{Command: discord.Command{Name: "admin", Description: "Admin"}})
+	_ = client.RegisterCommand(Command{Name: "admin", Description: "Admin"})
 	_ = client.RegisterSubCommand(Command{
-		Command: discord.Command{Name: "sanction", Description: "Sanction"},
+		Name: "sanction", Description: "Sanction",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			return itx.SendLinearReply(ctx, "ok", true)
 		},

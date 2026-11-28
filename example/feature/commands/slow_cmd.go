@@ -14,16 +14,12 @@ func newSlowCommand() *slowCommand { return &slowCommand{} }
 
 func (c *slowCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "slow",
-			Description: "Acknowledges at once, then finishes a slow task and edits the reply.",
-		},
+		Name:                "slow",
+		Description:         "Acknowledges at once, then finishes a slow task and edits the reply.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle defers immediately, then does the slow work and replies; because a first
-// reply already went out, SendReply edits the original response in place.
 func (c *slowCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	if err := itx.Defer(ctx, true); err != nil {
 		return err

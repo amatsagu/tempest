@@ -9,7 +9,7 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Stats accumulates interaction lifecycle counts across all Pre, Post, and Error hooks.
+// Tracks interaction lifecycle counts across all Pre, Post, and Error hooks.
 type Stats struct {
 	started             time.Time
 	commandsStarted     atomic.Uint64
@@ -21,7 +21,7 @@ type Stats struct {
 	errors              atomic.Uint64
 }
 
-// NewStats returns a Stats whose uptime starts now.
+// Creates a tracker whose uptime starts immediately.
 func NewStats() *Stats {
 	return &Stats{started: time.Now()}
 }
@@ -65,7 +65,7 @@ func (s *Stats) RecordModalError(_ context.Context, _ *tempest.ModalInteraction,
 	s.errors.Add(1)
 }
 
-// Snapshot is a point-in-time copy of the lifecycle counters and uptime.
+// Point-in-time copy of the lifecycle counters and uptime.
 type Snapshot struct {
 	Uptime              time.Duration
 	CommandsStarted     uint64
@@ -77,7 +77,6 @@ type Snapshot struct {
 	Errors              uint64
 }
 
-// Snapshot returns the current hook counters.
 func (s *Stats) Snapshot() Snapshot {
 	return Snapshot{
 		Uptime:              time.Since(s.started),

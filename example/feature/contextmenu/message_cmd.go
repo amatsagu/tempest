@@ -15,15 +15,12 @@ func newQuoteCommand() *quoteCommand { return &quoteCommand{} }
 
 func (c *quoteCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Type: discord.MessageCommandType,
-			Name: "Quote",
-		},
+		Type:                discord.MessageCommandType,
+		Name:                "Quote",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle reads the resolved target message.
 func (c *quoteCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	message := itx.Data.Resolved.ResolveMessage(discord.MessageID{Snowflake: itx.Data.TargetID})
 

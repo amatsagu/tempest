@@ -16,10 +16,8 @@ func newEmbedCommand() *embedCommand { return &embedCommand{} }
 
 func (c *embedCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "embed",
-			Description: "Show a rich embed built with plain Tempest types.",
-		},
+		Name:                "embed",
+		Description:         "Show a rich embed built with plain Tempest types.",
 		SlashCommandHandler: c.handle,
 	}
 }

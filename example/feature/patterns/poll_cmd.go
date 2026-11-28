@@ -2,7 +2,6 @@ package patterns
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/amatsagu/tempest"
@@ -18,28 +17,26 @@ func newPollCommand() *pollCommand { return &pollCommand{} }
 
 func (c *pollCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "poll",
-			Description: "Create a native Discord poll via tempest/builder with an owner close button.",
-			Options: []discord.CommandOption{
-				{
-					Type:        discord.StringOptionType,
-					Name:        "question",
-					Description: "Poll question.",
-					Required:    true,
-				},
-				{
-					Type:        discord.StringOptionType,
-					Name:        "options",
-					Description: "Comma-separated answer choices (defaults to Yes, No).",
-				},
-				{
-					Type:        discord.IntegerOptionType,
-					Name:        "hours",
-					Description: "Duration in hours (1-168, default 24).",
-					MinValue:    util.Ptr(1.0),
-					MaxValue:    util.Ptr(168.0),
-				},
+		Name:        "poll",
+		Description: "Create a native Discord poll via tempest/builder with an owner close button.",
+		Options: []discord.CommandOption{
+			{
+				Type:        discord.StringOptionType,
+				Name:        "question",
+				Description: "Poll question.",
+				Required:    true,
+			},
+			{
+				Type:        discord.StringOptionType,
+				Name:        "options",
+				Description: "Comma-separated answer choices (defaults to Yes, No).",
+			},
+			{
+				Type:        discord.IntegerOptionType,
+				Name:        "hours",
+				Description: "Duration in hours (1-168, default 24).",
+				MinValue:    new(1.0),
+				MaxValue:    new(168.0),
 			},
 		},
 		SlashCommandHandler: c.handle,
@@ -78,13 +75,6 @@ func (c *pollCommand) handle(ctx context.Context, itx *tempest.CommandInteractio
 	controls := builder.ActionRow(
 		builder.Button("poll/"+ownerID+"/close", "Close Poll Control", discord.DangerButtonStyle),
 	)
-
-	// Verify FindInteractiveComponent works on constructed component slices cleanly.
-	if btn, found := tempest.FindInteractiveComponent([]discord.MessageComponent{controls}, func(b discord.ButtonComponent) bool {
-		return strings.HasPrefix(b.CustomID, "poll/")
-	}); !found || btn.CustomID == "" {
-		return fmt.Errorf("missing poll close control")
-	}
 
 	return itx.SendReply(ctx, discord.ResponseMessageData{
 		Poll:       &poll,

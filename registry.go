@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -51,6 +52,7 @@ func (c *Client) RegisterCommand(cmd Command) error {
 
 	c.commands[cmd.Name] = cmd
 	c.tracef("Registered command %q.", cmd.Name)
+
 	return nil
 }
 
@@ -60,6 +62,7 @@ func (c *Client) RegisterSubCommand(sub Command, parentPath ...string) error {
 	if len(parentPath) < 1 || len(parentPath) > 2 {
 		return fmt.Errorf("RegisterSubCommand requires 1 or 2 parent path segments, got %d", len(parentPath))
 	}
+
 	if sub.Name == "" {
 		return errors.New("subcommand name must not be empty")
 	}
@@ -95,6 +98,7 @@ func (c *Client) RegisterSubCommand(sub Command, parentPath ...string) error {
 
 	c.commands[key] = sub
 	c.tracef("Registered subcommand %q.", key)
+
 	return nil
 }
 
@@ -117,6 +121,7 @@ func (c *Client) FindCommand(name string) (Command, bool) {
 	c.cmdMu.RLock()
 	cmd, ok := c.commands[name]
 	c.cmdMu.RUnlock()
+
 	return cmd, ok
 }
 
@@ -125,9 +130,7 @@ func (c *Client) RegisteredCommands() iter.Seq2[string, Command] {
 	return func(yield func(string, Command) bool) {
 		c.cmdMu.RLock()
 		snapshot := make(map[string]Command, len(c.commands))
-		for k, v := range c.commands {
-			snapshot[k] = v
-		}
+		maps.Copy(snapshot, c.commands)
 		c.cmdMu.RUnlock()
 
 		keys := make([]string, 0, len(snapshot))
@@ -273,9 +276,7 @@ func (c *Client) resolveCommand(itx *CommandInteraction) (Command, bool) {
 func (c *Client) buildSyncCommands(filter []string, excludeMode bool) []discord.Command {
 	c.cmdMu.RLock()
 	snapshot := make(map[string]Command, len(c.commands))
-	for k, v := range c.commands {
-		snapshot[k] = v
-	}
+	maps.Copy(snapshot, c.commands)
 	c.cmdMu.RUnlock()
 
 	type rootTree struct {

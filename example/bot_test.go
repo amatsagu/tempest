@@ -150,7 +150,7 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		}
 	}
 
-	// Failing component route exercises ComponentError hook too (first register & unregister test route).
+	// Exercise ComponentError hook via a failing component route.
 	if err := client.RegisterComponent("test:err", func(ctx context.Context, itx *tempest.ComponentInteraction) error {
 		return nil
 	}); err != nil {
@@ -164,13 +164,11 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 1. /ping
 	pingResp := postSigned(t, client, priv, `{"id":"1","application_id":"123456789012345678","type":2,"token":"t","app_permissions":"0","data":{"id":"2","name":"ping","type":1}}`)
 	if pingResp.Data == nil || pingResp.Data.Content != "Pong." {
 		t.Fatalf("/ping = %+v, want Pong.", pingResp)
 	}
 
-	// 2. /action autocomplete + /action command + pattern buttons + patterned modal.
 	recAC := httptest.NewRecorder()
 	client.ServeHTTP(recAC, signedWebhookReq(t, priv, `{"id":"2","application_id":"123456789012345678","type":4,"token":"t","app_permissions":"0","data":{"id":"3","name":"action","type":1,"options":[{"name":"note","type":3,"value":"spam","focused":true}]}}`))
 	if recAC.Code != http.StatusOK || !strings.Contains(recAC.Body.String(), "Spamming links") {
@@ -182,19 +180,16 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("/action response missing components: %+v", actionResp)
 	}
 
-	// Exact route "act:help"
 	helpResp := postSigned(t, client, priv, `{"id":"4","application_id":"123456789012345678","type":3,"token":"t","app_permissions":"0","data":{"custom_id":"act:help","component_type":2}}`)
 	if helpResp.Data == nil || !strings.Contains(helpResp.Data.Content, "act/{user_id}/mute/{duration}") {
 		t.Fatalf("act:help = %+v", helpResp)
 	}
 
-	// Multi-wildcard precedence: "act/42/mute/10m" must hit handleMute before "act/{user_id}/{verb}"
 	muteResp := postSigned(t, client, priv, `{"id":"5","application_id":"123456789012345678","type":3,"token":"t","app_permissions":"0","data":{"custom_id":"act/42/mute/10m","component_type":2}}`)
 	if muteResp.Type != discord.UpdateMessageResponseType || muteResp.Data == nil || len(muteResp.Data.Components) == 0 {
 		t.Fatalf("mute pattern = %+v", muteResp)
 	}
 
-	// Single wildcard "act/42/warn" opens patterned modal "act:modal:42:warn"
 	recModalOpen := httptest.NewRecorder()
 	client.ServeHTTP(recModalOpen, signedWebhookReq(t, priv, `{"id":"6","application_id":"123456789012345678","type":3,"token":"t","app_permissions":"0","data":{"custom_id":"act/42/warn","component_type":2}}`))
 	var modalOpenResp struct {
@@ -211,19 +206,16 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("expected patterned modal act:modal:42:warn, got %+v", modalOpenResp)
 	}
 
-	// Modal submit hits "act:modal:{user_id}:{kind}"
 	modalSubmitResp := postSigned(t, client, priv, `{"id":"7","application_id":"123456789012345678","type":5,"token":"t","app_permissions":"0","data":{"custom_id":"act:modal:42:warn","components":[{"type":18,"label":"Reason","component":{"type":4,"style":1,"custom_id":"act:modal:reason","value":"repeated flood"}}]}}`)
 	if modalSubmitResp.Data == nil || !strings.Contains(modalSubmitResp.Data.Content, `kind="warn" user=<@42> reason="repeated flood"`) {
 		t.Fatalf("modal submit = %+v", modalSubmitResp)
 	}
 
-	// Catch-all {trail...}
 	trailResp := postSigned(t, client, priv, `{"id":"8","application_id":"123456789012345678","type":3,"token":"t","app_permissions":"0","data":{"custom_id":"act:note:guild:9:case:12","component_type":2}}`)
 	if trailResp.Data == nil || !strings.Contains(trailResp.Data.Content, `guild:9:case:12`) {
 		t.Fatalf("catch-all note = %+v", trailResp)
 	}
 
-	// 3. /poll + poll/{owner_id}/close
 	pollResp := postSigned(t, client, priv, `{"id":"9","application_id":"123456789012345678","type":2,"token":"t","app_permissions":"0","user":{"id":"99","username":"bob"},"data":{"id":"4","name":"poll","type":1,"options":[{"name":"question","type":3,"value":"Best lang?"},{"name":"options","type":3,"value":"Go, Rust"}]}}`)
 	if pollResp.Data == nil || pollResp.Data.Poll == nil || len(pollResp.Data.Poll.Answers) != 2 {
 		t.Fatalf("/poll = %+v", pollResp)
@@ -234,7 +226,6 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("poll close = %+v", pollClose)
 	}
 
-	// 4. /calc + pattern-matched key press "calc:{session}:{key}"
 	calcResp := postSigned(t, client, priv, `{"id":"11","application_id":"123456789012345678","type":2,"token":"t","app_permissions":"0","data":{"id":"5","name":"calc","type":1}}`)
 	calcCmps := make([]discord.MessageComponent, 0, len(calcResp.Data.Components))
 	for _, rawCmp := range calcResp.Data.Components {
@@ -257,7 +248,6 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("calc press = %+v, want display 7", calcPress)
 	}
 
-	// 5. /tag add + /tag show (missing triggers CommandError) + /tag admin clear (two-level group)
 	_ = postSigned(t, client, priv, `{"id":"13","application_id":"123456789012345678","type":2,"token":"t","guild_id":"77","app_permissions":"0","data":{"id":"6","name":"tag","type":1,"options":[{"name":"add","type":1,"options":[{"name":"name","type":3,"value":"k"},{"name":"value","type":3,"value":"v"}]}]}}`)
 	showErr := postSigned(t, client, priv, `{"id":"14","application_id":"123456789012345678","type":2,"token":"t","guild_id":"77","app_permissions":"0","data":{"id":"6","name":"tag","type":1,"options":[{"name":"show","type":1,"options":[{"name":"name","type":3,"value":"missing"}]}]}}`)
 	if showErr.Data == nil || !strings.Contains(showErr.Data.Content, "tag") {
@@ -268,7 +258,6 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("/tag admin clear = %+v", clearResp)
 	}
 
-	// 6. Runtime RegisterComponent + UnregisterComponent via /ticket
 	ticketResp := postSigned(t, client, priv, `{"id":"1600","application_id":"123456789012345678","type":2,"token":"t","user":{"id":"99","username":"bob"},"app_permissions":"0","data":{"id":"7","name":"ticket","type":1}}`)
 	if ticketResp.Data == nil || len(ticketResp.Data.Components) == 0 {
 		t.Fatalf("/ticket = %+v", ticketResp)
@@ -278,10 +267,8 @@ func TestExampleBotEndToEndAndHooks(t *testing.T) {
 		t.Fatalf("ticket click = %+v", ticketClick)
 	}
 
-	// Trigger test:err component hook too.
 	_ = postSigned(t, client, priv, `{"id":"18","application_id":"123456789012345678","type":3,"token":"t","app_permissions":"0","data":{"custom_id":"test:err","component_type":2}}`)
 
-	// 7. /stats and verify all ClientHooks updated counters.
 	statsResp := postSigned(t, client, priv, `{"id":"19","application_id":"123456789012345678","type":2,"token":"t","app_permissions":"0","data":{"id":"8","name":"stats","type":1}}`)
 	if statsResp.Data == nil || len(statsResp.Data.Components) == 0 {
 		t.Fatalf("/stats = %+v", statsResp)

@@ -7,7 +7,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires the showcase command and its button handler.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	showcase := newShowcaseCommand()
 

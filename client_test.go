@@ -66,7 +66,7 @@ func TestClientGatewayHandleInteractionAndHooks(t *testing.T) {
 	})
 
 	if err := client.RegisterCommand(Command{
-		Command: discord.Command{Name: "gw", Description: "GW cmd"},
+		Name: "gw", Description: "GW cmd",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			if err := itx.SendLinearReply(ctx, "ok", true); err != nil {
 				return err
@@ -139,7 +139,7 @@ func TestClientDecoupledContextAndShutdown(t *testing.T) {
 
 	continuedAfterHTTP := make(chan bool, 1)
 	if err := client.RegisterCommand(Command{
-		Command: discord.Command{Name: "async", Description: "Defer and continue"},
+		Name: "async", Description: "Defer and continue",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			if err := itx.Defer(ctx, true); err != nil {
 				return err
@@ -202,7 +202,7 @@ func TestClientEdgeBranches(t *testing.T) {
 		unblock := make(chan struct{})
 		started := make(chan struct{})
 		_ = c.RegisterCommand(Command{
-			Command: discord.Command{Name: "block", Description: "Block"},
+			Name: "block", Description: "Block",
 			SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 				close(started)
 				<-unblock
@@ -272,7 +272,7 @@ func TestClientEdgeBranches(t *testing.T) {
 			t.Error("expected FetchEntitlement error")
 		}
 
-		_ = c.RegisterCommand(Command{Command: discord.Command{Name: "a", Description: "a"}})
+		_ = c.RegisterCommand(Command{Name: "a", Description: "a"})
 		if err := c.SyncCommands(ctx, nil, nil, false); err == nil {
 			t.Error("expected global SyncCommands error")
 		}
@@ -418,7 +418,7 @@ func TestClientEdgeBranches(t *testing.T) {
 		})
 
 		_ = c.RegisterCommand(Command{
-			Command: discord.Command{Name: "nil-handler", Description: "nil"},
+			Name: "nil-handler", Description: "nil",
 		})
 		if err := c.HandleInteraction(t.Context(), []byte(`{"id":"1","application_id":"123456789012345678","type":2,"token":"t","app_permissions":"0","data":{"id":"2","name":"nil-handler","type":1}}`)); err == nil {
 			t.Fatal("expected error for nil SlashCommandHandler")
@@ -437,7 +437,7 @@ func TestClientEdgeBranches(t *testing.T) {
 		}
 
 		_ = c.RegisterCommand(Command{
-			Command: discord.Command{Name: "double", Description: "double"},
+			Name: "double", Description: "double",
 			SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 				if err := itx.Defer(ctx, true); err != nil {
 					return err
@@ -459,17 +459,15 @@ func TestClientEdgeBranches(t *testing.T) {
 		}
 
 		itxCmd := &CommandInteraction{
-			interactionContext: interactionContext{Client: c},
-			CommandInteraction: discord.CommandInteraction{
-				Interaction: discord.Interaction{ID: 1, ApplicationID: discord.AppID{Snowflake: 1}, Token: "fail-tok"},
-			},
+			Client: c,
+			ID:     1, ApplicationID: discord.AppID{Snowflake: 1}, Token: "fail-tok",
 		}
 		if _, err := itxCmd.SendLinearFollowUp(t.Context(), "fail", true); err == nil {
 			t.Fatal("expected SendLinearFollowUp error on 500 server")
 		}
 
 		itxCmp := &ComponentInteraction{
-			interactionContext: interactionContext{Client: c, responded: true},
+			Client: c, responded: true,
 		}
 		if !errors.Is(itxCmp.AcknowledgeWithLinearMessage(t.Context(), "x", true), ErrAlreadyResponded) {
 			t.Fatal("expected ErrAlreadyResponded on ComponentInteraction.AcknowledgeWithLinearMessage")
@@ -485,7 +483,7 @@ func TestClientEdgeBranches(t *testing.T) {
 		}
 
 		itxMdl := &ModalInteraction{
-			interactionContext: interactionContext{Client: c, responded: true},
+			Client: c, responded: true,
 		}
 		if !errors.Is(itxMdl.Defer(t.Context(), true), ErrAlreadyDeferred) {
 			t.Fatal("expected ErrAlreadyDeferred on ModalInteraction.Defer")
@@ -498,7 +496,7 @@ func TestClientEdgeBranches(t *testing.T) {
 		}
 
 		_ = c.RegisterCommand(Command{
-			Command: discord.Command{Name: "acfail", Description: "acfail"},
+			Name: "acfail", Description: "acfail",
 			AutoCompleteHandler: func(ctx context.Context, itx *CommandInteraction) ([]discord.CommandOptionChoice, error) {
 				panic(errors.New("err panic"))
 			},

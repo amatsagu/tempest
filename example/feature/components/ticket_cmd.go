@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 type ticketCommand struct {
@@ -20,19 +19,15 @@ func newTicketCommand(client *tempest.Client) *ticketCommand {
 
 func (c *ticketCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "ticket",
-			Description: "Post a button whose handler exists only for that one button.",
-		},
+		Name:                "ticket",
+		Description:         "Post a button whose handler exists only for that one button.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle registers a runtime component handler keyed by this interaction's ID and
-// unregisters it as soon as the owner clicks it or the 2-minute window expires.
 func (c *ticketCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	id := "ticket:" + itx.ID.String()
-	row := util.ActionRow(util.Button(id, "Create ticket", discord.SuccessButtonStyle))
+	row := builder.ActionRow(builder.Button(id, "Create ticket", discord.SuccessButtonStyle))
 
 	user := itx.BaseUser()
 

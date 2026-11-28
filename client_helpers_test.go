@@ -167,10 +167,10 @@ func TestClientRESTHelpersAndCommandSync(t *testing.T) {
 		t.Fatalf("DeleteTestEntitlement: %v", err)
 	}
 
-	if err := client.RegisterCommand(Command{Command: discord.Command{Name: "alpha", Description: "A"}}); err != nil {
+	if err := client.RegisterCommand(Command{Name: "alpha", Description: "A"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := client.RegisterCommand(Command{Command: discord.Command{Name: "beta", Description: "B"}}); err != nil {
+	if err := client.RegisterCommand(Command{Name: "beta", Description: "B"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -194,16 +194,16 @@ func TestRegistryEdgeCasesAndSubcommandGroups(t *testing.T) {
 	if err := client.RegisterCommand(Command{}); err == nil {
 		t.Fatal("expected empty command name error")
 	}
-	if err := client.RegisterSubCommand(Command{Command: discord.Command{Name: "sub", Description: "d"}}, "missing"); err == nil {
+	if err := client.RegisterSubCommand(Command{Name: "sub", Description: "d"}, "missing"); err == nil {
 		t.Fatal("expected missing parent error")
 	}
-	if err := client.RegisterSubCommand(Command{Command: discord.Command{Name: "sub", Description: "d"}}); err == nil {
+	if err := client.RegisterSubCommand(Command{Name: "sub", Description: "d"}); err == nil {
 		t.Fatal("expected empty parentPath error")
 	}
-	if err := client.RegisterSubCommand(Command{Command: discord.Command{Name: "", Description: "d"}}, "p"); err == nil {
+	if err := client.RegisterSubCommand(Command{Name: "", Description: "d"}, "p"); err == nil {
 		t.Fatal("expected empty sub name error")
 	}
-	if err := client.RegisterSubCommand(Command{Command: discord.Command{Name: "s", Description: "d"}}, "a@b"); err == nil {
+	if err := client.RegisterSubCommand(Command{Name: "s", Description: "d"}, "a@b"); err == nil {
 		t.Fatal("expected invalid @ in parentPath error")
 	}
 	if err := client.RegisterComponent("btn", nil); err == nil {
@@ -213,21 +213,21 @@ func TestRegistryEdgeCasesAndSubcommandGroups(t *testing.T) {
 		t.Fatal("expected nil modal handler error")
 	}
 
-	if err := client.RegisterCommand(Command{Command: discord.Command{Name: "cfg", Description: "Config"}}); err != nil {
+	if err := client.RegisterCommand(Command{Name: "cfg", Description: "Config"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := client.RegisterCommand(Command{Command: discord.Command{Name: "cfg", Description: "Dup"}}); err == nil {
+	if err := client.RegisterCommand(Command{Name: "cfg", Description: "Dup"}); err == nil {
 		t.Fatal("expected duplicate command error")
 	}
 	if err := client.RegisterSubCommand(Command{
-		Command: discord.Command{Name: "set", Description: "Set"},
+		Name: "set", Description: "Set",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			return nil
 		},
 	}, "cfg", "role"); err != nil {
 		t.Fatal(err)
 	}
-	if err := client.RegisterSubCommand(Command{Command: discord.Command{Name: "set", Description: "Dup"}}, "cfg", "role"); err == nil {
+	if err := client.RegisterSubCommand(Command{Name: "set", Description: "Dup"}, "cfg", "role"); err == nil {
 		t.Fatal("expected duplicate subcommand error")
 	}
 
@@ -304,17 +304,17 @@ func TestInteractionDispatchEdgeCasesAndHelpers(t *testing.T) {
 	})
 
 	_ = client.RegisterCommand(Command{
-		Command: discord.Command{Name: "skip", Description: "Skip"},
+		Name: "skip", Description: "Skip",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			t.Error("skipped command ran unexpectedly")
 			return nil
 		},
 	})
 	_ = client.RegisterCommand(Command{
-		Command: discord.Command{Name: "admin", Description: "Admin"},
+		Name: "admin", Description: "Admin",
 	})
 	_ = client.RegisterSubCommand(Command{
-		Command: discord.Command{Name: "ban", Description: "Ban"},
+		Name: "ban", Description: "Ban",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			if err := itx.SendReply(ctx, discord.ResponseMessageData{Content: "file"}, true, []File{{Name: "a.txt", Reader: strings.NewReader("hi")}}); err != nil {
 				return err
@@ -470,7 +470,7 @@ func TestInteractionDispatchEdgeCasesAndHelpers(t *testing.T) {
 
 	lateErr := make(chan error, 1)
 	_ = slowClient.RegisterCommand(Command{
-		Command: discord.Command{Name: "slow", Description: "Slow"},
+		Name: "slow", Description: "Slow",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			time.Sleep(60 * time.Millisecond)
 			lateErr <- itx.SendLinearReply(ctx, "too late", true)
@@ -507,7 +507,7 @@ func TestConcurrencyBackpressureAndRemainingResponses(t *testing.T) {
 	hold := make(chan struct{})
 	started := make(chan struct{})
 	_ = client.RegisterCommand(Command{
-		Command: discord.Command{Name: "hold", Description: "Hold"},
+		Name: "hold", Description: "Hold",
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			close(started)
 			<-hold

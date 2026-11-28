@@ -17,40 +17,36 @@ func newEchoCommand() *echoCommand { return &echoCommand{} }
 
 func (c *echoCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "echo",
-			Description: "Repeat a message back to you.",
-			Options: []discord.CommandOption{
-				{
-					Type:        discord.StringOptionType,
-					Name:        "text",
-					Description: "What to repeat.",
-					Required:    true,
-					MaxLength:   2000,
-				},
-				{
-					Type:        discord.BooleanOptionType,
-					Name:        "ephemeral",
-					Description: "Only you can see the reply.",
-				},
-				{
-					Type:        discord.BooleanOptionType,
-					Name:        "dm",
-					Description: "Send the echo directly as a private direct message.",
-				},
-				{
-					Type:        discord.ChannelOptionType,
-					Name:        "channel",
-					Description: "Send the text as a plain linear message to another channel.",
-				},
+		Name:        "echo",
+		Description: "Repeat a message back to you.",
+		Options: []discord.CommandOption{
+			{
+				Type:        discord.StringOptionType,
+				Name:        "text",
+				Description: "What to repeat.",
+				Required:    true,
+				MaxLength:   2000,
+			},
+			{
+				Type:        discord.BooleanOptionType,
+				Name:        "ephemeral",
+				Description: "Only you can see the reply.",
+			},
+			{
+				Type:        discord.BooleanOptionType,
+				Name:        "dm",
+				Description: "Send the echo directly as a private direct message.",
+			},
+			{
+				Type:        discord.ChannelOptionType,
+				Name:        "channel",
+				Description: "Send the text as a plain linear message to another channel.",
 			},
 		},
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle repeats the text. When dm or channel is set, it demonstrates the client's
-// SendPrivateMessage and SendLinearMessage helpers.
 func (c *echoCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	text, _ := util.StringOption(itx, "text")
 	ephemeral, _ := util.BoolOption(itx, "ephemeral")
@@ -61,7 +57,7 @@ func (c *echoCommand) handle(ctx context.Context, itx *tempest.CommandInteractio
 			return fmt.Errorf("send linear message: %w", err)
 		}
 
-		return itx.SendLinearReply(ctx, fmt.Sprintf("Echo sent to %s.", util.ChannelMention(channelID)), true)
+		return itx.SendLinearReply(ctx, fmt.Sprintf("Echo sent to %s.", channelID.Mention()), true)
 	}
 
 	if dm, _ := util.BoolOption(itx, "dm"); dm {

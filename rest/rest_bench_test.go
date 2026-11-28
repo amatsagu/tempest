@@ -6,6 +6,7 @@ import (
 	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -467,9 +468,7 @@ func runJSONBench(b *testing.B, inMemory, useDo bool, payload any) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, _ = io.Copy(io.Discard, r.Body)
 			resHdr := w.Header()
-			for k, vals := range hdr {
-				resHdr[k] = vals
-			}
+			maps.Copy(resHdr, hdr)
 			_, _ = w.Write(respBytes)
 		}))
 		defer srv.Close()

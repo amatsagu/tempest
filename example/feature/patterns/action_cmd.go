@@ -30,22 +30,20 @@ func newActionCommand() *actionCommand {
 
 func (c *actionCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "action",
-			Description: "Open an interactive action panel showcasing custom_id pattern matching.",
-			Options: []discord.CommandOption{
-				{
-					Type:        discord.UserOptionType,
-					Name:        "target",
-					Description: "Target user ID packed into component/modal pattern routes.",
-					Required:    true,
-				},
-				{
-					Type:         discord.StringOptionType,
-					Name:         "note",
-					Description:  "Optional audit note trail passed through a {trail...} catch-all route.",
-					AutoComplete: true,
-				},
+		Name:        "action",
+		Description: "Open an interactive action panel showcasing custom_id pattern matching.",
+		Options: []discord.CommandOption{
+			{
+				Type:        discord.UserOptionType,
+				Name:        "target",
+				Description: "Target user ID packed into component/modal pattern routes.",
+				Required:    true,
+			},
+			{
+				Type:         discord.StringOptionType,
+				Name:         "note",
+				Description:  "Optional audit note trail passed through a {trail...} catch-all route.",
+				AutoComplete: true,
 			},
 		},
 		AutoCompleteHandler: c.autocomplete,
@@ -54,14 +52,7 @@ func (c *actionCommand) Definition() tempest.Command {
 }
 
 func (c *actionCommand) autocomplete(_ context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
-	var typed string
-	for _, opt := range itx.Data.Options {
-		if opt.Focused {
-			typed, _ = opt.Value.(string)
-			break
-		}
-	}
-	typed = strings.ToLower(typed)
+	typed := strings.ToLower(util.FocusedString(itx))
 
 	choices := make([]discord.CommandOptionChoice, 0, len(c.presets))
 	for _, preset := range c.presets {

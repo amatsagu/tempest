@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 const acknowledgeID = "showcase:ack"
@@ -17,28 +16,25 @@ func newShowcaseCommand() *showcaseCommand { return &showcaseCommand{} }
 
 func (c *showcaseCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "showcase",
-			Description: "Render a Components V2 message.",
-		},
+		Name:                "showcase",
+		Description:         "Render a Components V2 message.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle builds one container holding every V2 layout piece.
 func (c *showcaseCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
-	container := util.Container(0x5865F2,
-		util.TextDisplay("## Components V2"),
-		util.TextDisplay("Everything below lives inside a single container."),
-		util.Separator(true),
-		util.SectionWithThumbnail(
-			util.Thumbnail("https://cdn.discordapp.com/embed/avatars/0.png", "Tempest"),
-			util.TextDisplay("A section pairs text with a thumbnail or a button."),
+	container := builder.Container(0x5865F2,
+		builder.TextDisplay("## Components V2"),
+		builder.TextDisplay("Everything below lives inside a single container."),
+		builder.Separator(true),
+		builder.Section(
+			builder.Thumbnail("https://cdn.discordapp.com/embed/avatars/0.png", "Tempest"),
+			builder.TextDisplay("A section pairs text with a thumbnail or a button."),
 		),
-		util.MediaGallery(
-			util.MediaGalleryItem("https://cdn.discordapp.com/embed/avatars/1.png"),
+		builder.MediaGallery(
+			builder.MediaGalleryItem("https://cdn.discordapp.com/embed/avatars/1.png"),
 		),
-		util.ActionRow(util.Button(acknowledgeID, "Acknowledge", discord.PrimaryButtonStyle)),
+		builder.ActionRow(builder.Button(acknowledgeID, "Acknowledge", discord.PrimaryButtonStyle)),
 	)
 
 	return itx.SendReply(ctx, discord.ResponseMessageData{
@@ -47,10 +43,9 @@ func (c *showcaseCommand) handle(ctx context.Context, itx *tempest.CommandIntera
 	}, false, nil)
 }
 
-// handleAcknowledge updates the V2 message in place.
 func (c *showcaseCommand) handleAcknowledge(ctx context.Context, itx *tempest.ComponentInteraction) error {
 	return itx.AcknowledgeWithUpdate(ctx, discord.ResponseMessageData{
 		Flags:      discord.IsComponentsV2MessageFlag,
-		Components: []discord.MessageComponent{util.TextDisplay("Acknowledged.")},
+		Components: []discord.MessageComponent{builder.TextDisplay("Acknowledged.")},
 	})
 }

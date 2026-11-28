@@ -121,6 +121,7 @@ func NewClient(cfg ClientConfig) *Client {
 	if err != nil {
 		panic("failed to decode discord public key: " + err.Error())
 	}
+
 	if len(publicKey) != ed25519.PublicKeySize {
 		panic("discord public key must be exactly 32 bytes")
 	}
@@ -138,12 +139,14 @@ func NewClient(cfg ClientConfig) *Client {
 			traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
 		}
 	}
+
 	trace := cfg.Trace || traceLogger.Writer() != io.Discard
 
 	parentCtx := cfg.Context
 	if parentCtx == nil {
 		parentCtx = context.Background()
 	}
+
 	baseCtx, cancel := context.WithCancel(parentCtx)
 
 	restClient := cfg.Rest
@@ -152,13 +155,16 @@ func NewClient(cfg ClientConfig) *Client {
 		if restCfg.Token == "" {
 			restCfg.Token = cfg.Token
 		}
+
 		restCfg.Trace = restCfg.Trace || trace
 		if restCfg.TraceLogger == nil {
 			restCfg.TraceLogger = traceLogger
 		}
+
 		if restCfg.RateLimiterConfig.TraceLogger == nil {
 			restCfg.RateLimiterConfig.TraceLogger = restCfg.TraceLogger
 		}
+
 		restClient = rest.NewRestClient(restCfg)
 	}
 

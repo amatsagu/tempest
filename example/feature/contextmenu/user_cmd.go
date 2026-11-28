@@ -15,15 +15,12 @@ func newUserInfoCommand() *userInfoCommand { return &userInfoCommand{} }
 
 func (c *userInfoCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Type: discord.UserCommandType,
-			Name: "User info",
-		},
+		Type:                discord.UserCommandType,
+		Name:                "User info",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle reads the resolved target user.
 func (c *userInfoCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	target := discord.UserID{Snowflake: itx.Data.TargetID}
 	user := itx.Data.Resolved.ResolveUser(target)

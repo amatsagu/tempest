@@ -6,7 +6,6 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires /rotate and the modal it opens.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	rotate := newRotateCommand()
 

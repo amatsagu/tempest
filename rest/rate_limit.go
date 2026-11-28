@@ -303,10 +303,7 @@ func (rl *RateLimiter) acquireKey(ctx context.Context, keyBytes, major []byte, g
 		b.LastUsed = now
 
 		if now >= b.ResetAt {
-			limit := b.Limit
-			if limit < 1 {
-				limit = 1
-			}
+			limit := max(b.Limit, 1)
 			window := b.Window
 			if window <= 0 {
 				window = int64(time.Second)
@@ -321,10 +318,7 @@ func (rl *RateLimiter) acquireKey(ctx context.Context, keyBytes, major []byte, g
 			return nil
 		}
 
-		wait := time.Duration(b.ResetAt - now)
-		if wait < bucketRetryFloor {
-			wait = bucketRetryFloor
-		}
+		wait := max(time.Duration(b.ResetAt-now), bucketRetryFloor)
 		bucketID := b.ID
 		sh.mu.Unlock()
 

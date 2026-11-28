@@ -9,14 +9,11 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires /action and /poll along with their exact and pattern-matched
-// component and modal routes.
 func Register(client *tempest.Client) ([]tempest.Command, error) {
 	action := newActionCommand()
 	poll := newPollCommand()
 
-	// Intentionally register broader {verb} before specific mute/{duration} to
-	// demonstrate deterministic specificity precedence.
+	// Broader {verb} is registered before mute/{duration} to verify specificity sorting.
 	componentRoutes := []struct {
 		handler tempest.ComponentHandler
 		pattern string

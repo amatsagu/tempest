@@ -63,7 +63,6 @@ func run() error {
 
 	trace := os.Getenv("DEBUG") != ""
 
-	// Created before the client so the command hook and /stats share one counter.
 	botStats := stats.NewStats()
 
 	clientCfg := tempest.ClientConfig{

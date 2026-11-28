@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
 
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// Static custom IDs, registered once before the bot starts.
 const (
 	openID    = "panel:open"
 	dismissID = "panel:dismiss"
@@ -26,27 +26,25 @@ func newPanelCommand() *panelCommand { return &panelCommand{} }
 
 func (c *panelCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "panel",
-			Description: "Show a panel with buttons and a select menu.",
-		},
+		Name:                "panel",
+		Description:         "Show a panel with buttons and a select menu.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
 func (c *panelCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
-	buttons := util.ActionRow(
-		util.Button(openID, "Open form", discord.PrimaryButtonStyle),
-		util.Button(dismissID, "Dismiss", discord.SecondaryButtonStyle),
-		util.LinkButton("https://discord.com/developers/docs/interactions/overview", "Docs"),
+	buttons := builder.ActionRow(
+		builder.Button(openID, "Open form", discord.PrimaryButtonStyle),
+		builder.Button(dismissID, "Dismiss", discord.SecondaryButtonStyle),
+		builder.LinkButton("https://discord.com/developers/docs/interactions/overview", "Docs"),
 	)
 
-	picker := util.ActionRow(
-		util.StringSelect(
+	picker := builder.ActionRow(
+		builder.StringSelect(
 			pickID,
 			"Pick an option",
-			util.SelectOption("First", "first"),
-			util.SelectOption("Second", "second"),
+			builder.SelectOption("First", "first"),
+			builder.SelectOption("Second", "second"),
 		),
 	)
 

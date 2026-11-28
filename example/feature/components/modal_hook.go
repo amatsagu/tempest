@@ -9,8 +9,6 @@ import (
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// handleSubmitForm reads the modal's text inputs and replies with an ephemeral
-// embed.
 func (c *panelCommand) handleSubmitForm(ctx context.Context, itx *tempest.ModalInteraction) error {
 	title := itx.GetInputValue(titleInputID)
 	details := itx.GetInputValue(detailsInputID)

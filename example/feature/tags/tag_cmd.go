@@ -11,7 +11,6 @@ import (
 	"github.com/amatsagu/tempest-example/util"
 )
 
-// tagCommand answers the /tag subcommands, backed by server-scoped state.
 type tagCommand struct {
 	store *tagStore
 }
@@ -22,10 +21,8 @@ func newTagCommand() *tagCommand {
 
 func (c *tagCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "tag",
-			Description: "Save and recall short text snippets, per server.",
-		},
+		Name:        "tag",
+		Description: "Save and recall short text snippets, per server.",
 	}
 }
 
@@ -90,7 +87,7 @@ func (c *tagCommand) adminClear(ctx context.Context, itx *tempest.CommandInterac
 }
 
 func (c *tagCommand) autocomplete(_ context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
-	typed := strings.ToLower(focusedString(itx))
+	typed := strings.ToLower(util.FocusedString(itx))
 	names := c.store.names(itx.GuildID)
 
 	choices := make([]discord.CommandOptionChoice, 0, min(len(names), 25))
@@ -105,16 +102,4 @@ func (c *tagCommand) autocomplete(_ context.Context, itx *tempest.CommandInterac
 		}
 	}
 	return choices, nil
-}
-
-func focusedString(itx *tempest.CommandInteraction) string {
-	for _, option := range itx.Data.Options {
-		if !option.Focused {
-			continue
-		}
-
-		value, _ := option.Value.(string)
-		return value
-	}
-	return ""
 }

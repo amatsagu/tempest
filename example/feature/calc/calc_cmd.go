@@ -1,5 +1,3 @@
-// Package calc shows an interactive button calculator: /calc posts a keypad and
-// each press edits the same message in place.
 package calc
 
 import (
@@ -10,22 +8,18 @@ import (
 	"sync"
 
 	"github.com/amatsagu/tempest"
-	"github.com/amatsagu/tempest/discord"
 )
 
-const initialDisplay = "0"
+const (
+	initialDisplay  = "0"
+	maxCalcSessions = 256
+)
 
-// maxCalcSessions bounds the in-memory session map.
-const maxCalcSessions = 256
-
-// calcSession is the state behind one message. After "=" the display keeps the
-// equation while expr becomes the result, so presses keep chaining.
 type calcSession struct {
-	expr    string
+	expr    string // holds result after "=" so operations chain cleanly
 	display string
 }
 
-// calcCommand owns the live sessions; the session id is packed into each button ID.
 type calcCommand struct {
 	sessions map[string]calcSession
 	mu       sync.Mutex
@@ -37,10 +31,8 @@ func newCalcCommand() *calcCommand {
 
 func (c *calcCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "calc",
-			Description: "An interactive calculator with buttons.",
-		},
+		Name:                "calc",
+		Description:         "An interactive calculator with buttons.",
 		SlashCommandHandler: c.handle,
 	}
 }
@@ -68,7 +60,7 @@ func (c *calcCommand) newSession() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Make room before inserting, so eviction can never remove this new session.
+	// Evict before inserting so this new session stays intact.
 	for len(c.sessions) >= maxCalcSessions {
 		for key := range c.sessions {
 			delete(c.sessions, key)
@@ -110,8 +102,7 @@ func applyKey(s calcSession, key string) calcSession {
 	}
 }
 
-// trimLastRune removes the final rune, not byte, so a multi-byte operator is
-// deleted whole.
+// Remove whole runes so multi-byte symbols (×, ÷) aren't split.
 func trimLastRune(s string) string {
 	runes := []rune(s)
 	if len(runes) == 0 {
@@ -127,9 +118,6 @@ func displayFor(expr string) string {
 	return expr
 }
 
-// evaluate replaces the display with "expr = result" and sets expr to the result
-// so the next press chains; on a bad expression it shows "error" and leaves expr
-// alone.
 func evaluate(s calcSession) calcSession {
 	result, err := evalExpression(s.expr)
 	if err != nil {
@@ -143,11 +131,8 @@ func evaluate(s calcSession) calcSession {
 	return s
 }
 
-// errBadExpression means the input is malformed or divides by zero.
 var errBadExpression = errors.New("bad expression")
 
-// evalExpression evaluates numbers joined by + - × ÷ with × and ÷ precedence, via
-// a recursive descent: expr is a chain of terms, a term a chain of numbers.
 func evalExpression(s string) (float64, error) {
 	p := parser{runes: []rune(s)}
 

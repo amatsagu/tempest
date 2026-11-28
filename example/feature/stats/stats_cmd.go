@@ -8,14 +8,12 @@ import (
 	"time"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 const accent = 0x5865F2
 
-// statsCommand holds the client (for REST latency) and the counters.
 type statsCommand struct {
 	client *tempest.Client
 	stats  *Stats
@@ -27,41 +25,38 @@ func newStatsCommand(client *tempest.Client, stats *Stats) *statsCommand {
 
 func (c *statsCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "stats",
-			Description: "Show runtime stats: uptime, commands, memory, and latency.",
-		},
+		Name:                "stats",
+		Description:         "Show runtime stats: uptime, commands, memory, and latency.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle renders the panel as one Components V2 container.
 func (c *statsCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	snapshot := c.stats.Snapshot()
 
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	container := util.Container(accent,
-		util.SectionWithThumbnail(
-			util.Thumbnail("https://cdn.discordapp.com/embed/avatars/0.png", "Tempest"),
-			util.TextDisplay("## Tempest stats"),
-			util.TextDisplay("A live view of this bot's runtime."),
+	container := builder.Container(accent,
+		builder.Section(
+			builder.Thumbnail("https://cdn.discordapp.com/embed/avatars/0.png", "Tempest"),
+			builder.TextDisplay("## Tempest stats"),
+			builder.TextDisplay("A live view of this bot's runtime."),
 		),
-		util.Separator(true),
-		util.TextDisplay(uptimeSection(snapshot.Uptime)),
-		util.Separator(true),
-		util.TextDisplay(fmt.Sprintf(
+		builder.Separator(true),
+		builder.TextDisplay(uptimeSection(snapshot.Uptime)),
+		builder.Separator(true),
+		builder.TextDisplay(fmt.Sprintf(
 			"### Hook Metrics\nCommands: **%d started / %d done**\nComponents: **%d started / %d done**\nModals: **%d started / %d done**\nHandler Errors: **%d**",
 			snapshot.CommandsStarted, snapshot.CommandsCompleted,
 			snapshot.ComponentsStarted, snapshot.ComponentsCompleted,
 			snapshot.ModalsStarted, snapshot.ModalsCompleted,
 			snapshot.Errors,
 		)),
-		util.Separator(true),
-		util.TextDisplay(memorySection(&mem)),
-		util.Separator(true),
-		util.TextDisplay(c.latencySection(ctx)),
+		builder.Separator(true),
+		builder.TextDisplay(memorySection(&mem)),
+		builder.Separator(true),
+		builder.TextDisplay(c.latencySection(ctx)),
 	)
 
 	return itx.SendReply(ctx, discord.ResponseMessageData{
@@ -100,7 +95,6 @@ func memorySection(m *runtime.MemStats) string {
 	)
 }
 
-// latencySection times one authenticated REST call.
 func (c *statsCommand) latencySection(ctx context.Context) string {
 	var restText string
 	start := time.Now()

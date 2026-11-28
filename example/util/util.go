@@ -1,4 +1,4 @@
-// Package util holds the small helpers shared by the example features.
+// Package util holds shared option and embed helpers for the example bot.
 package util
 
 import (
@@ -6,10 +6,6 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-// Ptr returns a pointer to v, for optional pointer fields on Discord objects.
-func Ptr[T any](v T) *T { return &v }
-
-// StringOption returns a string option, if present.
 func StringOption(itx *tempest.CommandInteraction, name string) (string, bool) {
 	raw, ok := itx.GetOptionValue(name)
 	if !ok {
@@ -19,7 +15,6 @@ func StringOption(itx *tempest.CommandInteraction, name string) (string, bool) {
 	return value, ok
 }
 
-// BoolOption returns a boolean option, if present.
 func BoolOption(itx *tempest.CommandInteraction, name string) (bool, bool) {
 	raw, ok := itx.GetOptionValue(name)
 	if !ok {
@@ -29,8 +24,7 @@ func BoolOption(itx *tempest.CommandInteraction, name string) (bool, bool) {
 	return value, ok
 }
 
-// SnowflakeOption returns a snowflake option. Discord sends ID options as strings,
-// but this also accepts numeric JSON values.
+// Discord sends ID options as strings, though tests or custom callers may pass numbers.
 func SnowflakeOption(itx *tempest.CommandInteraction, name string) (discord.Snowflake, bool) {
 	raw, ok := itx.GetOptionValue(name)
 	if !ok {
@@ -50,7 +44,6 @@ func SnowflakeOption(itx *tempest.CommandInteraction, name string) (discord.Snow
 	}
 }
 
-// IntegerOption returns an integer option, if present.
 func IntegerOption(itx *tempest.CommandInteraction, name string) (int64, bool) {
 	raw, ok := itx.GetOptionValue(name)
 	if !ok {
@@ -69,12 +62,17 @@ func IntegerOption(itx *tempest.CommandInteraction, name string) (int64, bool) {
 	}
 }
 
-// ChannelMention renders a channel ID as a Discord channel mention.
-func ChannelMention(id discord.ChannelID) string {
-	return id.Mention()
+func FocusedString(itx *tempest.CommandInteraction) string {
+	for _, option := range itx.Data.Options {
+		if !option.Focused {
+			continue
+		}
+		value, _ := option.Value.(string)
+		return value
+	}
+	return ""
 }
 
-// EffectiveName returns the display name Discord shows for a user.
 func EffectiveName(user discord.User) string {
 	if user.GlobalName != "" {
 		return user.GlobalName
@@ -82,17 +80,14 @@ func EffectiveName(user discord.User) string {
 	return user.Username
 }
 
-// Embed starts a rich embed with a title and description.
 func Embed(title, description string) discord.Embed {
 	return discord.Embed{Title: title, Description: description}
 }
 
-// EmbedField builds one embed field.
 func EmbedField(name, value string, inline bool) discord.EmbedField {
 	return discord.EmbedField{Name: name, Value: value, Inline: inline}
 }
 
-// EmbedFooter builds an embed footer.
 func EmbedFooter(text string) discord.EmbedFooter {
 	return discord.EmbedFooter{Text: text}
 }

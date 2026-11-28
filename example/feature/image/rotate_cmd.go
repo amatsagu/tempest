@@ -6,12 +6,10 @@ import (
 	"context"
 
 	"github.com/amatsagu/tempest"
+	"github.com/amatsagu/tempest/builder"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
-// The modal and its file-upload field, registered once at startup.
 const (
 	rotateModalID  = "image:rotate"
 	rotateUploadID = "image:rotate:file"
@@ -25,23 +23,18 @@ func newRotateCommand() *rotateCommand {
 
 func (c *rotateCommand) Definition() tempest.Command {
 	return tempest.Command{
-		Command: discord.Command{
-			Name:        "rotate",
-			Description: "Upload a PNG and get it back rotated 90 degrees clockwise.",
-		},
+		Name:                "rotate",
+		Description:         "Upload a PNG and get it back rotated 90 degrees clockwise.",
 		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle answers with a modal; the upload accepts only .png.
 func (c *rotateCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	return itx.SendModal(ctx, rotateModal())
 }
 
-// rotateModal builds the modal /rotate opens; extracted so a test can assert its
-// wire format.
 func rotateModal() discord.ResponseModalData {
-	return util.ModalResponse(rotateModalID, "Rotate a PNG",
-		util.Label("PNG", util.FileUpload(rotateUploadID, ".png")),
+	return builder.ModalData(rotateModalID, "Rotate a PNG",
+		builder.Label("PNG", builder.FileUpload(rotateUploadID, ".png")),
 	)
 }

@@ -308,10 +308,12 @@ func matchCompiledPattern(segments []patternSegment, s string, params *[maxInlin
 
 	for i := 0; i < len(segments); i++ {
 		seg := segments[i]
+
 		if !seg.isVar {
 			if !strings.HasPrefix(s, seg.text) {
 				return false
 			}
+
 			s = s[len(seg.text):]
 			continue
 		}
@@ -321,6 +323,7 @@ func matchCompiledPattern(segments []patternSegment, s string, params *[maxInlin
 			if !seg.rest && s == "" {
 				return false
 			}
+
 			appendParam(seg.text, s)
 			return true
 		}

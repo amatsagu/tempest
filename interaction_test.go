@@ -94,12 +94,10 @@ func TestClientHTTPInteractions(t *testing.T) {
 	})
 
 	err := client.RegisterCommand(Command{
-		Command: discord.Command{
-			Name:        "greet",
-			Description: "Greet someone",
-			Options: []discord.CommandOption{
-				{Name: "name", Description: "Who", Type: discord.StringOptionType, AutoComplete: true},
-			},
+		Name:        "greet",
+		Description: "Greet someone",
+		Options: []discord.CommandOption{
+			{Name: "name", Description: "Who", Type: discord.StringOptionType, AutoComplete: true},
 		},
 		SlashCommandHandler: func(ctx context.Context, itx *CommandInteraction) error {
 			name, _ := itx.GetOptionValue("name")
@@ -262,17 +260,17 @@ func TestBuildSyncCommandsAndFindInteractiveComponent(t *testing.T) {
 	client, _ := newTestClientPair(t, ClientHooks{})
 
 	if err := client.RegisterCommand(Command{
-		Command: discord.Command{Name: "tag", Description: "Root"},
+		Name: "tag", Description: "Root",
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err := client.RegisterSubCommand(Command{
-		Command: discord.Command{Name: "add", Description: "Add"},
+		Name: "add", Description: "Add",
 	}, "tag"); err != nil {
 		t.Fatal(err)
 	}
 	if err := client.RegisterSubCommand(Command{
-		Command: discord.Command{Name: "grant", Description: "Grant role"},
+		Name: "grant", Description: "Grant role",
 	}, "tag", "admin"); err != nil {
 		t.Fatal(err)
 	}
