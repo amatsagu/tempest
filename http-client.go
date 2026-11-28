@@ -488,7 +488,12 @@ func (client *HTTPClient) acquireBuffer() *bytes.Buffer {
 }
 
 func (client *HTTPClient) releaseBuffer(buf *bytes.Buffer) {
-	if buf != nil && int64(buf.Cap()) <= MAX_REQUEST_BODY_SIZE {
+	if buf == nil {
+		return
+	}
+
+	if client.bufferPool != nil && buf.Cap() <= 128*1024 {
+		buf.Reset()
 		client.bufferPool.Put(buf)
 	}
 }

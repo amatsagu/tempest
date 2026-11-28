@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -97,7 +98,7 @@ func memorySection(m *runtime.MemStats) string {
 func (c *statsCommand) latencySection() string {
 	var restText string
 	start := time.Now()
-	if err := c.client.Rest.Request(http.MethodGet, "/users/@me", nil, nil); err != nil {
+	if err := c.client.Rest.Request(context.Background(), http.MethodGet, "/users/@me", nil, nil); err != nil {
 		restText = "unavailable: " + err.Error()
 	} else {
 		restText = time.Since(start).Round(time.Millisecond).String()

@@ -91,7 +91,7 @@ func (itx *CommandInteraction) SendReply(reply discord.ResponseMessageData, ephe
 	endpoint := "/webhooks/" + itx.ApplicationID.String() + "/" + itx.Token
 
 	if itx.deferred {
-		err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
+		err := itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
 		if err == nil {
 			itx.responded = true
 		}
@@ -109,7 +109,7 @@ func (itx *CommandInteraction) SendReply(reply discord.ResponseMessageData, ephe
 
 		itx.deferred = true // Manually set state
 
-		err = itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
+		err = itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPatch, endpoint+"/messages/@original", reply, files, nil)
 		if err == nil {
 			itx.responded = true
 		}
@@ -154,10 +154,10 @@ func (itx *CommandInteraction) EditReply(content discord.ResponseMessageData, ep
 	}
 
 	if len(files) > 0 {
-		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
+		return itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
 	}
 
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
 }
 
 func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) error {
@@ -167,7 +167,7 @@ func (itx *CommandInteraction) EditLinearReply(content string, ephemeral bool) e
 }
 
 func (itx *CommandInteraction) DeleteReply() error {
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 func (itx *CommandInteraction) SendFollowUp(content discord.ResponseMessageData, ephemeral bool) (discord.Message, error) {
@@ -176,7 +176,7 @@ func (itx *CommandInteraction) SendFollowUp(content discord.ResponseMessageData,
 	}
 
 	var res discord.Message
-	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
+	err := itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
 	if err != nil {
 		return discord.Message{}, err
 	}
@@ -196,7 +196,7 @@ func (itx *CommandInteraction) SendFollowUpWithFiles(content discord.ResponseMes
 	}
 
 	var res discord.Message
-	err := itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files, &res)
+	err := itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, files, &res)
 	if err != nil {
 		return discord.Message{}, err
 	}
@@ -211,7 +211,7 @@ func (itx *CommandInteraction) SendLinearFollowUpWithFiles(content string, ephem
 }
 
 func (itx *CommandInteraction) EditFollowUp(messageID discord.MessageID, content discord.ResponseMessageData) error {
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), content, nil)
 }
 
 func (itx *CommandInteraction) EditLinearFollowUp(messageID discord.MessageID, content string) error {
@@ -221,7 +221,7 @@ func (itx *CommandInteraction) EditLinearFollowUp(messageID discord.MessageID, c
 }
 
 func (itx *CommandInteraction) DeleteFollowUp(messageID discord.MessageID) error {
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/"+messageID.String(), nil, nil)
 }
 
 // Sends to discord info that this component was handled successfully without sending anything more.
@@ -274,10 +274,10 @@ func (itx *ComponentInteraction) AcknowledgeWithLinearUpdate(content string) err
 // Passing files = nil or an empty slice is handled properly without multipart encoding.
 func (itx *ComponentInteraction) EditOriginal(content discord.ResponseMessageData, files []File) error {
 	if len(files) > 0 {
-		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
+		return itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, files, nil)
 	}
 
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", content, nil)
 }
 
 // Edits the original message on which the component was attached with plain text content.
@@ -289,7 +289,7 @@ func (itx *ComponentInteraction) EditLinearOriginal(content string) error {
 
 // Deletes the original message on which the component was attached.
 func (itx *ComponentInteraction) DeleteOriginal() error {
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 // Sends to discord info that this component was handled successfully without sending anything more.
@@ -341,10 +341,10 @@ func (itx *ModalInteraction) AcknowledgeWithLinearUpdate(content string) error {
 // Passing files = nil or an empty slice is handled properly without multipart encoding.
 func (itx *ModalInteraction) EditOriginal(response discord.ResponseMessageData, files []File) error {
 	if len(files) > 0 {
-		return itx.BaseClient.Rest.RequestWithFilesContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, files, nil)
+		return itx.BaseClient.Rest.RequestWithFiles(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, files, nil)
 	}
 
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPatch, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", response, nil)
 }
 
 // Edits the original message/response with plain text content.
@@ -356,7 +356,7 @@ func (itx *ModalInteraction) EditLinearOriginal(content string) error {
 
 // Deletes the original message/response.
 func (itx *ModalInteraction) DeleteOriginal() error {
-	return itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
+	return itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodDelete, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token+"/messages/@original", nil, nil)
 }
 
 // Used to let user/member know that the bot is processing the modal submission,
@@ -369,7 +369,7 @@ func (itx *ModalInteraction) Defer(ephemeral bool) error {
 		flags = discord.EphemeralMessageFlag
 	}
 
-	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", discord.ResponseMessage{
+	err := itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPost, "/interactions/"+itx.ID.String()+"/"+itx.Token+"/callback", discord.ResponseMessage{
 		Type: discord.DeferredChannelMessageWithSourceResponseType,
 		Data: &discord.ResponseMessageData{
 			Flags: flags,
@@ -391,7 +391,7 @@ func (itx *ModalInteraction) SendFollowUp(content discord.ResponseMessageData, e
 	}
 
 	var res discord.Message
-	err := itx.BaseClient.Rest.RequestContext(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
+	err := itx.BaseClient.Rest.Request(itx.requestContext(), http.MethodPost, "/webhooks/"+itx.ApplicationID.String()+"/"+itx.Token, content, &res)
 	if err != nil {
 		return discord.Message{}, err
 	}

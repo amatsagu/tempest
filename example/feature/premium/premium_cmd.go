@@ -3,6 +3,7 @@
 package premium
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -101,7 +102,7 @@ func (c *premiumCommand) fetchSKUs() ([]sku, error) {
 
 	endpoint := "/applications/" + c.client.ApplicationID.String() + "/skus"
 	var skus []sku
-	if err := c.client.Rest.Request(http.MethodGet, endpoint, nil, &skus); err != nil {
+	if err := c.client.Rest.Request(context.Background(), http.MethodGet, endpoint, nil, &skus); err != nil {
 		return nil, fmt.Errorf("fetch SKUs: %w", err)
 	}
 
@@ -186,7 +187,7 @@ func (c *premiumCommand) subscriptions(itx *tempest.CommandInteraction) error {
 
 	endpoint := "/skus/" + skuID.String() + "/subscriptions?user_id=" + user.ID.String()
 	var subscriptions []subscription
-	if err := c.client.Rest.Request(http.MethodGet, endpoint, nil, &subscriptions); err != nil {
+	if err := c.client.Rest.Request(context.Background(), http.MethodGet, endpoint, nil, &subscriptions); err != nil {
 		return fmt.Errorf("fetch subscriptions: %w", err)
 	}
 

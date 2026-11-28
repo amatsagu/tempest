@@ -8,11 +8,31 @@ import (
 	"strings"
 
 	"github.com/amatsagu/tempest/discord"
+	"github.com/amatsagu/tempest/rest"
 )
+
+// Type aliases preserved for existing callers; core REST types live in github.com/amatsagu/tempest/rest.
+type (
+	Rest               = rest.RestClient
+	RestClient         = rest.RestClient
+	RestClientConfig   = rest.RestClientConfig
+	RestOptions        = rest.RestClientConfig
+	CustomRequest      = rest.CustomRequest
+	RateLimiter        = rest.RateLimiter
+	RateLimiterConfig  = rest.RateLimiterConfig
+	RateLimiterOptions = rest.RateLimiterConfig
+	File               = rest.File
+)
+
+// Creates a standalone REST client.
+func NewRest(cfg RestClientConfig) *Rest {
+	return rest.NewRestClient(cfg)
+}
 
 // BaseClient is the core tempest entrypoint. It is used to create HTTP clients.
 // You should avoid using base version unless you know what you're doing.
 type BaseClient struct {
+	ctx          context.Context
 	sweeper      interactionSweeper
 	staticModals *SharedMap[string, func(ModalInteraction)]
 
@@ -35,10 +55,8 @@ type BaseClient struct {
 }
 
 type BaseClientOptions struct {
-	// Context is the client lifecycle context used for REST and rate-limiter
-	// work without a more specific context. It is ignored when
-	// RestOptions.Context is set. HTTP clients should provide their
-	// server/application context so shutdown also stops post-response work.
+	// Context is the default client lifecycle context used for REST and fallback
+	// interaction work. HTTP clients provide a server/request context on incoming requests.
 	Context                    context.Context
 	PreCommandHook             func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
 	PostCommandHook            func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
@@ -51,7 +69,7 @@ type BaseClientOptions struct {
 }
 
 func NewBaseClient(opt BaseClientOptions) *BaseClient {
-	botUserID, err := extractUserIDFromToken(opt.Token)
+	botUserID, err := rest.ExtractUserIDFromToken(opt.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
@@ -66,15 +84,17 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 		traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
 	}
 
+	baseCtx := opt.Context
+	if baseCtx == nil {
+		baseCtx = context.Background()
+	}
+
 	if opt.RestOptions.Token == "" {
 		opt.RestOptions.Token = opt.Token
 	}
-	if opt.RestOptions.Context == nil {
-		opt.RestOptions.Context = opt.Context
-	}
 
-	if opt.RestOptions.RateLimiterOptions.TraceLogger == nil {
-		opt.RestOptions.RateLimiterOptions.TraceLogger = traceLogger
+	if opt.RestOptions.RateLimiterConfig.TraceLogger == nil {
+		opt.RestOptions.RateLimiterConfig.TraceLogger = traceLogger
 	}
 
 	if opt.RestOptions.TraceLogger == nil {
@@ -82,8 +102,9 @@ func NewBaseClient(opt BaseClientOptions) *BaseClient {
 	}
 
 	client := &BaseClient{
-		ApplicationID:      discord.AppID{Snowflake: botUserID},
-		Rest:               NewRest(opt.RestOptions),
+		ctx:                baseCtx,
+		ApplicationID:      discord.AppID{Snowflake: discord.Snowflake(botUserID)},
+		Rest:               rest.NewRestClient(opt.RestOptions),
 		traceLogger:        traceLogger,
 		trace:              traceLogger.Writer() != io.Discard,
 		commands:           NewSharedMap[string, Command](),
@@ -113,15 +134,15 @@ func (s *BaseClient) tracef(format string, v ...any) {
 }
 
 func (s *BaseClient) context() context.Context {
-	if s == nil || s.Rest == nil {
+	if s == nil || s.ctx == nil {
 		return context.Background()
 	}
-	return s.Rest.baseContext()
+	return s.ctx
 }
 
 func (client *BaseClient) SendMessage(channelID discord.ChannelID, message discord.Message, files []File) (discord.Message, error) {
 	var res discord.Message
-	err := client.Rest.RequestWithFiles(http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
+	err := client.Rest.RequestWithFiles(client.context(), http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
 	if err != nil {
 		return discord.Message{}, err
 	}
@@ -141,7 +162,7 @@ func (client *BaseClient) SendPrivateMessage(userID discord.UserID, content disc
 		ID discord.ChannelID `json:"id"`
 	}
 
-	err := client.Rest.Request(http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
+	err := client.Rest.Request(client.context(), http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
 	if err != nil {
 		return discord.Message{}, err
 	}
@@ -153,7 +174,7 @@ func (client *BaseClient) SendPrivateMessage(userID discord.UserID, content disc
 }
 
 func (client *BaseClient) EditMessage(channelID discord.ChannelID, messageID discord.MessageID, content discord.Message) error {
-	err := client.Rest.Request(http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
+	err := client.Rest.Request(client.context(), http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
 	if err == nil {
 		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -162,7 +183,7 @@ func (client *BaseClient) EditMessage(channelID discord.ChannelID, messageID dis
 }
 
 func (client *BaseClient) DeleteMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
-	err := client.Rest.Request(http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
+	err := client.Rest.Request(client.context(), http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -171,7 +192,7 @@ func (client *BaseClient) DeleteMessage(channelID discord.ChannelID, messageID d
 }
 
 func (client *BaseClient) CrosspostMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
-	err := client.Rest.Request(http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
+	err := client.Rest.Request(client.context(), http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
 	if err == nil {
 		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
 	}
@@ -181,7 +202,7 @@ func (client *BaseClient) CrosspostMessage(channelID discord.ChannelID, messageI
 
 func (client *BaseClient) FetchUser(id discord.UserID) (discord.User, error) {
 	var res discord.User
-	err := client.Rest.Request(http.MethodGet, "/users/"+id.String(), nil, &res)
+	err := client.Rest.Request(client.context(), http.MethodGet, "/users/"+id.String(), nil, &res)
 	if err != nil {
 		return discord.User{}, err
 	}
@@ -192,7 +213,7 @@ func (client *BaseClient) FetchUser(id discord.UserID) (discord.User, error) {
 
 func (client *BaseClient) FetchMember(guildID discord.GuildID, memberID discord.UserID) (discord.Member, error) {
 	var res discord.Member
-	err := client.Rest.Request(http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
+	err := client.Rest.Request(client.context(), http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
 	if err != nil {
 		return discord.Member{}, err
 	}
@@ -212,7 +233,7 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]discord.E
 	}
 
 	var res []discord.Entitlement
-	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
+	err := client.Rest.Request(client.context(), http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +245,7 @@ func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]discord.E
 // https://docs.discord.com/developers/resources/entitlement#get-entitlement
 func (client *BaseClient) FetchEntitlement(entitlementID discord.EntitlementID) (discord.Entitlement, error) {
 	var res discord.Entitlement
-	err := client.Rest.Request(http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
+	err := client.Rest.Request(client.context(), http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
 	if err != nil {
 		return discord.Entitlement{}, err
 	}
@@ -238,7 +259,7 @@ func (client *BaseClient) FetchEntitlement(entitlementID discord.EntitlementID) 
 //
 // https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement
 func (client *BaseClient) ConsumeEntitlement(entitlementID discord.EntitlementID) error {
-	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
+	err := client.Rest.Request(client.context(), http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
 	if err == nil {
 		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
 	}
@@ -248,7 +269,7 @@ func (client *BaseClient) ConsumeEntitlement(entitlementID discord.EntitlementID
 
 // https://docs.discord.com/developers/resources/entitlement#create-test-entitlement
 func (client *BaseClient) CreateTestEntitlement(payload discord.TestEntitlementPayload) error {
-	err := client.Rest.Request(http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload, nil)
+	err := client.Rest.Request(client.context(), http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload, nil)
 	if err == nil {
 		client.tracef("Successfully created test entitlement.")
 	}
@@ -258,7 +279,7 @@ func (client *BaseClient) CreateTestEntitlement(payload discord.TestEntitlementP
 
 // https://docs.discord.com/developers/resources/entitlement#delete-test-entitlement
 func (client *BaseClient) DeleteTestEntitlement(entitlementID discord.EntitlementID) error {
-	err := client.Rest.Request(http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
+	err := client.Rest.Request(client.context(), http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
 	if err == nil {
 		client.tracef("Successfully deleted test entitlement.")
 	}
@@ -270,7 +291,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []discord.GuildID, wh
 	commands := parseCommandsForDiscordAPI(client.commands, whitelist, reverseMode)
 
 	if len(guildIDs) == 0 {
-		err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", commands, nil)
+		err := client.Rest.Request(client.context(), http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", commands, nil)
 		if err == nil {
 			client.tracef("Successfully synced command data with discord.")
 		}
@@ -278,7 +299,7 @@ func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []discord.GuildID, wh
 	}
 
 	for _, guildID := range guildIDs {
-		err := client.Rest.Request(http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", commands, nil)
+		err := client.Rest.Request(client.context(), http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", commands, nil)
 		if err != nil {
 			return err
 		}
