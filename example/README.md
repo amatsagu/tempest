@@ -1,9 +1,6 @@
 # Tempest example bot
 
-A small but complete Discord bot built on Tempest's HTTP interactions API. It is a tour of
-the things a bot usually does, written in the same shape as a real project - following
-event driven or feature slice style. General idea of this style is to group code that
-interacts frequently with each other to life together, making it easier to write and maintain.
+You're looking at a small Discord Application/Bot written in Go, using only Tempest - following feature slice style. General idea of this style is to keep code working together - close together (making it easier to maintain and extend).
 
 This directory is its own Go module made so it always builds against the local
 lib source.
@@ -42,3 +39,11 @@ feature/calc/                 pattern-matched interactive calculator ("calc:{ses
 feature/premium/              SKUs, entitlements, and subscriptions
 bot_test.go                   end-to-end signed HTTP interaction integration test
 ```
+
+## Compilation Sizes
+Tempest bot binaries commonly ends up in range of 12 - 25MB mostly mostly due to Go internal machinery (HTTP2, JSON v2) and massive debug symbols. That's why we recommend disabling CGO (when not needed) and stripping debug symbols for production build - you can do it using command:
+```sh
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" .
+```
+
+Some people additionally do binary packaging (e.g., upx --best / --lzma) to make binary even smaller at cost of slightly slower startup times.
