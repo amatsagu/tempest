@@ -1,4 +1,3 @@
-// Package util holds shared option and embed helpers for the example bot.
 package util
 
 import (
