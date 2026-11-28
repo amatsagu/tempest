@@ -22,6 +22,7 @@ import (
 	"github.com/amatsagu/tempest-example/feature/components"
 	"github.com/amatsagu/tempest-example/feature/contextmenu"
 	"github.com/amatsagu/tempest-example/feature/image"
+	"github.com/amatsagu/tempest-example/feature/patterns"
 	"github.com/amatsagu/tempest-example/feature/premium"
 	"github.com/amatsagu/tempest-example/feature/showcase"
 	"github.com/amatsagu/tempest-example/feature/stats"
@@ -65,52 +66,72 @@ func run() error {
 	// Created before the client so the command hook and /stats share one counter.
 	botStats := stats.NewStats()
 
-	baseOptions := tempest.BaseClientOptions{
+	clientCfg := tempest.ClientConfig{
 		Context:                    ctx,
 		Token:                      token,
+		PublicKey:                  publicKey,
 		DefaultInteractionContexts: []discord.InteractionContextType{discord.GuildContextType},
-		PreCommandHook:             botStats.PreCommand,
+		Trace:                      trace,
+		Hooks: tempest.ClientHooks{
+			PreCommand:  botStats.PreCommand,
+			PostCommand: botStats.PostCommand,
+			CommandError: func(ctx context.Context, cmd tempest.Command, itx *tempest.CommandInteraction, err error) {
+				botStats.RecordCommandError(ctx, cmd, itx, err)
+				util.Logger.Printf("command %q failed (interaction %s): %v", itx.Data.Name, itx.ID, err)
+				if !itx.Responded() {
+					_ = itx.SendLinearReply(ctx, "Command failed: "+err.Error(), true)
+				}
+			},
+			PreComponent:  botStats.PreComponent,
+			PostComponent: botStats.PostComponent,
+			ComponentError: func(ctx context.Context, itx *tempest.ComponentInteraction, err error) {
+				botStats.RecordComponentError(ctx, itx, err)
+				util.Logger.Printf("component %q failed (interaction %s): %v", itx.Data.CustomID, itx.ID, err)
+				if !itx.Responded() {
+					_ = itx.AcknowledgeWithLinearMessage(ctx, "Component failed: "+err.Error(), true)
+				}
+			},
+			PreModal:  botStats.PreModal,
+			PostModal: botStats.PostModal,
+			ModalError: func(ctx context.Context, itx *tempest.ModalInteraction, err error) {
+				botStats.RecordModalError(ctx, itx, err)
+				util.Logger.Printf("modal %q failed (interaction %s): %v", itx.Data.CustomID, itx.ID, err)
+				if !itx.Responded() {
+					_ = itx.AcknowledgeWithLinearMessage(ctx, "Modal failed: "+err.Error(), true)
+				}
+			},
+		},
 	}
 	if trace {
-		// Tempest logs through a *log.Logger. Reuse the example's logger only
-		// when tracing is enabled; otherwise the client keeps its discard logger.
-		baseOptions.Logger = util.Logger
+		clientCfg.TraceLogger = util.Logger
 	}
 
-	httpClient := tempest.NewHTTPClient(tempest.HTTPClientOptions{
-		Trace:             trace,
-		PublicKey:         publicKey,
-		BaseClientOptions: baseOptions,
-	})
-	base := httpClient.BaseClient
+	client := tempest.NewClient(clientCfg)
 
-	// Every feature registers its handlers and returns its command definitions; a
-	// failure stops startup instead of running with a missing handler.
-	registerFeatures := []func(*tempest.BaseClient) ([]tempest.Command, error){
+	registerFeatures := []func(*tempest.Client) ([]tempest.Command, error){
 		commands.Register,
 		contextmenu.Register,
 		components.Register,
+		patterns.Register,
 		showcase.Register,
 		image.Register,
 		tags.Register,
 		calc.Register,
 		premium.Register,
-		func(client *tempest.BaseClient) ([]tempest.Command, error) {
-			return stats.Register(client, botStats)
+		func(c *tempest.Client) ([]tempest.Command, error) {
+			return stats.Register(c, botStats)
 		},
 	}
 
 	var definitions []tempest.Command
 	for _, register := range registerFeatures {
-		featureDefinitions, err := register(base)
+		featureDefinitions, err := register(client)
 		if err != nil {
 			return err
 		}
 		definitions = append(definitions, featureDefinitions...)
 	}
 
-	// A guild ID instead of the zero value would sync to one guild for faster
-	// iteration. The zero-value slice syncs globally.
 	var guildIDs []discord.GuildID
 	if rawGuildID := os.Getenv("DISCORD_TEST_SERVER_ID"); rawGuildID != "" {
 		guildID, err := discord.StringToSnowflake(rawGuildID)
@@ -120,21 +141,18 @@ func run() error {
 		guildIDs = []discord.GuildID{{Snowflake: guildID}}
 	}
 
-	if err := base.SyncCommandsWithDiscord(guildIDs, nil, false); err != nil {
+	if err := client.SyncCommands(ctx, guildIDs, nil, false); err != nil {
 		return fmt.Errorf("sync commands: %w", err)
 	}
 	util.Logger.Printf("synced %d command definitions across %d guild target(s)", len(definitions), len(guildIDs))
 
-	return runHTTP(ctx, httpAddr, httpClient)
+	return runHTTP(ctx, httpAddr, client)
 }
 
-func runHTTP(ctx context.Context, addr string, client *tempest.HTTPClient) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", client.DiscordRequestHandler)
-
+func runHTTP(ctx context.Context, addr string, client *tempest.Client) error {
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           client,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -153,6 +171,10 @@ func runHTTP(ctx context.Context, addr string, client *tempest.HTTPClient) error
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return server.Shutdown(shutdownCtx)
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			_ = client.Shutdown(shutdownCtx)
+			return err
+		}
+		return client.Shutdown(shutdownCtx)
 	}
 }

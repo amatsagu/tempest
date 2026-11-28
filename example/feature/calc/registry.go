@@ -7,10 +7,13 @@ import (
 	"github.com/amatsagu/tempest"
 )
 
-// Register wires the calculator command. Each invocation registers its own
-// one-shot-family component listener through AwaitComponent.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+// Register wires /calc and a single pattern-matched button route ("calc:{session}:{key}").
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	calc := newCalcCommand()
+
+	if err := client.RegisterComponent("calc:{session}:{key}", calc.handleKey); err != nil {
+		return nil, fmt.Errorf("register calc component pattern: %w", err)
+	}
 
 	definition := calc.Definition()
 	if err := client.RegisterCommand(definition); err != nil {

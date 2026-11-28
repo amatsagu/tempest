@@ -19,7 +19,7 @@ import (
 const maxImageBytes = 8 << 20 // 8 MiB
 
 // handleSubmit downloads the uploaded PNG, rotates it, and posts it back.
-func (c *rotateCommand) handleSubmit(itx *tempest.ModalInteraction) error {
+func (c *rotateCommand) handleSubmit(ctx context.Context, itx *tempest.ModalInteraction) error {
 	attachments := itx.GetFileUploadAttachments(rotateUploadID)
 	if len(attachments) == 0 {
 		return errors.New("no PNG was uploaded")
@@ -27,11 +27,11 @@ func (c *rotateCommand) handleSubmit(itx *tempest.ModalInteraction) error {
 
 	// Acknowledge immediately; the download and rotation can take longer than
 	// Discord's three second response window.
-	if err := itx.Defer(true); err != nil {
+	if err := itx.Defer(ctx, true); err != nil {
 		return err
 	}
 
-	raw, err := downloadImage(context.Background(), attachments[0].URL)
+	raw, err := downloadImage(ctx, attachments[0].URL)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (c *rotateCommand) handleSubmit(itx *tempest.ModalInteraction) error {
 		Reader: bytes.NewReader(out.Bytes()),
 	}}
 
-	return itx.EditOriginal(discord.ResponseMessageData{Content: "Rotated image."}, files)
+	return itx.EditOriginal(ctx, discord.ResponseMessageData{Content: "Rotated image."}, files)
 }
 
 func downloadImage(ctx context.Context, url string) ([]byte, error) {

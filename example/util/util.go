@@ -9,36 +9,6 @@ import (
 // Ptr returns a pointer to v, for optional pointer fields on Discord objects.
 func Ptr[T any](v T) *T { return &v }
 
-// CommandHandler adapts an error-returning feature handler to the library's
-// handler shape, which has no error return.
-func CommandHandler(fn func(*tempest.CommandInteraction) error) func(*tempest.CommandInteraction) {
-	return func(itx *tempest.CommandInteraction) {
-		if err := fn(itx); err != nil {
-			Logger.Printf("command %q failed (interaction %s): %v", itx.Data.Name, itx.ID, err)
-		}
-	}
-}
-
-// ComponentHandler adapts an error-returning feature handler to the library's
-// component handler shape.
-func ComponentHandler(fn func(*tempest.ComponentInteraction) error) func(tempest.ComponentInteraction) {
-	return func(itx tempest.ComponentInteraction) {
-		if err := fn(&itx); err != nil {
-			Logger.Printf("component %q failed (interaction %s): %v", itx.Data.CustomID, itx.ID, err)
-		}
-	}
-}
-
-// ModalHandler adapts an error-returning feature handler to the library's modal
-// handler shape.
-func ModalHandler(fn func(*tempest.ModalInteraction) error) func(tempest.ModalInteraction) {
-	return func(itx tempest.ModalInteraction) {
-		if err := fn(&itx); err != nil {
-			Logger.Printf("modal %q failed (interaction %s): %v", itx.Data.CustomID, itx.ID, err)
-		}
-	}
-}
-
 // StringOption returns a string option, if present.
 func StringOption(itx *tempest.CommandInteraction, name string) (string, bool) {
 	raw, ok := itx.GetOptionValue(name)

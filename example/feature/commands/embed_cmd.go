@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"time"
 
 	"github.com/amatsagu/tempest"
@@ -19,11 +20,11 @@ func (c *embedCommand) Definition() tempest.Command {
 			Name:        "embed",
 			Description: "Show a rich embed built with plain Tempest types.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-func (c *embedCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *embedCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	footer := util.EmbedFooter("Tempest example")
 	now := time.Now()
 
@@ -36,5 +37,5 @@ func (c *embedCommand) handle(itx *tempest.CommandInteraction) error {
 		util.EmbedField("Channel", itx.ChannelID.String(), true),
 	}
 
-	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
+	return itx.SendReply(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
 }

@@ -28,15 +28,17 @@ empty to sync globally.
 ## Layout
 
 ```text
-main.go                       config, feature wiring, command sync, shutdown
-util/                         logger, option, handler, embed, component, and modal helpers
+main.go                       config, ClientHooks wiring, feature setup, command sync, shutdown
+util/                         logger, option, embed, component, and modal helpers
 feature/commands/             slash commands
 feature/contextmenu/          USER and MESSAGE context menu commands
-feature/components/           buttons, selects, modals, dynamic handlers
+feature/components/           buttons, selects, modals, runtime component registration/unregistration
+feature/patterns/             {param} / {rest...} component & modal pattern matching, builder, native polls
 feature/showcase/             Components V2
-feature/stats/                a Components V2 runtime stats panel
+feature/stats/                Components V2 runtime panel fed by Pre/Post/Error hooks
 feature/image/                upload a PNG and get it back rotated
-feature/tags/                 slash subcommands and per-server in-memory state
-feature/calc/                 an interactive calculator with in-memory sessions
+feature/tags/                 slash subcommands, two-level groups, and per-server state
+feature/calc/                 pattern-matched interactive calculator ("calc:{session}:{key}")
 feature/premium/              SKUs, entitlements, and subscriptions
+bot_test.go                   end-to-end signed HTTP interaction integration test
 ```

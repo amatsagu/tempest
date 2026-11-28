@@ -12,12 +12,14 @@ import (
 )
 
 func TestVerifyRequest(t *testing.T) {
+	t.Parallel()
+
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client := &HTTPClient{
+	client := &Client{
 		bufferPool: &sync.Pool{
 			New: func() any {
 				return new(bytes.Buffer)
@@ -43,10 +45,10 @@ func TestVerifyRequest(t *testing.T) {
 
 		resBody, buf, verified := client.verifyRequest(req, pub, 1024)
 		if !verified {
-			t.Error("expected verification to succeed")
+			t.Fatal("expected verification to succeed")
 		}
 		if !bytes.Equal(resBody, body) {
-			t.Errorf("expected body %s, got %s", body, resBody)
+			t.Fatalf("expected body %s, got %s", body, resBody)
 		}
 		client.releaseBuffer(buf)
 	})
@@ -58,7 +60,25 @@ func TestVerifyRequest(t *testing.T) {
 
 		_, _, verified := client.verifyRequest(req, pub, 1024)
 		if verified {
-			t.Error("expected verification to fail")
+			t.Fatal("expected verification to fail")
+		}
+	})
+
+	t.Run("Malformed hex or missing timestamp", func(t *testing.T) {
+		badSig := make([]byte, ed25519.SignatureSize)
+		badHex := hex.EncodeToString(badSig)
+
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+		req.Header.Set("X-Signature-Ed25519", badHex)
+		if _, _, ok := client.verifyRequest(req, pub, 1024); ok {
+			t.Fatal("expected failure without timestamp")
+		}
+
+		req2 := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+		req2.Header.Set("X-Signature-Ed25519", "zz"+badHex[2:])
+		req2.Header.Set("X-Signature-Timestamp", timestamp)
+		if _, _, ok := client.verifyRequest(req2, pub, 1024); ok {
+			t.Fatal("expected failure for non-hex signature")
 		}
 	})
 
@@ -70,8 +90,7 @@ func TestVerifyRequest(t *testing.T) {
 
 		_, _, verified := client.verifyRequest(req, pub, 1024)
 		if verified {
-			// It should fail because ed25519.Verify will check truncated body against signature of full body
-			t.Error("expected verification to fail due to truncated body")
+			t.Fatal("expected verification to fail due to truncated body")
 		}
 	})
 }

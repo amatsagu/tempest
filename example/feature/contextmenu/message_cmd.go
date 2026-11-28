@@ -1,6 +1,8 @@
 package contextmenu
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -17,12 +19,12 @@ func (c *quoteCommand) Definition() tempest.Command {
 			Type: discord.MessageCommandType,
 			Name: "Quote",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle reads the resolved target message.
-func (c *quoteCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *quoteCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	message := itx.Data.Resolved.ResolveMessage(discord.MessageID{Snowflake: itx.Data.TargetID})
 
 	content := message.Content
@@ -40,5 +42,5 @@ func (c *quoteCommand) handle(itx *tempest.CommandInteraction) error {
 		util.EmbedField("Author", author, true),
 	}
 
-	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true, nil)
+	return itx.SendReply(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true, nil)
 }

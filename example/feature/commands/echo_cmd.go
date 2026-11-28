@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -44,23 +45,23 @@ func (c *echoCommand) Definition() tempest.Command {
 				},
 			},
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle repeats the text. When dm or channel is set, it demonstrates the client's
 // SendPrivateMessage and SendLinearMessage helpers.
-func (c *echoCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *echoCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	text, _ := util.StringOption(itx, "text")
 	ephemeral, _ := util.BoolOption(itx, "ephemeral")
 
 	if targetChannel, ok := util.SnowflakeOption(itx, "channel"); ok {
 		channelID := discord.ChannelID{Snowflake: targetChannel}
-		if _, err := itx.BaseClient.SendLinearMessage(channelID, text); err != nil {
+		if _, err := itx.Client.SendLinearMessage(ctx, channelID, text); err != nil {
 			return fmt.Errorf("send linear message: %w", err)
 		}
 
-		return itx.SendLinearReply(fmt.Sprintf("Echo sent to %s.", util.ChannelMention(channelID)), true)
+		return itx.SendLinearReply(ctx, fmt.Sprintf("Echo sent to %s.", util.ChannelMention(channelID)), true)
 	}
 
 	if dm, _ := util.BoolOption(itx, "dm"); dm {
@@ -69,12 +70,12 @@ func (c *echoCommand) handle(itx *tempest.CommandInteraction) error {
 			return errors.New("cannot determine user to send DM")
 		}
 
-		if _, err := itx.BaseClient.SendPrivateMessage(user.ID, discord.Message{Content: text}, nil); err != nil {
+		if _, err := itx.Client.SendPrivateMessage(ctx, user.ID, discord.Message{Content: text}, nil); err != nil {
 			return fmt.Errorf("send private message: %w", err)
 		}
 
-		return itx.SendLinearReply("Echo sent to your direct messages.", true)
+		return itx.SendLinearReply(ctx, "Echo sent to your direct messages.", true)
 	}
 
-	return itx.SendReply(discord.ResponseMessageData{Content: text}, ephemeral, nil)
+	return itx.SendReply(ctx, discord.ResponseMessageData{Content: text}, ephemeral, nil)
 }

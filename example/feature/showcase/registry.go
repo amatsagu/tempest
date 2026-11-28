@@ -5,15 +5,13 @@ import (
 	"fmt"
 
 	"github.com/amatsagu/tempest"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 // Register wires the showcase command and its button handler.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	showcase := newShowcaseCommand()
 
-	if err := client.RegisterComponent([]string{acknowledgeID}, util.ComponentHandler(showcase.handleAcknowledge)); err != nil {
+	if err := client.RegisterComponent(acknowledgeID, showcase.handleAcknowledge); err != nil {
 		return nil, fmt.Errorf("register %s: %w", acknowledgeID, err)
 	}
 

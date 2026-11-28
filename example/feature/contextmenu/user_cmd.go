@@ -1,6 +1,8 @@
 package contextmenu
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -17,12 +19,12 @@ func (c *userInfoCommand) Definition() tempest.Command {
 			Type: discord.UserCommandType,
 			Name: "User info",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle reads the resolved target user.
-func (c *userInfoCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *userInfoCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	target := discord.UserID{Snowflake: itx.Data.TargetID}
 	user := itx.Data.Resolved.ResolveUser(target)
 
@@ -32,7 +34,7 @@ func (c *userInfoCommand) handle(itx *tempest.CommandInteraction) error {
 		util.EmbedField("Bot", yesNo(user.Bot), true),
 	}
 
-	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true, nil)
+	return itx.SendReply(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true, nil)
 }
 
 func yesNo(v bool) string {

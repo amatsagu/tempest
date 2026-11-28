@@ -1,10 +1,10 @@
 package commands
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 type pingCommand struct{}
@@ -17,10 +17,10 @@ func (c *pingCommand) Definition() tempest.Command {
 			Name:        "ping",
 			Description: "Check that the bot is alive.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-func (c *pingCommand) handle(itx *tempest.CommandInteraction) error {
-	return itx.SendLinearReply("Pong.", false)
+func (c *pingCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
+	return itx.SendLinearReply(ctx, "Pong.", false)
 }

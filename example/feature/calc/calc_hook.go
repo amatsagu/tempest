@@ -15,15 +15,6 @@ const (
 	keyEquals = "="
 )
 
-// calcKeys is the keypad order used both for the message and for AwaitComponent.
-var calcKeys = []string{
-	"7", "8", "9", "÷",
-	"4", "5", "6", "×",
-	"1", "2", "3", "-",
-	".", "0", keyClear, "+",
-	keyBack, keyEquals,
-}
-
 // calcButton builds one key, packing its session and key into its custom ID.
 func calcButton(session, label, key string, style discord.ButtonStyle) discord.ButtonComponent {
 	return util.Button(fmt.Sprintf("calc:%s:%s", session, key), label, style)
@@ -60,14 +51,6 @@ func calcComponents(session string) []discord.MessageComponent {
 			calcButton(session, "=", keyEquals, discord.SuccessButtonStyle),
 		),
 	}
-}
-
-func calcButtonIDs(session string) []string {
-	ids := make([]string, 0, len(calcKeys))
-	for _, key := range calcKeys {
-		ids = append(ids, fmt.Sprintf("calc:%s:%s", session, key))
-	}
-	return ids
 }
 
 // calcData renders a session's display and keypad.

@@ -1,6 +1,8 @@
 package components
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -28,11 +30,11 @@ func (c *panelCommand) Definition() tempest.Command {
 			Name:        "panel",
 			Description: "Show a panel with buttons and a select menu.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-func (c *panelCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *panelCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	buttons := util.ActionRow(
 		util.Button(openID, "Open form", discord.PrimaryButtonStyle),
 		util.Button(dismissID, "Dismiss", discord.SecondaryButtonStyle),
@@ -50,7 +52,7 @@ func (c *panelCommand) handle(itx *tempest.CommandInteraction) error {
 
 	card := util.Embed("Control panel", "Each control is wired to a handler registered at startup.")
 
-	return itx.SendReply(discord.ResponseMessageData{
+	return itx.SendReply(ctx, discord.ResponseMessageData{
 		Embeds:     []discord.Embed{card},
 		Components: []discord.MessageComponent{buttons, picker},
 	}, false, nil)

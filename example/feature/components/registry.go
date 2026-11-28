@@ -1,36 +1,34 @@
-// Package components shows buttons, selects, modals, and dynamic component handlers.
+// Package components shows buttons, selects, modals, and runtime component registration.
 package components
 
 import (
 	"fmt"
 
 	"github.com/amatsagu/tempest"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 // Register wires the static component and modal handlers plus the commands that
 // show them.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	panel := newPanelCommand()
 	ticket := newTicketCommand(client)
 
 	components := []struct {
-		handler func(tempest.ComponentInteraction)
+		handler tempest.ComponentHandler
 		id      string
 	}{
-		{handler: util.ComponentHandler(panel.handleOpenForm), id: openID},
-		{handler: util.ComponentHandler(panel.handleDismiss), id: dismissID},
-		{handler: util.ComponentHandler(panel.handlePick), id: pickID},
+		{handler: panel.handleOpenForm, id: openID},
+		{handler: panel.handleDismiss, id: dismissID},
+		{handler: panel.handlePick, id: pickID},
 	}
 
 	for _, component := range components {
-		if err := client.RegisterComponent([]string{component.id}, component.handler); err != nil {
+		if err := client.RegisterComponent(component.id, component.handler); err != nil {
 			return nil, fmt.Errorf("register %s: %w", component.id, err)
 		}
 	}
 
-	if err := client.RegisterModal(formID, util.ModalHandler(panel.handleSubmitForm)); err != nil {
+	if err := client.RegisterModal(formID, panel.handleSubmitForm); err != nil {
 		return nil, fmt.Errorf("register %s: %w", formID, err)
 	}
 

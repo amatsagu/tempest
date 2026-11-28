@@ -3,17 +3,14 @@
 package calc
 
 import (
+	"context"
 	"errors"
 	"math/rand/v2"
 	"strconv"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 const initialDisplay = "0"
@@ -44,47 +41,25 @@ func (c *calcCommand) Definition() tempest.Command {
 			Name:        "calc",
 			Description: "An interactive calculator with buttons.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-func (c *calcCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *calcCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	session := c.newSession()
+	return itx.SendReply(ctx, calcData(session, initialDisplay), false, nil)
+}
 
-	if err := itx.SendReply(calcData(session, initialDisplay), false, nil); err != nil {
-		return err
+func (c *calcCommand) handleKey(ctx context.Context, click *tempest.ComponentInteraction) error {
+	session := click.PathValue("session")
+	key := click.PathValue("key")
+
+	state, ok := c.press(session, key)
+	if !ok {
+		return click.AcknowledgeWithLinearMessage(ctx, "This calculator session has expired. Run /calc again.", true)
 	}
 
-	user := itx.BaseUser()
-	ids := calcButtonIDs(session)
-
-	// AwaitComponent auto-acknowledges each press, so the callback edits the
-	// original message through the command interaction's webhook token.
-	return itx.BaseClient.AwaitComponent(ids, 5*time.Minute, func(click *tempest.ComponentInteraction) bool {
-		if user != nil {
-			clickUser := click.BaseUser()
-			if clickUser == nil || clickUser.ID != user.ID {
-				return false
-			}
-		}
-
-		parts := strings.Split(click.Data.CustomID, ":")
-		if len(parts) != 3 {
-			return true
-		}
-		key := parts[2]
-
-		state, ok := c.press(session, key)
-		if !ok {
-			return true
-		}
-
-		if err := itx.EditReply(calcData(session, state.display), false, nil); err != nil {
-			return true
-		}
-
-		return false
-	}, nil)
+	return click.AcknowledgeWithUpdate(ctx, calcData(session, state.display))
 }
 
 func (c *calcCommand) newSession() string {

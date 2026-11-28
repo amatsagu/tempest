@@ -5,13 +5,10 @@ import (
 
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
-// Register wires one handler per /tag subcommand plus autocomplete for the
-// subcommands that take a tag name.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+// Register wires /tag subcommands and the two-level "tag admin clear" subcommand group.
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	tag := newTagCommand()
 	root := tag.Definition()
 
@@ -28,7 +25,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 				{Type: discord.StringOptionType, Name: "value", Description: "The text to save.", Required: true},
 			},
 		},
-		SlashCommandHandler: util.CommandHandler(tag.add),
+		SlashCommandHandler: tag.add,
 	}
 
 	show := tempest.Command{
@@ -40,7 +37,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			},
 		},
 		AutoCompleteHandler: tag.autocomplete,
-		SlashCommandHandler: util.CommandHandler(tag.show),
+		SlashCommandHandler: tag.show,
 	}
 
 	remove := tempest.Command{
@@ -52,7 +49,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			},
 		},
 		AutoCompleteHandler: tag.autocomplete,
-		SlashCommandHandler: util.CommandHandler(tag.remove),
+		SlashCommandHandler: tag.remove,
 	}
 
 	list := tempest.Command{
@@ -60,7 +57,15 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			Name:        "list",
 			Description: "List the tags saved in this server.",
 		},
-		SlashCommandHandler: util.CommandHandler(tag.list),
+		SlashCommandHandler: tag.list,
+	}
+
+	adminClear := tempest.Command{
+		Command: discord.Command{
+			Name:        "clear",
+			Description: "Clear all tags saved in this server.",
+		},
+		SlashCommandHandler: tag.adminClear,
 	}
 
 	definitions := []tempest.Command{root, add, show, remove, list}
@@ -70,5 +75,9 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 		}
 	}
 
-	return definitions, nil
+	if err := client.RegisterSubCommand(adminClear, "tag", "admin"); err != nil {
+		return nil, fmt.Errorf("register /tag admin clear: %w", err)
+	}
+
+	return append(definitions, adminClear), nil
 }

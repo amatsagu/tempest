@@ -17,11 +17,11 @@ const accent = 0x5865F2
 
 // statsCommand holds the client (for REST latency) and the counters.
 type statsCommand struct {
-	client *tempest.BaseClient
+	client *tempest.Client
 	stats  *Stats
 }
 
-func newStatsCommand(client *tempest.BaseClient, stats *Stats) *statsCommand {
+func newStatsCommand(client *tempest.Client, stats *Stats) *statsCommand {
 	return &statsCommand{client: client, stats: stats}
 }
 
@@ -31,12 +31,12 @@ func (c *statsCommand) Definition() tempest.Command {
 			Name:        "stats",
 			Description: "Show runtime stats: uptime, commands, memory, and latency.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle renders the panel as one Components V2 container.
-func (c *statsCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *statsCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	snapshot := c.stats.Snapshot()
 
 	var mem runtime.MemStats
@@ -51,14 +51,20 @@ func (c *statsCommand) handle(itx *tempest.CommandInteraction) error {
 		util.Separator(true),
 		util.TextDisplay(uptimeSection(snapshot.Uptime)),
 		util.Separator(true),
-		util.TextDisplay(fmt.Sprintf("### Commands since start\nTotal **%d**", snapshot.Commands)),
+		util.TextDisplay(fmt.Sprintf(
+			"### Hook Metrics\nCommands: **%d started / %d done**\nComponents: **%d started / %d done**\nModals: **%d started / %d done**\nHandler Errors: **%d**",
+			snapshot.CommandsStarted, snapshot.CommandsCompleted,
+			snapshot.ComponentsStarted, snapshot.ComponentsCompleted,
+			snapshot.ModalsStarted, snapshot.ModalsCompleted,
+			snapshot.Errors,
+		)),
 		util.Separator(true),
 		util.TextDisplay(memorySection(&mem)),
 		util.Separator(true),
-		util.TextDisplay(c.latencySection()),
+		util.TextDisplay(c.latencySection(ctx)),
 	)
 
-	return itx.SendReply(discord.ResponseMessageData{
+	return itx.SendReply(ctx, discord.ResponseMessageData{
 		Flags:      discord.IsComponentsV2MessageFlag,
 		Components: []discord.MessageComponent{container},
 	}, false, nil)
@@ -95,10 +101,10 @@ func memorySection(m *runtime.MemStats) string {
 }
 
 // latencySection times one authenticated REST call.
-func (c *statsCommand) latencySection() string {
+func (c *statsCommand) latencySection(ctx context.Context) string {
 	var restText string
 	start := time.Now()
-	if err := c.client.Rest.Request(context.Background(), http.MethodGet, "/users/@me", nil, nil); err != nil {
+	if err := c.client.Rest.Request(ctx, http.MethodGet, "/users/@me", nil, nil); err != nil {
 		restText = "unavailable: " + err.Error()
 	} else {
 		restText = time.Since(start).Round(time.Millisecond).String()

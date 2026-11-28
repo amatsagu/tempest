@@ -5,12 +5,10 @@ import (
 
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 // Register wires /premium and its autocomplete.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	premium := newPremiumCommand(client)
 	root := premium.Definition()
 
@@ -23,7 +21,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			Name:        "status",
 			Description: "Show what you and this server are entitled to right now.",
 		},
-		SlashCommandHandler: util.CommandHandler(premium.status),
+		SlashCommandHandler: premium.status,
 	}
 
 	skus := tempest.Command{
@@ -31,7 +29,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			Name:        "skus",
 			Description: "List the app's premium offerings.",
 		},
-		SlashCommandHandler: util.CommandHandler(premium.skus),
+		SlashCommandHandler: premium.skus,
 	}
 
 	subscriptions := tempest.Command{
@@ -43,7 +41,7 @@ func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
 			},
 		},
 		AutoCompleteHandler: premium.autocomplete,
-		SlashCommandHandler: util.CommandHandler(premium.subscriptions),
+		SlashCommandHandler: premium.subscriptions,
 	}
 
 	definitions := []tempest.Command{root, status, skus, subscriptions}

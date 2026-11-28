@@ -67,12 +67,12 @@ type subscription struct {
 // premiumCommand answers /premium. It caches the SKU list because the status
 // command, the subscription command, and autocomplete all need it.
 type premiumCommand struct {
-	client   *tempest.BaseClient
+	client   *tempest.Client
 	skuCache []sku
 	mu       sync.Mutex
 }
 
-func newPremiumCommand(client *tempest.BaseClient) *premiumCommand {
+func newPremiumCommand(client *tempest.Client) *premiumCommand {
 	return &premiumCommand{client: client}
 }
 
@@ -82,16 +82,16 @@ func (c *premiumCommand) Definition() tempest.Command {
 			Name:        "premium",
 			Description: "Look at this app's SKUs, your entitlements, and your subscriptions.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handleRoot),
+		SlashCommandHandler: c.handleRoot,
 	}
 }
 
-func (c *premiumCommand) handleRoot(itx *tempest.CommandInteraction) error {
-	return itx.SendLinearReply("Pick a /premium subcommand.", true)
+func (c *premiumCommand) handleRoot(ctx context.Context, itx *tempest.CommandInteraction) error {
+	return itx.SendLinearReply(ctx, "Pick a /premium subcommand.", true)
 }
 
 // fetchSKUs returns the cached SKU list, loading it on first use.
-func (c *premiumCommand) fetchSKUs() ([]sku, error) {
+func (c *premiumCommand) fetchSKUs(ctx context.Context) ([]sku, error) {
 	c.mu.Lock()
 	cached := c.skuCache
 	c.mu.Unlock()
@@ -102,7 +102,7 @@ func (c *premiumCommand) fetchSKUs() ([]sku, error) {
 
 	endpoint := "/applications/" + c.client.ApplicationID.String() + "/skus"
 	var skus []sku
-	if err := c.client.Rest.Request(context.Background(), http.MethodGet, endpoint, nil, &skus); err != nil {
+	if err := c.client.Rest.Request(ctx, http.MethodGet, endpoint, nil, &skus); err != nil {
 		return nil, fmt.Errorf("fetch SKUs: %w", err)
 	}
 
@@ -114,20 +114,20 @@ func (c *premiumCommand) fetchSKUs() ([]sku, error) {
 }
 
 // status lists the active entitlements of the invoking user and of the server.
-func (c *premiumCommand) status(itx *tempest.CommandInteraction) error {
+func (c *premiumCommand) status(ctx context.Context, itx *tempest.CommandInteraction) error {
 	user := itx.BaseUser()
 	if user == nil {
 		return errors.New("the interaction carries no user")
 	}
 
-	userEntitlements, err := c.client.FetchEntitlementsPage("user_id=" + user.ID.String() + "&exclude_ended=true")
+	userEntitlements, err := c.client.FetchEntitlementsPage(ctx, "user_id="+user.ID.String()+"&exclude_ended=true")
 	if err != nil {
 		return err
 	}
 
 	var guildEntitlements []discord.Entitlement
 	if itx.GuildID.Snowflake != 0 {
-		guildEntitlements, err = c.client.FetchEntitlementsPage("guild_id=" + itx.GuildID.String() + "&exclude_ended=true")
+		guildEntitlements, err = c.client.FetchEntitlementsPage(ctx, "guild_id="+itx.GuildID.String()+"&exclude_ended=true")
 		if err != nil {
 			return err
 		}
@@ -141,18 +141,18 @@ func (c *premiumCommand) status(itx *tempest.CommandInteraction) error {
 	b.WriteString("**This server's**\n")
 	writeEntitlements(&b, guildEntitlements, now)
 
-	return itx.SendLinearReply(b.String(), true)
+	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
 // skus lists every SKU the app offers, marking the ones that can be bought.
-func (c *premiumCommand) skus(itx *tempest.CommandInteraction) error {
-	skus, err := c.fetchSKUs()
+func (c *premiumCommand) skus(ctx context.Context, itx *tempest.CommandInteraction) error {
+	skus, err := c.fetchSKUs(ctx)
 	if err != nil {
 		return err
 	}
 
 	if len(skus) == 0 {
-		return itx.SendLinearReply("This app has no SKUs.", true)
+		return itx.SendLinearReply(ctx, "This app has no SKUs.", true)
 	}
 
 	var b strings.Builder
@@ -170,11 +170,11 @@ func (c *premiumCommand) skus(itx *tempest.CommandInteraction) error {
 		b.WriteByte('\n')
 	}
 
-	return itx.SendLinearReply(b.String(), true)
+	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
 // subscriptions lists the invoking user's subscriptions for the chosen SKU.
-func (c *premiumCommand) subscriptions(itx *tempest.CommandInteraction) error {
+func (c *premiumCommand) subscriptions(ctx context.Context, itx *tempest.CommandInteraction) error {
 	user := itx.BaseUser()
 	if user == nil {
 		return errors.New("the interaction carries no user")
@@ -187,12 +187,12 @@ func (c *premiumCommand) subscriptions(itx *tempest.CommandInteraction) error {
 
 	endpoint := "/skus/" + skuID.String() + "/subscriptions?user_id=" + user.ID.String()
 	var subscriptions []subscription
-	if err := c.client.Rest.Request(context.Background(), http.MethodGet, endpoint, nil, &subscriptions); err != nil {
+	if err := c.client.Rest.Request(ctx, http.MethodGet, endpoint, nil, &subscriptions); err != nil {
 		return fmt.Errorf("fetch subscriptions: %w", err)
 	}
 
 	if len(subscriptions) == 0 {
-		return itx.SendLinearReply("You have no subscription for that SKU.", true)
+		return itx.SendLinearReply(ctx, "You have no subscription for that SKU.", true)
 	}
 
 	var b strings.Builder
@@ -206,17 +206,16 @@ func (c *premiumCommand) subscriptions(itx *tempest.CommandInteraction) error {
 		b.WriteByte('\n')
 	}
 
-	return itx.SendLinearReply(b.String(), true)
+	return itx.SendLinearReply(ctx, b.String(), true)
 }
 
 // autocomplete suggests the subscription SKUs by name.
-func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []discord.CommandOptionChoice {
+func (c *premiumCommand) autocomplete(ctx context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
 	typed := focusedString(itx)
 
-	skus, err := c.fetchSKUs()
+	skus, err := c.fetchSKUs(ctx)
 	if err != nil {
-		// Autocomplete has to answer with choices, so a failure suggests nothing.
-		return nil
+		return nil, err
 	}
 
 	choices := make([]discord.CommandOptionChoice, 0, len(skus))
@@ -235,7 +234,7 @@ func (c *premiumCommand) autocomplete(itx tempest.CommandInteraction) []discord.
 		}
 	}
 
-	return choices
+	return choices, nil
 }
 
 // writeEntitlements appends one line per active entitlement; deleted, consumed,
@@ -330,7 +329,7 @@ func subscriptionStatus(status uint8) string {
 	}
 }
 
-func focusedString(itx tempest.CommandInteraction) string {
+func focusedString(itx *tempest.CommandInteraction) string {
 	for _, option := range itx.Data.Options {
 		if !option.Focused {
 			continue

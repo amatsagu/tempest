@@ -1,425 +1,391 @@
+// Package tempest provides a lightweight, HTTP-first Discord interactions client
+// and REST toolkit. External Gateway addons can plug into Client.HandleInteraction
+// while reusing the same command, component, modal, and REST pipelines.
 package tempest
 
 import (
+	"bytes"
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
+	"errors"
 	"io"
 	"log"
 	"net/http"
-	"strings"
+	"os"
+	"runtime"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/amatsagu/tempest/discord"
 	"github.com/amatsagu/tempest/rest"
 )
 
-// Type aliases preserved for existing callers; core REST types live in github.com/amatsagu/tempest/rest.
-type (
-	Rest               = rest.RestClient
-	RestClient         = rest.RestClient
-	RestClientConfig   = rest.RestClientConfig
-	RestOptions        = rest.RestClientConfig
-	CustomRequest      = rest.CustomRequest
-	RateLimiter        = rest.RateLimiter
-	RateLimiterConfig  = rest.RateLimiterConfig
-	RateLimiterOptions = rest.RateLimiterConfig
-	File               = rest.File
+const (
+	ContentTypeJSON        = rest.ContentTypeJSON
+	maxRequestBodySize     = 1024 * 1024 // 1 MiB interaction HTTP body limit.
+	defaultAckTimeout      = 2500 * time.Millisecond
+	maxPooledBodyBufferCap = 128 * 1024
 )
 
-// Creates a standalone REST client.
+var (
+	ErrClientClosed     = errors.New("tempest: client is closed")
+	ErrUnknownCommand   = errors.New("tempest: unknown command")
+	ErrUnknownComponent = errors.New("tempest: unknown component")
+	ErrUnknownModal     = errors.New("tempest: unknown modal")
+	ErrAckTimeout       = errors.New("tempest: initial HTTP interaction acknowledgment timed out")
+	ErrAlreadyResponded = errors.New("tempest: interaction has already been responded to")
+	ErrAlreadyDeferred  = errors.New("tempest: interaction has already been responded to or deferred")
+)
+
+// Re-exported REST types so callers importing only github.com/amatsagu/tempest
+// can configure REST, uploads, and rate limits cleanly.
+type (
+	Rest              = rest.RestClient
+	RestClient        = rest.RestClient
+	RestClientConfig  = rest.RestClientConfig
+	CustomRequest     = rest.CustomRequest
+	RateLimiter       = rest.RateLimiter
+	RateLimiterConfig = rest.RateLimiterConfig
+	File              = rest.File
+)
+
+// Creates a standalone Discord REST client.
 func NewRest(cfg RestClientConfig) *Rest {
 	return rest.NewRestClient(cfg)
 }
 
-// BaseClient is the core tempest entrypoint. It is used to create HTTP clients.
-// You should avoid using base version unless you know what you're doing.
-type BaseClient struct {
-	ctx          context.Context
-	sweeper      interactionSweeper
-	staticModals *SharedMap[string, func(ModalInteraction)]
-
-	traceLogger *log.Logger // Inherited from HTTPClient
-
-	commands         *SharedMap[string, Command]
-	staticComponents *SharedMap[string, func(ComponentInteraction)]
-
-	preCommandHandler  func(cmd Command, itx *CommandInteraction) bool
-	postCommandHandler func(cmd Command, itx *CommandInteraction)
-	componentHandler   func(itx *ComponentInteraction)
-	modalHandler       func(itx *ModalInteraction)
-
-	queuedComponents *SharedMap[string, *queuedComponent]
-	queuedModals     *SharedMap[string, *queuedModal]
-	Rest             *Rest
-	commandContexts  []discord.InteractionContextType
-	ApplicationID    discord.AppID
-	trace            bool
+// Optional lifecycle hooks executed around command, component, and modal handlers.
+type ClientHooks struct {
+	PreCommand     func(ctx context.Context, cmd Command, itx *CommandInteraction) bool
+	PostCommand    func(ctx context.Context, cmd Command, itx *CommandInteraction)
+	CommandError   func(ctx context.Context, cmd Command, itx *CommandInteraction, err error)
+	PreComponent   func(ctx context.Context, itx *ComponentInteraction) bool
+	PostComponent  func(ctx context.Context, itx *ComponentInteraction)
+	ComponentError func(ctx context.Context, itx *ComponentInteraction, err error)
+	PreModal       func(ctx context.Context, itx *ModalInteraction) bool
+	PostModal      func(ctx context.Context, itx *ModalInteraction)
+	ModalError     func(ctx context.Context, itx *ModalInteraction, err error)
 }
 
-type BaseClientOptions struct {
-	// Context is the default client lifecycle context used for REST and fallback
-	// interaction work. HTTP clients provide a server/request context on incoming requests.
-	Context                    context.Context
-	PreCommandHook             func(cmd Command, itx *CommandInteraction) bool // Function that runs before each command. Return type signals whether to continue command execution (return with false to stop early).
-	PostCommandHook            func(cmd Command, itx *CommandInteraction)      // Function that runs after each command.
-	ComponentHandler           func(itx *ComponentInteraction)                 // Function that runs for each unhandled component.
-	ModalHandler               func(itx *ModalInteraction)                     // Function that runs for each unhandled modal.
-	Logger                     *log.Logger                                     // Optional custom logger. If tracing is enabled, this logger will be used for all internal messages. If none is provided, the default Stdout logger will be used instead.
-	Token                      string
-	DefaultInteractionContexts []discord.InteractionContextType
-	RestOptions                RestOptions
+// Configuration for constructing a [Client]. Token and PublicKey are required.
+type ClientConfig struct {
+	Context                    context.Context                  // Base lifecycle context for async/deferred handlers (defaults to context.Background()).
+	TraceLogger                *log.Logger                      // Optional logger used when tracing is enabled.
+	Rest                       *rest.RestClient                 // Optional pre-built REST client; nil builds one from RestConfig.
+	Token                      string                           // Bot token (with or without "Bot " prefix).
+	PublicKey                  string                           // Hex-encoded 32-byte Ed25519 application public key.
+	DefaultInteractionContexts []discord.InteractionContextType // Default command contexts; defaults to [discord.GuildContextType].
+	Hooks                      ClientHooks                      // Optional Pre/Post/Error hooks.
+	RestConfig                 rest.RestClientConfig            // Used only when Rest is nil.
+	AckTimeout                 time.Duration                    // Max wait for initial HTTP interaction reply (defaults to 2.5s).
+	MaxConcurrentHandlers      int                              // Concurrency cap (0 uses max(GOMAXPROCS*64, 512); < 0 disables limit).
+	Trace                      bool                             // Enables verbose diagnostic tracing.
 }
 
-func NewBaseClient(opt BaseClientOptions) *BaseClient {
-	botUserID, err := rest.ExtractUserIDFromToken(opt.Token)
+// Core HTTP-first Discord interactions client. Implements [http.Handler] and exposes
+// [Client.HandleInteraction] for external Gateway addons.
+type Client struct {
+	hooks           ClientHooks
+	baseCtx         context.Context
+	cancel          context.CancelFunc
+	Rest            *rest.RestClient
+	traceLogger     *log.Logger
+	sem             chan struct{}
+	commands        map[string]Command
+	components      *patternRouter[ComponentHandler]
+	modals          *patternRouter[ModalHandler]
+	sessionPool     *sync.Pool
+	timerPool       *sync.Pool
+	readerPool      *sync.Pool
+	bufferPool      *sync.Pool
+	PublicKey       ed25519.PublicKey
+	defaultContexts []discord.InteractionContextType
+	wg              sync.WaitGroup
+	cmdMu           sync.RWMutex
+	ackTimeout      time.Duration
+	ApplicationID   discord.AppID
+	closed          atomic.Bool
+	trace           bool
+}
+
+// Validates credentials, initializes internal registries and pools, and returns a configured [Client].
+func NewClient(cfg ClientConfig) *Client {
+	botUserID, err := rest.ExtractUserIDFromToken(cfg.Token)
 	if err != nil {
 		panic("failed to extract bot user ID from bot token: " + err.Error())
 	}
 
-	contexts := []discord.InteractionContextType{0}
-	if len(opt.DefaultInteractionContexts) > 0 {
-		contexts = opt.DefaultInteractionContexts
+	publicKey, err := hex.DecodeString(cfg.PublicKey)
+	if err != nil {
+		panic("failed to decode discord public key: " + err.Error())
+	}
+	if len(publicKey) != ed25519.PublicKeySize {
+		panic("discord public key must be exactly 32 bytes")
 	}
 
-	traceLogger := opt.Logger
+	contexts := []discord.InteractionContextType{discord.GuildContextType}
+	if len(cfg.DefaultInteractionContexts) > 0 {
+		contexts = append([]discord.InteractionContextType(nil), cfg.DefaultInteractionContexts...)
+	}
+
+	traceLogger := cfg.TraceLogger
 	if traceLogger == nil {
-		traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
+		if cfg.Trace {
+			traceLogger = log.New(os.Stdout, "[TEMPEST] ", log.LstdFlags)
+		} else {
+			traceLogger = log.New(io.Discard, "[TEMPEST] ", log.LstdFlags)
+		}
+	}
+	trace := cfg.Trace || traceLogger.Writer() != io.Discard
+
+	parentCtx := cfg.Context
+	if parentCtx == nil {
+		parentCtx = context.Background()
+	}
+	baseCtx, cancel := context.WithCancel(parentCtx)
+
+	restClient := cfg.Rest
+	if restClient == nil {
+		restCfg := cfg.RestConfig
+		if restCfg.Token == "" {
+			restCfg.Token = cfg.Token
+		}
+		restCfg.Trace = restCfg.Trace || trace
+		if restCfg.TraceLogger == nil {
+			restCfg.TraceLogger = traceLogger
+		}
+		if restCfg.RateLimiterConfig.TraceLogger == nil {
+			restCfg.RateLimiterConfig.TraceLogger = restCfg.TraceLogger
+		}
+		restClient = rest.NewRestClient(restCfg)
 	}
 
-	baseCtx := opt.Context
-	if baseCtx == nil {
-		baseCtx = context.Background()
+	ackTimeout := cfg.AckTimeout
+	if ackTimeout <= 0 {
+		ackTimeout = defaultAckTimeout
 	}
 
-	if opt.RestOptions.Token == "" {
-		opt.RestOptions.Token = opt.Token
+	var sem chan struct{}
+	switch {
+	case cfg.MaxConcurrentHandlers == 0:
+		sem = make(chan struct{}, max(runtime.GOMAXPROCS(0)*64, 512))
+	case cfg.MaxConcurrentHandlers > 0:
+		sem = make(chan struct{}, cfg.MaxConcurrentHandlers)
 	}
 
-	if opt.RestOptions.RateLimiterConfig.TraceLogger == nil {
-		opt.RestOptions.RateLimiterConfig.TraceLogger = traceLogger
-	}
-
-	if opt.RestOptions.TraceLogger == nil {
-		opt.RestOptions.TraceLogger = traceLogger
-	}
-
-	client := &BaseClient{
-		ctx:                baseCtx,
-		ApplicationID:      discord.AppID{Snowflake: discord.Snowflake(botUserID)},
-		Rest:               rest.NewRestClient(opt.RestOptions),
-		traceLogger:        traceLogger,
-		trace:              traceLogger.Writer() != io.Discard,
-		commands:           NewSharedMap[string, Command](),
-		commandContexts:    contexts,
-		staticComponents:   NewSharedMap[string, func(ComponentInteraction)](),
-		staticModals:       NewSharedMap[string, func(ModalInteraction)](),
-		preCommandHandler:  opt.PreCommandHook,
-		postCommandHandler: opt.PostCommandHook,
-		componentHandler:   opt.ComponentHandler,
-		modalHandler:       opt.ModalHandler,
-		queuedComponents:   NewSharedMap[string, *queuedComponent](),
-		queuedModals:       NewSharedMap[string, *queuedModal](),
-		sweeper: interactionSweeper{
-			signal: make(chan struct{}, 1),
+	return &Client{
+		baseCtx:         baseCtx,
+		cancel:          cancel,
+		Rest:            restClient,
+		PublicKey:       ed25519.PublicKey(publicKey),
+		ApplicationID:   discord.AppID{Snowflake: discord.Snowflake(botUserID)},
+		defaultContexts: contexts,
+		hooks:           cfg.Hooks,
+		traceLogger:     traceLogger,
+		trace:           trace,
+		ackTimeout:      ackTimeout,
+		sem:             sem,
+		commands:        make(map[string]Command),
+		components:      newPatternRouter[ComponentHandler](),
+		modals:          newPatternRouter[ModalHandler](),
+		sessionPool: &sync.Pool{
+			New: func() any {
+				return &httpSession{
+					responseCh: make(chan responsePayload, 1),
+				}
+			},
+		},
+		timerPool: &sync.Pool{
+			New: func() any {
+				t := time.NewTimer(time.Hour)
+				t.Stop()
+				return t
+			},
+		},
+		readerPool: &sync.Pool{
+			New: func() any {
+				return new(io.LimitedReader)
+			},
+		},
+		bufferPool: &sync.Pool{
+			New: func() any {
+				b := new(bytes.Buffer)
+				b.Grow(32 * 1024)
+				return b
+			},
 		},
 	}
-
-	return client
 }
 
-func (s *BaseClient) tracef(format string, v ...any) {
-	if !s.trace {
+func (c *Client) tracef(format string, v ...any) {
+	if !c.trace {
 		return
 	}
 
-	s.traceLogger.Printf("[(BASE) CLIENT] "+format, v...)
+	c.traceLogger.Printf("[CLIENT] "+format, v...)
 }
 
-func (s *BaseClient) context() context.Context {
-	if s == nil || s.ctx == nil {
-		return context.Background()
+// Marks the client closed, cancels active interaction contexts, and waits until all
+// in-flight handlers finish or ctx expires.
+func (c *Client) Shutdown(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	return s.ctx
+
+	c.closed.Store(true)
+	if c.cancel != nil {
+		c.cancel()
+	}
+
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
-func (client *BaseClient) SendMessage(channelID discord.ChannelID, message discord.Message, files []File) (discord.Message, error) {
+func (c *Client) SendMessage(ctx context.Context, channelID discord.ChannelID, message discord.Message, files []File) (discord.Message, error) {
 	var res discord.Message
-	err := client.Rest.RequestWithFiles(client.context(), http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
+	err := c.Rest.RequestWithFiles(ctx, http.MethodPost, "/channels/"+channelID.String()+"/messages", message, files, &res)
 	if err != nil {
 		return discord.Message{}, err
 	}
 
-	client.tracef("Successfully sent message ID = %d to channel ID = %d.", res.ID, channelID)
+	c.tracef("Sent message ID = %d to channel ID = %d.", res.ID, channelID)
 	return res, nil
 }
 
-func (client *BaseClient) SendLinearMessage(channelID discord.ChannelID, content string) (discord.Message, error) {
-	return client.SendMessage(channelID, discord.Message{Content: content}, nil)
+func (c *Client) SendLinearMessage(ctx context.Context, channelID discord.ChannelID, content string) (discord.Message, error) {
+	return c.SendMessage(ctx, channelID, discord.Message{Content: content}, nil)
 }
 
-// Creates (or fetches if already exists) user's private text channel (DM) and tries to send message into it.
-// Warning! Discord's user channels endpoint has huge rate limits so please reuse Message#ChannelID whenever possible.
-func (client *BaseClient) SendPrivateMessage(userID discord.UserID, content discord.Message, files []File) (discord.Message, error) {
+// Opens (or reuses) a DM channel for userID and sends a message into it.
+func (c *Client) SendPrivateMessage(ctx context.Context, userID discord.UserID, content discord.Message, files []File) (discord.Message, error) {
 	var dmResp struct {
 		ID discord.ChannelID `json:"id"`
 	}
 
-	err := client.Rest.Request(client.context(), http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
+	err := c.Rest.Request(ctx, http.MethodPost, "/users/@me/channels", map[string]any{"recipient_id": userID}, &dmResp)
 	if err != nil {
 		return discord.Message{}, err
 	}
 
-	msg, err := client.SendMessage(dmResp.ID, content, files)
-	msg.ChannelID = dmResp.ID // Just in case.
+	msg, err := c.SendMessage(ctx, dmResp.ID, content, files)
+	msg.ChannelID = dmResp.ID
 
 	return msg, err
 }
 
-func (client *BaseClient) EditMessage(channelID discord.ChannelID, messageID discord.MessageID, content discord.Message) error {
-	err := client.Rest.Request(client.context(), http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
+func (c *Client) EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, content discord.Message) error {
+	err := c.Rest.Request(ctx, http.MethodPatch, "/channels/"+channelID.String()+"/messages/"+messageID.String(), content, nil)
 	if err == nil {
-		client.tracef("Successfully edited message ID = %d to channel ID = %d.", messageID, channelID)
+		c.tracef("Edited message ID = %d in channel ID = %d.", messageID, channelID)
 	}
 
 	return err
 }
 
-func (client *BaseClient) DeleteMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
-	err := client.Rest.Request(client.context(), http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
+func (c *Client) DeleteMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error {
+	err := c.Rest.Request(ctx, http.MethodDelete, "/channels/"+channelID.String()+"/messages/"+messageID.String(), nil, nil)
 	if err == nil {
-		client.tracef("Successfully deleted message ID = %d to channel ID = %d.", messageID, channelID)
+		c.tracef("Deleted message ID = %d in channel ID = %d.", messageID, channelID)
 	}
 
 	return err
 }
 
-func (client *BaseClient) CrosspostMessage(channelID discord.ChannelID, messageID discord.MessageID) error {
-	err := client.Rest.Request(client.context(), http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
+func (c *Client) CrosspostMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error {
+	err := c.Rest.Request(ctx, http.MethodPost, "/channels/"+channelID.String()+"/messages/"+messageID.String()+"/crosspost", nil, nil)
 	if err == nil {
-		client.tracef("Successfully crossposted message ID = %d to channel ID = %d.", messageID, channelID)
+		c.tracef("Crossposted message ID = %d in channel ID = %d.", messageID, channelID)
 	}
 
 	return err
 }
 
-func (client *BaseClient) FetchUser(id discord.UserID) (discord.User, error) {
+func (c *Client) FetchUser(ctx context.Context, id discord.UserID) (discord.User, error) {
 	var res discord.User
-	err := client.Rest.Request(client.context(), http.MethodGet, "/users/"+id.String(), nil, &res)
+	err := c.Rest.Request(ctx, http.MethodGet, "/users/"+id.String(), nil, &res)
 	if err != nil {
 		return discord.User{}, err
 	}
 
-	client.tracef("Successfully fetched \"%s\" (ID = %d) user data.", res.GlobalName, res.ID)
+	c.tracef("Fetched user %q (ID = %d).", res.GlobalName, res.ID)
 	return res, nil
 }
 
-func (client *BaseClient) FetchMember(guildID discord.GuildID, memberID discord.UserID) (discord.Member, error) {
+func (c *Client) FetchMember(ctx context.Context, guildID discord.GuildID, memberID discord.UserID) (discord.Member, error) {
 	var res discord.Member
-	err := client.Rest.Request(client.context(), http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
+	err := c.Rest.Request(ctx, http.MethodGet, "/guilds/"+guildID.String()+"/members/"+memberID.String(), nil, &res)
 	if err != nil {
 		return discord.Member{}, err
 	}
 
-	client.tracef("Successfully fetched \"%s\" (ID = %d) member data.", res.User.GlobalName, res.User.ID)
+	if res.User != nil {
+		c.tracef("Fetched member %q (ID = %d).", res.User.GlobalName, res.User.ID)
+	}
+
 	return res, nil
 }
 
-// Returns all entitlements for a given app, active and expired.
-//
-// By default it will attempt to return all, existing entitlements - provide query filter to control this behavior.
-//
-// https://docs.discord.com/developers/resources/entitlement#list-entitlements
-func (client *BaseClient) FetchEntitlementsPage(queryFilter string) ([]discord.Entitlement, error) {
+func (c *Client) FetchEntitlementsPage(ctx context.Context, queryFilter string) ([]discord.Entitlement, error) {
 	if queryFilter != "" && queryFilter[0] != '?' {
 		queryFilter = "?" + queryFilter
 	}
 
 	var res []discord.Entitlement
-	err := client.Rest.Request(client.context(), http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
+	err := c.Rest.Request(ctx, http.MethodGet, "/applications/"+c.ApplicationID.String()+"/entitlements"+queryFilter, nil, &res)
 	if err != nil {
 		return nil, err
 	}
 
-	client.tracef("Successfully fetched %d entitlement(s).", len(res))
+	c.tracef("Fetched %d entitlement(s).", len(res))
 	return res, nil
 }
 
-// https://docs.discord.com/developers/resources/entitlement#get-entitlement
-func (client *BaseClient) FetchEntitlement(entitlementID discord.EntitlementID) (discord.Entitlement, error) {
+func (c *Client) FetchEntitlement(ctx context.Context, entitlementID discord.EntitlementID) (discord.Entitlement, error) {
 	var res discord.Entitlement
-	err := client.Rest.Request(client.context(), http.MethodGet, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
+	err := c.Rest.Request(ctx, http.MethodGet, "/applications/"+c.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, &res)
 	if err != nil {
 		return discord.Entitlement{}, err
 	}
 
-	client.tracef("Successfully fetched entitlement with ID = %d.", entitlementID)
+	c.tracef("Fetched entitlement ID = %d.", entitlementID)
 	return res, nil
 }
 
-// For One-Time Purchase consumable SKUs, marks a given entitlement for the user as consumed.
-// The entitlement will have consumed: true when using Client.FetchEntitlements.
-//
-// https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement
-func (client *BaseClient) ConsumeEntitlement(entitlementID discord.EntitlementID) error {
-	err := client.Rest.Request(client.context(), http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
+func (c *Client) ConsumeEntitlement(ctx context.Context, entitlementID discord.EntitlementID) error {
+	err := c.Rest.Request(ctx, http.MethodPost, "/applications/"+c.ApplicationID.String()+"/entitlements/"+entitlementID.String()+"/consume", nil, nil)
 	if err == nil {
-		client.tracef("Successfully consumed entitlement with ID = %d.", entitlementID)
+		c.tracef("Consumed entitlement ID = %d.", entitlementID)
 	}
 
 	return err
 }
 
-// https://docs.discord.com/developers/resources/entitlement#create-test-entitlement
-func (client *BaseClient) CreateTestEntitlement(payload discord.TestEntitlementPayload) error {
-	err := client.Rest.Request(client.context(), http.MethodPost, "/applications/"+client.ApplicationID.String()+"/entitlements", payload, nil)
+func (c *Client) CreateTestEntitlement(ctx context.Context, payload discord.TestEntitlementPayload) error {
+	err := c.Rest.Request(ctx, http.MethodPost, "/applications/"+c.ApplicationID.String()+"/entitlements", payload, nil)
 	if err == nil {
-		client.tracef("Successfully created test entitlement.")
+		c.tracef("Created test entitlement.")
 	}
 
 	return err
 }
 
-// https://docs.discord.com/developers/resources/entitlement#delete-test-entitlement
-func (client *BaseClient) DeleteTestEntitlement(entitlementID discord.EntitlementID) error {
-	err := client.Rest.Request(client.context(), http.MethodDelete, "/applications/"+client.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
+func (c *Client) DeleteTestEntitlement(ctx context.Context, entitlementID discord.EntitlementID) error {
+	err := c.Rest.Request(ctx, http.MethodDelete, "/applications/"+c.ApplicationID.String()+"/entitlements/"+entitlementID.String(), nil, nil)
 	if err == nil {
-		client.tracef("Successfully deleted test entitlement.")
+		c.tracef("Deleted test entitlement ID = %d.", entitlementID)
 	}
 
 	return err
-}
-
-func (client *BaseClient) SyncCommandsWithDiscord(guildIDs []discord.GuildID, whitelist []string, reverseMode bool) error {
-	commands := parseCommandsForDiscordAPI(client.commands, whitelist, reverseMode)
-
-	if len(guildIDs) == 0 {
-		err := client.Rest.Request(client.context(), http.MethodPut, "/applications/"+client.ApplicationID.String()+"/commands", commands, nil)
-		if err == nil {
-			client.tracef("Successfully synced command data with discord.")
-		}
-		return err
-	}
-
-	for _, guildID := range guildIDs {
-		err := client.Rest.Request(client.context(), http.MethodPut, "/applications/"+client.ApplicationID.String()+"/guilds/"+guildID.String()+"/commands", commands, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	client.tracef("Successfully synced command data with discord.")
-	return nil
-}
-
-func (client *BaseClient) handleInteraction(itx *CommandInteraction) (Command, bool) {
-	if len(itx.Data.Options) > 0 && itx.Data.Options[0].Type == discord.SubCommandOptionType {
-		finalName := itx.Data.Name + "@" + itx.Data.Options[0].Name
-		subCommand, available := client.commands.Get(finalName)
-		if available {
-			if itx.Member != nil {
-				itx.Member.GuildID = itx.GuildID
-			}
-
-			itx.Data.Name, itx.Data.Options = finalName, itx.Data.Options[0].Options
-		}
-		return subCommand, available
-	}
-
-	if itx.Member != nil {
-		itx.Member.GuildID = itx.GuildID
-	}
-
-	command, available := client.commands.Get(itx.Data.Name)
-	return command, available
-}
-
-func parseCommandsForDiscordAPI(commands *SharedMap[string, Command], whitelist []string, reverseMode bool) []discord.Command {
-	commands.mu.RLock()
-
-	tree := make(map[string]map[string]discord.Command, len(commands.cache))
-	parsedCommands := make([]discord.Command, 0, len(commands.cache))
-
-	// First loop - prepare nested space for potential sub commands
-	for name, command := range commands.cache {
-		if strings.Contains(name, "@") {
-			continue
-		}
-
-		group := make(map[string]discord.Command, 0)
-		group[ROOT_PLACEHOLDER] = command.Command
-		tree[name] = group
-	}
-
-	// Second loop - assign commands
-	for name, command := range commands.cache {
-		if strings.Contains(name, "@") {
-			parts := strings.Split(name, "@")
-			group, ok := tree[parts[0]]
-			if !ok {
-				continue
-			}
-
-			cmd := command.Command
-			cmd.Type = discord.CommandType(discord.SubCommandOptionType)
-			group[parts[1]] = cmd
-			tree[parts[0]] = group
-		}
-	}
-
-	commands.mu.RUnlock()
-
-	// Use nested map to build final array with structs matching Discord API
-	for _, branch := range tree {
-		baseCommand := branch[ROOT_PLACEHOLDER]
-
-		if len(branch) > 1 {
-			copiedOptions := make([]discord.CommandOption, len(baseCommand.Options), len(baseCommand.Options)+len(branch)-1)
-			copy(copiedOptions, baseCommand.Options)
-			baseCommand.Options = copiedOptions
-
-			for key, subCommand := range branch {
-				if key == ROOT_PLACEHOLDER {
-					continue
-				}
-
-				baseCommand.Options = append(baseCommand.Options, discord.CommandOption{
-					Name:        subCommand.Name,
-					Description: subCommand.Description,
-					Type:        discord.SubCommandOptionType,
-					Options:     subCommand.Options,
-				})
-			}
-		}
-
-		parsedCommands = append(parsedCommands, baseCommand)
-	}
-
-	if len(whitelist) == 0 {
-		return parsedCommands
-	}
-
-	// Build map for fast lookup
-	filterMap := make(map[string]struct{}, len(whitelist))
-	for _, name := range whitelist {
-		filterMap[name] = struct{}{}
-	}
-
-	var filtered []discord.Command
-
-	if reverseMode {
-		// BLACKLIST: exclude listed commands
-		for _, cmd := range parsedCommands {
-			if _, blocked := filterMap[cmd.Name]; blocked {
-				continue
-			}
-			filtered = append(filtered, cmd)
-		}
-	} else {
-		// WHITELIST: include only listed commands
-		for _, cmd := range parsedCommands {
-			if _, allowed := filterMap[cmd.Name]; allowed {
-				filtered = append(filtered, cmd)
-			}
-		}
-	}
-
-	return filtered
 }

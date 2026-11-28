@@ -1,6 +1,8 @@
 package showcase
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -19,12 +21,12 @@ func (c *showcaseCommand) Definition() tempest.Command {
 			Name:        "showcase",
 			Description: "Render a Components V2 message.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle builds one container holding every V2 layout piece.
-func (c *showcaseCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *showcaseCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	container := util.Container(0x5865F2,
 		util.TextDisplay("## Components V2"),
 		util.TextDisplay("Everything below lives inside a single container."),
@@ -39,15 +41,15 @@ func (c *showcaseCommand) handle(itx *tempest.CommandInteraction) error {
 		util.ActionRow(util.Button(acknowledgeID, "Acknowledge", discord.PrimaryButtonStyle)),
 	)
 
-	return itx.SendReply(discord.ResponseMessageData{
+	return itx.SendReply(ctx, discord.ResponseMessageData{
 		Flags:      discord.IsComponentsV2MessageFlag,
 		Components: []discord.MessageComponent{container},
 	}, false, nil)
 }
 
 // handleAcknowledge updates the V2 message in place.
-func (c *showcaseCommand) handleAcknowledge(itx *tempest.ComponentInteraction) error {
-	return itx.AcknowledgeWithUpdate(discord.ResponseMessageData{
+func (c *showcaseCommand) handleAcknowledge(ctx context.Context, itx *tempest.ComponentInteraction) error {
+	return itx.AcknowledgeWithUpdate(ctx, discord.ResponseMessageData{
 		Flags:      discord.IsComponentsV2MessageFlag,
 		Components: []discord.MessageComponent{util.TextDisplay("Acknowledged.")},
 	})

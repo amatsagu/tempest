@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"strings"
 
 	"github.com/amatsagu/tempest"
@@ -44,11 +45,11 @@ func (c *colorCommand) Definition() tempest.Command {
 			},
 		},
 		AutoCompleteHandler: c.autocomplete,
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-func (c *colorCommand) autocomplete(itx tempest.CommandInteraction) []discord.CommandOptionChoice {
+func (c *colorCommand) autocomplete(_ context.Context, itx *tempest.CommandInteraction) ([]discord.CommandOptionChoice, error) {
 	typed := focusedString(itx)
 	typed = strings.ToLower(typed)
 
@@ -58,10 +59,10 @@ func (c *colorCommand) autocomplete(itx tempest.CommandInteraction) []discord.Co
 			choices = append(choices, discord.CommandOptionChoice{Name: name, Value: name})
 		}
 	}
-	return choices
+	return choices, nil
 }
 
-func (c *colorCommand) handle(itx *tempest.CommandInteraction) error {
+func (c *colorCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	name, _ := util.StringOption(itx, "name")
 
 	card := util.Embed(name, "Here is your color.")
@@ -69,12 +70,12 @@ func (c *colorCommand) handle(itx *tempest.CommandInteraction) error {
 		card.Color = value
 	}
 
-	return itx.SendReply(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
+	return itx.SendReply(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, false, nil)
 }
 
 // focusedString reads the focused autocomplete value without the panic in
 // GetFocusedValue for malformed payloads.
-func focusedString(itx tempest.CommandInteraction) string {
+func focusedString(itx *tempest.CommandInteraction) string {
 	for _, option := range itx.Data.Options {
 		if !option.Focused {
 			continue

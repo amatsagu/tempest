@@ -1,6 +1,8 @@
 package components
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -9,7 +11,7 @@ import (
 
 // handleSubmitForm reads the modal's text inputs and replies with an ephemeral
 // embed.
-func (c *panelCommand) handleSubmitForm(itx *tempest.ModalInteraction) error {
+func (c *panelCommand) handleSubmitForm(ctx context.Context, itx *tempest.ModalInteraction) error {
 	title := itx.GetInputValue(titleInputID)
 	details := itx.GetInputValue(detailsInputID)
 
@@ -19,5 +21,5 @@ func (c *panelCommand) handleSubmitForm(itx *tempest.ModalInteraction) error {
 
 	card := util.Embed(title, details)
 
-	return itx.AcknowledgeWithMessage(discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true)
+	return itx.AcknowledgeWithMessage(ctx, discord.ResponseMessageData{Embeds: []discord.Embed{card}}, true)
 }

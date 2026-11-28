@@ -3,6 +3,8 @@
 package image
 
 import (
+	"context"
+
 	"github.com/amatsagu/tempest"
 	"github.com/amatsagu/tempest/discord"
 
@@ -27,13 +29,13 @@ func (c *rotateCommand) Definition() tempest.Command {
 			Name:        "rotate",
 			Description: "Upload a PNG and get it back rotated 90 degrees clockwise.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
 // handle answers with a modal; the upload accepts only .png.
-func (c *rotateCommand) handle(itx *tempest.CommandInteraction) error {
-	return itx.SendModal(rotateModal())
+func (c *rotateCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
+	return itx.SendModal(ctx, rotateModal())
 }
 
 // rotateModal builds the modal /rotate opens; extracted so a test can assert its

@@ -2,10 +2,7 @@ package tempest
 
 import "github.com/amatsagu/tempest/discord"
 
-// Recursively scans the components array for the first interactive component that satisfies filter.
-//
-// Warning - This function can traverse arbitrarily deep nested component trees & uses frequent type assertions, reducing overall performance.
-// Prefer checking individual components for interactions with smaller numbers of components.
+// Recursively scans components for the first interactive component satisfying filter.
 func FindInteractiveComponent[CC discord.AnyComponent, T discord.InteractiveComponent](components []CC, filter func(T) bool) (component T, found bool) {
 	for _, cmp := range components {
 		switch c := any(cmp).(type) {
@@ -20,7 +17,6 @@ func FindInteractiveComponent[CC discord.AnyComponent, T discord.InteractiveComp
 				}
 			}
 		case discord.SectionComponent:
-			// Only valid interactive component inside section accessories are buttons
 			if _, isThumb := c.Accessory.(discord.ThumbnailComponent); isThumb || c.Accessory == nil {
 				continue
 			}

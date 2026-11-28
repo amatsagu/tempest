@@ -1,6 +1,7 @@
 package components
 
 import (
+	"context"
 	"time"
 
 	"github.com/amatsagu/tempest"
@@ -10,10 +11,10 @@ import (
 )
 
 type ticketCommand struct {
-	client *tempest.BaseClient
+	client *tempest.Client
 }
 
-func newTicketCommand(client *tempest.BaseClient) *ticketCommand {
+func newTicketCommand(client *tempest.Client) *ticketCommand {
 	return &ticketCommand{client: client}
 }
 
@@ -23,38 +24,50 @@ func (c *ticketCommand) Definition() tempest.Command {
 			Name:        "ticket",
 			Description: "Post a button whose handler exists only for that one button.",
 		},
-		SlashCommandHandler: util.CommandHandler(c.handle),
+		SlashCommandHandler: c.handle,
 	}
 }
 
-// handle registers a one-shot component listener keyed by this interaction's ID.
-// AwaitComponent removes it after the callback returns true.
-func (c *ticketCommand) handle(itx *tempest.CommandInteraction) error {
+// handle registers a runtime component handler keyed by this interaction's ID and
+// unregisters it as soon as the owner clicks it or the 2-minute window expires.
+func (c *ticketCommand) handle(ctx context.Context, itx *tempest.CommandInteraction) error {
 	id := "ticket:" + itx.ID.String()
 	row := util.ActionRow(util.Button(id, "Create ticket", discord.SuccessButtonStyle))
 
-	if err := itx.SendReply(discord.ResponseMessageData{
-		Content:    "Press the button to run a one-shot handler.",
-		Components: []discord.MessageComponent{row},
-	}, false, nil); err != nil {
-		return err
-	}
-
 	user := itx.BaseUser()
 
-	return c.client.AwaitComponent([]string{id}, 2*time.Minute, func(click *tempest.ComponentInteraction) bool {
+	var timer *time.Timer
+	if err := c.client.RegisterComponent(id, func(clickCtx context.Context, click *tempest.ComponentInteraction) error {
 		if user != nil {
 			clickUser := click.BaseUser()
 			if clickUser == nil || clickUser.ID != user.ID {
-				return false
+				return click.Acknowledge(clickCtx)
 			}
 		}
 
-		if err := itx.EditReply(discord.ResponseMessageData{Content: "Ticket created."}, false, nil); err != nil {
-			return true
+		if timer != nil {
+			timer.Stop()
 		}
-		return true
-	}, func() {
-		_ = itx.EditReply(discord.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false, nil)
+		c.client.UnregisterComponent(id)
+
+		return click.AcknowledgeWithUpdate(clickCtx, discord.ResponseMessageData{Content: "Ticket created."})
+	}); err != nil {
+		return err
+	}
+
+	if err := itx.SendReply(ctx, discord.ResponseMessageData{
+		Content:    "Press the button to run a one-shot handler.",
+		Components: []discord.MessageComponent{row},
+	}, false, nil); err != nil {
+		c.client.UnregisterComponent(id)
+		return err
+	}
+
+	timer = time.AfterFunc(2*time.Minute, func() {
+		if c.client.UnregisterComponent(id) {
+			_ = itx.EditReply(ctx, discord.ResponseMessageData{Content: "The ticket button expired. Run /ticket again."}, false, nil)
+		}
 	})
+
+	return nil
 }

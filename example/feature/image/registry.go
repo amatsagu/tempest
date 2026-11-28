@@ -4,15 +4,13 @@ import (
 	"fmt"
 
 	"github.com/amatsagu/tempest"
-
-	"github.com/amatsagu/tempest-example/util"
 )
 
 // Register wires /rotate and the modal it opens.
-func Register(client *tempest.BaseClient) ([]tempest.Command, error) {
+func Register(client *tempest.Client) ([]tempest.Command, error) {
 	rotate := newRotateCommand()
 
-	if err := client.RegisterModal(rotateModalID, util.ModalHandler(rotate.handleSubmit)); err != nil {
+	if err := client.RegisterModal(rotateModalID, rotate.handleSubmit); err != nil {
 		return nil, fmt.Errorf("register %s: %w", rotateModalID, err)
 	}
 

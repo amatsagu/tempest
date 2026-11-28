@@ -1,50 +1,36 @@
 package tempest
 
-import (
-	"context"
-
-	"github.com/amatsagu/tempest/discord"
-)
+import "github.com/amatsagu/tempest/discord"
 
 type interactionContext struct {
-	session    *httpSession
-	ctx        context.Context // Lifecycle/request context for interaction-driven REST work.
-	HTTPClient *HTTPClient     `json:"-"` // Provided when handling HTTP interactions.
-	BaseClient *BaseClient     `json:"-"` // Always provided.
-	responded  bool
-	deferred   bool
+	Client      *Client                              `json:"-"`
+	session     *httpSession                         `json:"-"`
+	params      [maxInlinePatternParams]patternParam `json:"-"`
+	extraParams []patternParam                       `json:"-"`
+	paramCount  uint8                                `json:"-"`
+	responded   bool                                 `json:"-"`
+	deferred    bool                                 `json:"-"`
 }
 
-// A CommandInteraction represents an interaction received from a user invoking an application command, such as a slash command or a context menu command.
-//
-// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
+// Slash or context-menu application command interaction.
 type CommandInteraction struct {
 	interactionContext
 	discord.CommandInteraction
 }
 
-// A ComponentInteraction represents an interaction received from a user interacting with a message component,
-// such as a [discord.ButtonComponent] or [discord.SelectComponent].
-//
-// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
+// Message component interaction (button, select menu, etc.) with extracted custom ID pattern values.
 type ComponentInteraction struct {
 	interactionContext
 	discord.ComponentInteraction
 }
 
-// A ModalInteraction represents an interaction received from a user submitting a modal.
-//
-// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
+// Submitted modal dialog interaction with extracted custom ID pattern values.
 type ModalInteraction struct {
 	interactionContext
 	discord.ModalInteraction
 }
 
-// Unified response type for all interaction replies.
-// Data field holds one of three response data types (message/modal/auto-complete).
-// We're using "any" type because those types are not compatible with each other and will never be used at the same time.
-//
-// https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
+// Unified interaction response payload serialized inline over HTTP or via REST callback.
 type Response struct {
 	Data  any                  `json:"data,omitempty"`
 	Files []File               `json:"-"`
