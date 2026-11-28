@@ -1,4 +1,3 @@
-// Package showcase renders a Components V2 message.
 package showcase
 
 import (

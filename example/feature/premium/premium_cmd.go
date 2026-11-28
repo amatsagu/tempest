@@ -1,5 +1,3 @@
-// Package premium demonstrates the monetization data available through Tempest's
-// REST surface: SKUs, entitlements, and subscriptions.
 package premium
 
 import (

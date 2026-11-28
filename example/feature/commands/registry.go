@@ -1,5 +1,3 @@
-// Package commands shows slash commands: options, autocomplete, embeds, ephemeral
-// replies, and deferred follow-ups.
 package commands
 
 import (

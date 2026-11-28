@@ -1,6 +1,3 @@
-// Package patterns showcases Tempest v2 pattern matching (exact O(1), single/multi
-// wildcards, specificity precedence, {rest...} catch-all, patterned modals), the builder
-// package, and native Discord polls.
 package patterns
 
 import (

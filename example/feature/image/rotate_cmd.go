@@ -1,5 +1,3 @@
-// Package image demonstrates a file round trip: /rotate takes a PNG and returns it
-// rotated 90 degrees clockwise.
 package image
 
 import (

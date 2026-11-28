@@ -1,4 +1,3 @@
-// Package calc shows an interactive calculator with in-memory session state.
 package calc
 
 import (

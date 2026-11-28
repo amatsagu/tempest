@@ -1,4 +1,3 @@
-// Package contextmenu shows the USER and MESSAGE context menu command types.
 package contextmenu
 
 import (

@@ -1,4 +1,3 @@
-// Package stats renders a Components V2 runtime panel fed by ClientHooks.
 package stats
 
 import (

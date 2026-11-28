@@ -1,4 +1,3 @@
-// Package components shows buttons, selects, modals, and runtime component registration.
 package components
 
 import (
