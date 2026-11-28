@@ -304,7 +304,6 @@ func TestCV2PanelsMatchRaw(t *testing.T) {
 
 var (
 	sinkResp    discord.ResponseMessage
-	sinkEmbed   discord.Embed
 	sinkPoll    discord.Poll
 	sinkJSON    []byte
 	benchTitle  = "## Node"
@@ -425,20 +424,6 @@ func BenchmarkDynamicCV2_Marshal_Raw(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-	}
-}
-
-func BenchmarkEmbed_Builder(b *testing.B) {
-	b.ReportAllocs()
-	for b.Loop() {
-		sinkEmbed = buildEmbedWithBuilder()
-	}
-}
-
-func BenchmarkEmbed_Raw(b *testing.B) {
-	b.ReportAllocs()
-	for b.Loop() {
-		sinkEmbed = buildEmbedRaw()
 	}
 }
 

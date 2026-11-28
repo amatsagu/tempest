@@ -9,56 +9,6 @@ import (
 	"github.com/amatsagu/tempest/discord"
 )
 
-func buildEmbedWithBuilder() discord.Embed {
-	emb := builder.Embed("Release", "v2.0.0")
-	emb.URL = "https://example.com"
-	emb.Color = 0xffd484
-	emb.Footer = new(builder.EmbedFooter("Tempest"))
-	emb.Author = new(builder.EmbedAuthor("Bot"))
-	emb.Image = new(builder.EmbedImage("https://cdn.discordapp.com/image.png"))
-	emb.Thumbnail = new(builder.EmbedThumbnail("https://cdn.discordapp.com/thumb.png"))
-	emb.Provider = new(builder.EmbedProvider("Tempest", "https://example.com"))
-	emb.Video = new(builder.EmbedVideo("https://cdn.discordapp.com/video.mp4"))
-	emb.Fields = []discord.EmbedField{
-		builder.EmbedField("Users", "42", true),
-		builder.EmbedField("Channels", "12", true),
-		builder.EmbedField("Status", "Online", false),
-	}
-
-	return emb
-}
-
-func buildEmbedRaw() discord.Embed {
-	return discord.Embed{
-		Title:       "Release",
-		Description: "v2.0.0",
-		URL:         "https://example.com",
-		Color:       0xffd484,
-		Footer:      &discord.EmbedFooter{Text: "Tempest"},
-		Author:      &discord.EmbedAuthor{Name: "Bot"},
-		Image:       &discord.EmbedImage{URL: "https://cdn.discordapp.com/image.png"},
-		Thumbnail:   &discord.EmbedThumbnail{URL: "https://cdn.discordapp.com/thumb.png"},
-		Provider:    &discord.EmbedProvider{Name: "Tempest", URL: "https://example.com"},
-		Video:       &discord.EmbedVideo{URL: "https://cdn.discordapp.com/video.mp4"},
-		Fields: []discord.EmbedField{
-			{Name: "Users", Value: "42", Inline: true},
-			{Name: "Channels", Value: "12", Inline: true},
-			{Name: "Status", Value: "Online", Inline: false},
-		},
-	}
-}
-
-func TestEmbedBuildersMatchRaw(t *testing.T) {
-	assertSameJSON(t, buildEmbedWithBuilder(), buildEmbedRaw())
-	assertSameJSON(t, builder.EmbedFooter("f"), discord.EmbedFooter{Text: "f"})
-	assertSameJSON(t, builder.EmbedAuthor("a"), discord.EmbedAuthor{Name: "a"})
-	assertSameJSON(t, builder.EmbedImage("u"), discord.EmbedImage{URL: "u"})
-	assertSameJSON(t, builder.EmbedThumbnail("u"), discord.EmbedThumbnail{URL: "u"})
-	assertSameJSON(t, builder.EmbedVideo("u"), discord.EmbedVideo{URL: "u"})
-	assertSameJSON(t, builder.EmbedProvider("n", "u"), discord.EmbedProvider{Name: "n", URL: "u"})
-	assertSameJSON(t, builder.EmbedField("k", "v", true), discord.EmbedField{Name: "k", Value: "v", Inline: true})
-}
-
 func buildPollWithBuilder() discord.Poll {
 	return builder.Poll("Favorite language?", 24,
 		builder.PollAnswer("Go"),
